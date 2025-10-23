@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { publicProcedure, router } from '../trpc.router'
 import { ProviderFactory } from '../../providers'
 import { runLaunch } from '../../launches'
+import { Blueprint } from '@launcher-ads/sdk'
 
 export const launchRouter = (prisma: PrismaService) =>
   router({
@@ -18,13 +19,16 @@ export const launchRouter = (prisma: PrismaService) =>
       )
       .mutation(async ({ input }) => {
         // 1. Récupérer le blueprint
-        const blueprint = await prisma.blueprint.findUnique({
+        const blueprintRecord = await prisma.blueprint.findUnique({
           where: { id: input.blueprintId },
         })
 
-        if (!blueprint) {
+        if (!blueprintRecord) {
           throw new Error('Blueprint not found')
         }
+
+        // Cast Prisma record to SDK Blueprint type
+        const blueprint = blueprintRecord as unknown as Blueprint
 
         // 2. Créer l'adapter
         const adapter = ProviderFactory.create({

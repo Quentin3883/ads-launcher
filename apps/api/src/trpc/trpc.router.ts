@@ -21,15 +21,17 @@ export const publicProcedure = t.procedure
 
 @Injectable()
 export class TrpcRouter {
-  constructor(private readonly prisma: PrismaService) {}
+  appRouter: ReturnType<typeof router>
 
-  appRouter = router({
-    blueprint: blueprintRouter(this.prisma),
-    launch: launchRouter(this.prisma),
-    health: publicProcedure.query(() => {
-      return { status: 'ok', timestamp: new Date().toISOString() }
-    }),
-  })
+  constructor(private readonly prisma: PrismaService) {
+    this.appRouter = router({
+      blueprint: blueprintRouter(this.prisma),
+      launch: launchRouter(this.prisma),
+      health: publicProcedure.query(() => {
+        return { status: 'ok', timestamp: new Date().toISOString() }
+      }),
+    })
+  }
 }
 
 export type AppRouter = TrpcRouter['appRouter']

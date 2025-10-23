@@ -57,9 +57,9 @@ export async function runLaunch(
     const valueProps = params.valueProps || [params.creative.headline]
 
     for (const [vpIndex, valueProp] of valueProps.entries()) {
+      const campaignName = `${blueprint.name} - ${valueProp}`
       try {
         // Créer la campagne
-        const campaignName = `${blueprint.name} - ${valueProp}`
         console.log(`[LaunchRunner] Creating campaign: ${campaignName}`)
 
         const campaignResult = await adapter.createCampaign({
@@ -82,8 +82,8 @@ export async function runLaunch(
         const audiences = params.audiences || []
 
         for (const [audIndex, audience] of audiences.entries()) {
+          const adsetName = `${campaignName} - ${audience.name}`
           try {
-            const adsetName = `${campaignName} - ${audience.name}`
             console.log(`[LaunchRunner] Creating adset: ${adsetName}`)
 
             const adsetResult = await adapter.createAdSet({
@@ -110,20 +110,25 @@ export async function runLaunch(
             console.log(`[LaunchRunner] ✓ AdSet created: ${adsetResult.id}`)
 
             // 5. Créer l'ad pour cet adset
+            const adName = `${adsetName} - Ad`
             try {
               const creativeVariant = createCreativeVariant(
                 params.creative,
                 valueProp
               )
 
-              const adName = `${adsetName} - Ad`
               console.log(`[LaunchRunner] Creating ad: ${adName}`)
 
               const adResult = await adapter.createAd({
                 adSetId: adsetResult.id,
                 name: adName,
                 status: 'PAUSED',
-                creative: creativeVariant,
+                creative: {
+                  title: creativeVariant.headline,
+                  body: creativeVariant.description,
+                  imageUrl: creativeVariant.imageUrl,
+                  callToAction: creativeVariant.callToAction,
+                },
               })
 
               created.push({

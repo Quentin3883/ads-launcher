@@ -6,8 +6,9 @@ import { useState } from 'react'
 import { trpc } from '@/lib/trpc'
 
 function getBaseUrl() {
+  // En dev, toujours pointer vers le port 4000 (API NestJS)
   if (typeof window !== 'undefined') {
-    return ''
+    return 'http://localhost:4000'
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 }

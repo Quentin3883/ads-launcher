@@ -41,3 +41,13 @@ yarn-error.log*
 # Prisma
 apps/api/prisma/migrations/*
 !apps/api/prisma/migrations/.gitkeep
+
+# Build outputs
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+
+# Database
+*.db
+*.db-journal
+

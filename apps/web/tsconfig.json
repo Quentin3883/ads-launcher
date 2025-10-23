@@ -11,6 +11,9 @@
       ],
       "@launcher-ads/ui": [
         "../../packages/ui/src"
+      ],
+      "@launcher-ads/api": [
+        "../api/src"
       ]
     },
     "allowJs": true

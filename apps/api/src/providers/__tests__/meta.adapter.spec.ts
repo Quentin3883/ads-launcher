@@ -129,6 +129,11 @@ describe('MetaAdapter', () => {
 
       expect(metrics).toHaveLength(1)
       const firstMetric = metrics[0]
+      expect(firstMetric).toBeDefined()
+
+      if (!firstMetric) {
+        throw new Error('Expected at least one metric')
+      }
 
       expect(firstMetric).toHaveProperty('impressions')
       expect(firstMetric).toHaveProperty('clicks')

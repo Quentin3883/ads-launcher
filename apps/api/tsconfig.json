@@ -2,6 +2,7 @@
   "extends": "@launcher-ads/config/tsconfig/nest.json",
   "compilerOptions": {
     "baseUrl": "./",
+    "outDir": "./dist",
     "paths": {
       "@launcher-ads/sdk": ["../../packages/sdk/src"]
     }
