@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { initTRPC } from '@trpc/server'
 import * as trpcExpress from '@trpc/server/adapters/express'
 import { blueprintRouter } from './routers/blueprint.router'
+import { launchRouter } from './routers/launch.router'
 import { PrismaService } from '../prisma/prisma.service'
 
 export const createContext = ({
@@ -24,6 +25,7 @@ export class TrpcRouter {
 
   appRouter = router({
     blueprint: blueprintRouter(this.prisma),
+    launch: launchRouter(this.prisma),
     health: publicProcedure.query(() => {
       return { status: 'ok', timestamp: new Date().toISOString() }
     }),
