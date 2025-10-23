@@ -1,0 +1,32 @@
+{
+  "name": "@launcher-ads/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@launcher-ads/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "eslint": "^8.57.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

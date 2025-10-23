@@ -1,0 +1,27 @@
+{
+  "extends": "@launcher-ads/config/tsconfig/next.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@launcher-ads/sdk": [
+        "../../packages/sdk/src"
+      ],
+      "@launcher-ads/ui": [
+        "../../packages/ui/src"
+      ]
+    },
+    "allowJs": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

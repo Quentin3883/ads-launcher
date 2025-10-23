@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BlueprintStatus {
+  draft
+  active
+  archived
+}
+
+enum BlueprintPlatform {
+  meta
+  google
+  linkedin
+  snap
+}
+
+enum LaunchStatus {
+  pending
+  running
+  paused
+  completed
+  failed
+}
+
+enum LeadSource {
+  typeform
+  meta_lead_ad
+  google_lead_form
+  linkedin_lead_gen
+  snap_lead_gen
+  other
+}
+
+model Blueprint {
+  id        String            @id @default(uuid())
+  name      String
+  platform  BlueprintPlatform
+  config    Json
+  status    BlueprintStatus   @default(draft)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  launches Launch[]
+
+  @@index([platform])
+  @@index([status])
+  @@map("blueprints")
+}
+
+model Launch {
+  id                 String        @id @default(uuid())
+  blueprintId        String
+  status             LaunchStatus  @default(pending)
+  externalCampaignId String?
+  scheduledFor       DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  errorMessage       String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  blueprint Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  leads     Lead[]
+
+  @@index([blueprintId])
+  @@index([status])
+  @@map("launches")
+}
+
+model Lead {
+  id             String     @id @default(uuid())
+  launchId       String
+  source         LeadSource
+  externalLeadId String?
+  data           Json
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  launch Launch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+
+  @@index([launchId])
+  @@index([source])
+  @@map("leads")
+}

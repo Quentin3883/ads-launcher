@@ -1,0 +1,39 @@
+{
+  "name": "launcher-ads",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-platform ad campaign launcher and analyzer",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "turbo run typecheck",
+    "db:migrate": "cd apps/api && pnpm prisma migrate dev",
+    "db:seed": "cd apps/api && pnpm prisma db seed",
+    "db:studio": "cd apps/api && pnpm prisma studio",
+    "dx:up": "pnpm db:migrate && pnpm db:seed",
+    "prepare": "husky",
+    "postinstall": "cd apps/api && pnpm prisma generate"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^2.3.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

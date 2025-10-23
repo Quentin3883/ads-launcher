@@ -1,0 +1,11 @@
+{
+  "extends": "@launcher-ads/config/tsconfig/nest.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@launcher-ads/sdk": ["../../packages/sdk/src"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
+}
