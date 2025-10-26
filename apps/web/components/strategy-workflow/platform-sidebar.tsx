@@ -1,7 +1,7 @@
 'use client'
 
 import { PLATFORM_CONFIG, type Platform } from '@/lib/types/strategy-workflow'
-import { GripVertical, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Image from 'next/image'
 
 interface PlatformSidebarProps {

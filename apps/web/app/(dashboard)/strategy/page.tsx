@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useState, useRef } from 'react'
-import { CampaignNode } from '@/components/strategy-workflow/campaign-node'
+import { useCallback, useState, useRef, useMemo } from 'react'
 import { PlatformSidebar } from '@/components/strategy-workflow/platform-sidebar'
 import { NodeConfigPanel } from '@/components/strategy-workflow/node-config-panel'
+import { FunnelColumn } from '@/components/strategy-workflow/funnel-column'
 import type { CampaignNodeData, Platform } from '@/lib/types/strategy-workflow'
+import { getStageFromObjective } from '@/lib/utils/strategy-workflow'
 import { Workflow, Save } from 'lucide-react'
 
 type Node = {
@@ -39,28 +40,18 @@ export default function StrategyWorkflowPage() {
   )
   deleteNodeRef.current = deleteNode
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((node: Node) => {
     if (node.type === 'campaign') {
       setSelectedNode(node)
     }
   }, [])
 
-  // Map Meta objectives to funnel stages
-  const getStageFromObjective = (objective: string): 'awareness' | 'consideration' | 'conversion' => {
-    switch (objective) {
-      case 'AWARENESS':
-        return 'awareness'
-      case 'TRAFFIC':
-      case 'ENGAGEMENT':
-        return 'consideration'
-      case 'LEADS':
-      case 'APP_PROMOTION':
-      case 'SALES':
-        return 'conversion'
-      default:
-        return 'awareness'
-    }
-  }
+  // Filter nodes by stage using useMemo for performance
+  const nodesByStage = useMemo(() => ({
+    awareness: nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'awareness'),
+    consideration: nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'consideration'),
+    conversion: nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'conversion'),
+  }), [nodes])
 
   const updateNodeData = useCallback(
     (nodeId: string, data: Partial<CampaignNodeData>) => {
@@ -185,86 +176,47 @@ export default function StrategyWorkflowPage() {
 
         {/* Columns Area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* React Flow Canvas with Fixed Columns */}
+          {/* Funnel Columns */}
           <div className="flex-1 flex gap-4 p-4 overflow-auto bg-gray-50">
-          {/* Awareness Column */}
-          <div className="flex-1 min-w-[300px] bg-blue-50/50 border-2 border-blue-200 rounded-xl p-4">
-            <div className="mb-4 pb-3 border-b-2 border-blue-200">
-              <h3 className="text-base font-semibold text-blue-700">Awareness</h3>
-              <p className="text-xs text-blue-600">Brand Awareness</p>
-            </div>
-            <div className="space-y-4">
-              {nodes
-                .filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'awareness')
-                .map((node) => (
-                  <div key={node.id} onClick={() => onNodeClick({} as any, node)}>
-                    <CampaignNode
-                      data={node.data}
-                      selected={selectedNode?.id === node.id}
-                      id={node.id}
-                    />
-                  </div>
-                ))}
-              {nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'awareness').length === 0 && (
-                <div className="text-center py-8 text-sm text-gray-400 italic">
-                  No campaigns yet
-                </div>
-              )}
-            </div>
-          </div>
+            <FunnelColumn
+              stage="awareness"
+              title="Awareness"
+              subtitle="Brand Awareness"
+              nodes={nodesByStage.awareness}
+              selectedNodeId={selectedNode?.id || null}
+              onNodeClick={onNodeClick}
+              bgColor="bg-blue-50/50"
+              borderColor="border-blue-200"
+              titleColor="text-blue-700"
+              subtitleColor="text-blue-600"
+            />
 
-          {/* Consideration Column */}
-          <div className="flex-1 min-w-[300px] bg-purple-50/50 border-2 border-purple-200 rounded-xl p-4">
-            <div className="mb-4 pb-3 border-b-2 border-purple-200">
-              <h3 className="text-base font-semibold text-purple-700">Consideration</h3>
-              <p className="text-xs text-purple-600">Traffic & Engagement</p>
-            </div>
-            <div className="space-y-4">
-              {nodes
-                .filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'consideration')
-                .map((node) => (
-                  <div key={node.id} onClick={() => onNodeClick({} as any, node)}>
-                    <CampaignNode
-                      data={node.data}
-                      selected={selectedNode?.id === node.id}
-                      id={node.id}
-                    />
-                  </div>
-                ))}
-              {nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'consideration').length === 0 && (
-                <div className="text-center py-8 text-sm text-gray-400 italic">
-                  No campaigns yet
-                </div>
-              )}
-            </div>
-          </div>
+            <FunnelColumn
+              stage="consideration"
+              title="Consideration"
+              subtitle="Traffic & Engagement"
+              nodes={nodesByStage.consideration}
+              selectedNodeId={selectedNode?.id || null}
+              onNodeClick={onNodeClick}
+              bgColor="bg-purple-50/50"
+              borderColor="border-purple-200"
+              titleColor="text-purple-700"
+              subtitleColor="text-purple-600"
+            />
 
-          {/* Conversion Column */}
-          <div className="flex-1 min-w-[300px] bg-green-50/50 border-2 border-green-200 rounded-xl p-4">
-            <div className="mb-4 pb-3 border-b-2 border-green-200">
-              <h3 className="text-base font-semibold text-green-700">Conversion</h3>
-              <p className="text-xs text-green-600">Leads, Apps & Sales</p>
-            </div>
-            <div className="space-y-4">
-              {nodes
-                .filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'conversion')
-                .map((node) => (
-                  <div key={node.id} onClick={() => onNodeClick({} as any, node)}>
-                    <CampaignNode
-                      data={node.data}
-                      selected={selectedNode?.id === node.id}
-                      id={node.id}
-                    />
-                  </div>
-                ))}
-              {nodes.filter((node) => node.type === 'campaign' && getStageFromObjective(node.data.objective) === 'conversion').length === 0 && (
-                <div className="text-center py-8 text-sm text-gray-400 italic">
-                  No campaigns yet
-                </div>
-              )}
-            </div>
+            <FunnelColumn
+              stage="conversion"
+              title="Conversion"
+              subtitle="Leads, Apps & Sales"
+              nodes={nodesByStage.conversion}
+              selectedNodeId={selectedNode?.id || null}
+              onNodeClick={onNodeClick}
+              bgColor="bg-green-50/50"
+              borderColor="border-green-200"
+              titleColor="text-green-700"
+              subtitleColor="text-green-600"
+            />
           </div>
-        </div>
 
         {/* Right Sidebar - Config Panel (always visible) */}
         <NodeConfigPanel
@@ -274,15 +226,6 @@ export default function StrategyWorkflowPage() {
         />
       </div>
     </div>
-
-      {/* Node Configuration Panel - Old modal version, replaced by sidebar */}
-      {false && selectedNode && selectedNode.type === 'campaign' && selectedNode !== null && (
-        <NodeConfigPanel
-          node={selectedNode}
-          onClose={() => setSelectedNode(null)}
-          onUpdate={updateNodeData}
-        />
-      )}
 
       {/* Save Strategy Modal */}
       {showSaveModal && (

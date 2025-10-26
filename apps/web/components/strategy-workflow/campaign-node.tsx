@@ -1,15 +1,14 @@
 'use client'
 
 import type { CampaignNodeData } from '@/lib/types/strategy-workflow'
-import { PLATFORM_CONFIG, META_OBJECTIVES, FUNNEL_STAGES, AUDIENCE_TYPES } from '@/lib/types/strategy-workflow'
-import { Target, Zap, X, Users } from 'lucide-react'
+import { PLATFORM_CONFIG, META_OBJECTIVES, AUDIENCE_TYPES } from '@/lib/types/strategy-workflow'
+import { Target, X, Users } from 'lucide-react'
 import { useState } from 'react'
 import Image from 'next/image'
 
 export function CampaignNode({ data, selected, id }: { data: any; selected?: boolean; id?: string }) {
   const [isHovered, setIsHovered] = useState(false)
   const nodeData = data as CampaignNodeData
-  const platformColor = PLATFORM_CONFIG[nodeData.platform]?.color || '#gray'
 
   const totalVariants = nodeData.dimensions.reduce((total: number, dim: any) => {
     if (dim.combinationMode === 'multiply') {
@@ -64,21 +63,12 @@ export function CampaignNode({ data, selected, id }: { data: any; selected?: boo
         </div>
       </div>
 
-      {/* Tags/Badges */}
-      <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-        {/* Objective Badge */}
+      {/* Objective Badge */}
+      <div className="px-4 pb-3">
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium">
           <Target className="h-3 w-3" />
           {META_OBJECTIVES[nodeData.objective].label}
         </span>
-
-        {/* Stage Badge */}
-        {nodeData.stage && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-medium">
-            <Zap className="h-3 w-3" />
-            {FUNNEL_STAGES[nodeData.stage].label}
-          </span>
-        )}
       </div>
 
       {/* Audiences Preview */}
