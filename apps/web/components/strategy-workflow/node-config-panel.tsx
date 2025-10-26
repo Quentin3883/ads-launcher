@@ -1,9 +1,10 @@
 'use client'
 
-import { X, Plus, Trash2, Users } from 'lucide-react'
+import { X, Plus, Trash2, Users, Target, Layers, Minimize2 } from 'lucide-react'
 import type { CampaignNodeData, NodeDimension, AudienceConfig, AudienceType } from '@/lib/types/strategy-workflow'
-import { META_OBJECTIVES, FUNNEL_STAGES, AUDIENCE_TYPES } from '@/lib/types/strategy-workflow'
+import { META_OBJECTIVES, AUDIENCE_TYPES } from '@/lib/types/strategy-workflow'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { CustomSelect } from '@/components/ui/custom-select'
 
 interface NodeConfigPanelProps {
   node: any | null
@@ -227,17 +228,16 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
               {/* Objective */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">Objective</label>
-                <select
+                <CustomSelect
                   value={objective}
-                  onChange={(e) => setObjective(e.target.value as any)}
-                  className="w-full px-2 py-1.5 text-sm border border-[#d9d8ce] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#151515]"
-                >
-                  {Object.entries(META_OBJECTIVES).map(([key, obj]) => (
-                    <option key={key} value={key}>
-                      {obj.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setObjective(value as any)}
+                  options={Object.entries(META_OBJECTIVES).map(([key, obj]) => ({
+                    value: key,
+                    label: obj.label,
+                    icon: <Target className="h-3.5 w-3.5 text-blue-600" />,
+                  }))}
+                  placeholder="Select objective"
+                />
               </div>
 
               {/* Multiplier */}
@@ -481,16 +481,24 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Combination Mode
                       </label>
-                      <select
+                      <CustomSelect
                         value={dim.combinationMode}
-                        onChange={(e) =>
-                          updateDimension(dim.id, { combinationMode: e.target.value as any })
+                        onChange={(value) =>
+                          updateDimension(dim.id, { combinationMode: value as any })
                         }
-                        className="w-full px-2 py-1 text-sm border border-[#d9d8ce] rounded focus:outline-none focus:ring-2 focus:ring-[#151515]"
-                      >
-                        <option value="multiply">Multiply (combine with others)</option>
-                        <option value="separate">Separate (1 campaign each)</option>
-                      </select>
+                        options={[
+                          {
+                            value: 'multiply',
+                            label: 'Multiply (combine)',
+                            icon: <Layers className="h-3.5 w-3.5 text-amber-600" />,
+                          },
+                          {
+                            value: 'separate',
+                            label: 'Separate (1 each)',
+                            icon: <Minimize2 className="h-3.5 w-3.5 text-teal-600" />,
+                          },
+                        ]}
+                      />
                     </div>
 
                     <div className="text-xs text-gray-500">
