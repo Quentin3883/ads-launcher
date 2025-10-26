@@ -14,7 +14,14 @@ const CAMPAIGN_TYPES: { value: CampaignType; label: string }[] = [
 ]
 
 export function CampaignConfigStep() {
-  const { campaign, updateCampaign } = useBulkLauncher()
+  const { campaign, updateCampaign, bulkAudiences, getMatrixStats } = useBulkLauncher()
+  const stats = getMatrixStats()
+
+  // Calculate ABO budget sum
+  const aboTotalBudget = campaign.budgetMode === 'ABO'
+    ? stats.adSets * (bulkAudiences.budgetPerAdSet || 0)
+    : 0
+  const showAboWarning = campaign.budgetMode === 'ABO' && campaign.budget && aboTotalBudget > campaign.budget
 
   const handleRedirectionTypeChange = (type: RedirectionType) => {
     updateCampaign({
@@ -181,6 +188,27 @@ export function CampaignConfigStep() {
               placeholder="1000"
               className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
+          </div>
+        )}
+
+        {campaign.budgetMode === 'ABO' && stats.adSets > 0 && (
+          <div className={`rounded-lg p-3 ${showAboWarning ? 'bg-yellow-50 border border-yellow-200' : 'bg-muted/30'}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total ABO Budget ({campaign.budgetType})</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {stats.adSets} Ad Sets × ${bulkAudiences.budgetPerAdSet || 0} = ${aboTotalBudget}
+                </p>
+              </div>
+              {showAboWarning && (
+                <div className="text-xs text-yellow-700 font-medium">
+                  ⚠️ Exceeds campaign budget (${campaign.budget})
+                </div>
+              )}
+            </div>
+            {campaign.budget && !showAboWarning && (
+              <p className="text-xs text-green-600 mt-1">✓ Within campaign budget limit (${campaign.budget})</p>
+            )}
           </div>
         )}
       </div>

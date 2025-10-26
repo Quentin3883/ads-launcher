@@ -15,6 +15,10 @@ import {
 import type { AudiencePreset, AudiencePresetType, PlacementPreset } from '@/lib/types/bulk-launcher'
 import { Plus, Trash2, List, Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { FormField } from '@/components/ui/form-field'
+import { FormSelect } from '@/components/ui/form-select'
+import { ToggleButtonGroup } from '@/components/ui/toggle-button-group'
+import { SectionCard } from '@/components/ui/section-card'
 
 const AUDIENCE_PRESET_TYPES: { value: AudiencePresetType; label: string; description: string }[] = [
   { value: 'BROAD', label: 'Broad', description: 'Wide reach, no targeting' },
@@ -249,86 +253,47 @@ export function AudiencesBulkStep() {
 
         {/* Conditional Fields */}
         {newAudienceType === 'INTEREST' && (
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Select Interests
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {INTERESTS_OPTIONS.map((interest) => (
-                <button
-                  key={interest}
-                  onClick={() =>
-                    setSelectedInterests((prev) =>
-                      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-                    )
-                  }
-                  className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                    selectedInterests.includes(interest)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {interest}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ToggleButtonGroup
+            label="Select Interests"
+            items={INTERESTS_OPTIONS}
+            selectedItems={selectedInterests}
+            onToggle={(interest) =>
+              setSelectedInterests((prev) =>
+                prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+              )
+            }
+          />
         )}
 
         {newAudienceType === 'LOOKALIKE' && (
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                LAL Source
-              </label>
-              <input
-                type="text"
-                value={lalSource}
-                onChange={(e) => setLalSource(e.target.value)}
-                placeholder="e.g., Website Visitors 30D"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                LAL %
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {LAL_PERCENTAGES.map((pct) => (
-                  <button
-                    key={pct}
-                    onClick={() =>
-                      setLalPercentages((prev) =>
-                        prev.includes(pct) ? prev.filter((p) => p !== pct) : [...prev, pct]
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                      lalPercentages.includes(pct)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                  >
-                    {pct}%
-                  </button>
-                ))}
-              </div>
-            </div>
+            <FormField
+              label="LAL Source"
+              value={lalSource}
+              onChange={setLalSource}
+              placeholder="e.g., Website Visitors 30D"
+            />
+            <ToggleButtonGroup
+              label="LAL %"
+              items={LAL_PERCENTAGES.map((p) => `${p}%`)}
+              selectedItems={lalPercentages.map((p) => `${p}%`)}
+              onToggle={(pct) => {
+                const num = parseInt(pct)
+                setLalPercentages((prev) =>
+                  prev.includes(num) ? prev.filter((p) => p !== num) : [...prev, num]
+                )
+              }}
+            />
           </div>
         )}
 
         {newAudienceType === 'CUSTOM_AUDIENCE' && (
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Custom Audience ID
-            </label>
-            <input
-              type="text"
-              value={customAudienceId}
-              onChange={(e) => setCustomAudienceId(e.target.value)}
-              placeholder="e.g., 123456789"
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-            />
-          </div>
+          <FormField
+            label="Custom Audience ID"
+            value={customAudienceId}
+            onChange={setCustomAudienceId}
+            placeholder="e.g., 123456789"
+          />
         )}
 
         <button
@@ -394,190 +359,119 @@ export function AudiencesBulkStep() {
       </div>
 
       {/* Geo Locations */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground flex items-center gap-2">
-          Geo Locations *
-          <Info className="h-4 w-4 text-muted-foreground" />
-        </h4>
+      <SectionCard
+        title="Geo Locations *"
+        icon={Info}
+      >
+        <ToggleButtonGroup
+          label="Countries"
+          items={COUNTRIES}
+          selectedItems={bulkAudiences.geoLocations.countries}
+          onToggle={(country) => handleGeoToggle('countries', country)}
+          size="sm"
+        />
 
-        {/* Countries */}
-        <div>
-          <label className="block text-xs font-medium text-foreground mb-2">Countries</label>
-          <div className="flex flex-wrap gap-2">
-            {COUNTRIES.map((country) => (
-              <button
-                key={country}
-                onClick={() => handleGeoToggle('countries', country)}
-                className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                  bulkAudiences.geoLocations.countries.includes(country)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {country}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Regions */}
         {availableRegions.length > 0 && (
-          <div>
-            <label className="block text-xs font-medium text-foreground mb-2">Regions (optional)</label>
-            <div className="flex flex-wrap gap-2">
-              {availableRegions.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => handleGeoToggle('regions', region)}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                    bulkAudiences.geoLocations.regions?.includes(region)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {region}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ToggleButtonGroup
+            label="Regions (optional)"
+            items={availableRegions}
+            selectedItems={bulkAudiences.geoLocations.regions || []}
+            onToggle={(region) => handleGeoToggle('regions', region)}
+            size="sm"
+          />
         )}
 
-        {/* Cities */}
         {availableCities.length > 0 && (
-          <div>
-            <label className="block text-xs font-medium text-foreground mb-2">Cities (optional)</label>
-            <div className="flex flex-wrap gap-2">
-              {availableCities.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => handleGeoToggle('cities', city)}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                    bulkAudiences.geoLocations.cities?.includes(city)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ToggleButtonGroup
+            label="Cities (optional)"
+            items={availableCities}
+            selectedItems={bulkAudiences.geoLocations.cities || []}
+            onToggle={(city) => handleGeoToggle('cities', city)}
+            size="sm"
+          />
         )}
-      </div>
+      </SectionCard>
 
       {/* Demographics */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground">Demographics</h4>
-
+      <SectionCard title="Demographics">
         <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Age Min</label>
-            <input
-              type="number"
-              min="13"
-              max="65"
-              value={bulkAudiences.demographics.ageMin}
-              onChange={(e) =>
-                updateBulkAudiences({
-                  demographics: { ...bulkAudiences.demographics, ageMin: Number(e.target.value) },
-                })
-              }
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Age Max</label>
-            <input
-              type="number"
-              min="13"
-              max="65"
-              value={bulkAudiences.demographics.ageMax}
-              onChange={(e) =>
-                updateBulkAudiences({
-                  demographics: { ...bulkAudiences.demographics, ageMax: Number(e.target.value) },
-                })
-              }
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Gender</label>
-            <select
-              value={bulkAudiences.demographics.gender}
-              onChange={(e) =>
-                updateBulkAudiences({
-                  demographics: { ...bulkAudiences.demographics, gender: e.target.value as any },
-                })
-              }
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-            >
-              <option value="All">All</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
+          <FormField
+            label="Age Min"
+            type="number"
+            min={13}
+            max={65}
+            value={bulkAudiences.demographics.ageMin}
+            onChange={(val) =>
+              updateBulkAudiences({
+                demographics: { ...bulkAudiences.demographics, ageMin: Number(val) },
+              })
+            }
+          />
+          <FormField
+            label="Age Max"
+            type="number"
+            min={13}
+            max={65}
+            value={bulkAudiences.demographics.ageMax}
+            onChange={(val) =>
+              updateBulkAudiences({
+                demographics: { ...bulkAudiences.demographics, ageMax: Number(val) },
+              })
+            }
+          />
+          <FormSelect
+            label="Gender"
+            value={bulkAudiences.demographics.gender}
+            onChange={(val) =>
+              updateBulkAudiences({
+                demographics: { ...bulkAudiences.demographics, gender: val as any },
+              })
+            }
+            options={['All', 'Male', 'Female']}
+          />
         </div>
 
-        {/* Languages */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Languages (optional)</label>
-          <div className="flex flex-wrap gap-2">
-            {LANGUAGES.map((language) => (
-              <button
-                key={language}
-                onClick={() => handleLanguageToggle(language)}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  bulkAudiences.demographics.languages?.includes(language)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {language}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        <ToggleButtonGroup
+          label="Languages (optional)"
+          items={LANGUAGES}
+          selectedItems={bulkAudiences.demographics.languages || []}
+          onToggle={handleLanguageToggle}
+        />
+      </SectionCard>
 
       {/* Optimization & Budget */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground">Optimization & Budget</h4>
-
+      <SectionCard title="Optimization & Budget">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Optimization Event *</label>
-            <select
-              value={bulkAudiences.optimizationEvent}
-              onChange={(e) => updateBulkAudiences({ optimizationEvent: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-            >
-              {OPTIMIZATION_EVENTS.map((event) => (
-                <option key={event} value={event}>
-                  {event.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FormSelect
+            label="Optimization Event *"
+            value={bulkAudiences.optimizationEvent}
+            onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
+            options={OPTIMIZATION_EVENTS.map((event) => ({
+              value: event,
+              label: event.replace(/_/g, ' '),
+            }))}
+          />
 
           {isABO && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Budget per Ad Set (USD) *</label>
               <div className="flex gap-2">
-                <select
+                <FormSelect
                   value={bulkAudiences.budgetType || 'daily'}
-                  onChange={(e) => updateBulkAudiences({ budgetType: e.target.value as any })}
-                  className="w-24 px-2 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="lifetime">Lifetime</option>
-                </select>
-                <input
+                  onChange={(val) => updateBulkAudiences({ budgetType: val as any })}
+                  options={[
+                    { value: 'daily', label: 'Daily' },
+                    { value: 'lifetime', label: 'Lifetime' },
+                  ]}
+                  className="w-24"
+                />
+                <FormField
                   type="number"
-                  min="5"
+                  min={5}
                   value={bulkAudiences.budgetPerAdSet || ''}
-                  onChange={(e) => updateBulkAudiences({ budgetPerAdSet: Number(e.target.value) })}
+                  onChange={(val) => updateBulkAudiences({ budgetPerAdSet: Number(val) })}
                   placeholder="50"
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="flex-1"
                 />
               </div>
             </div>
@@ -592,7 +486,7 @@ export function AudiencesBulkStep() {
             </div>
           )}
         </div>
-      </div>
+      </SectionCard>
     </div>
   )
 }

@@ -4,7 +4,10 @@ import { useState, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { CTA_OPTIONS, generateId } from '@/lib/types/bulk-launcher'
 import type { Creative, CreativeVersion } from '@/lib/types/bulk-launcher'
-import { Upload, Trash2, Plus, X, Monitor, Smartphone } from 'lucide-react'
+import { Upload, Trash2, Plus, X, Monitor, Smartphone, Lock } from 'lucide-react'
+import { FormField } from '@/components/ui/form-field'
+import { FormSelect } from '@/components/ui/form-select'
+import { SectionCard } from '@/components/ui/section-card'
 
 export function CreativesBulkStep() {
   const {
@@ -251,9 +254,9 @@ export function CreativesBulkStep() {
       )}
 
       {/* Copy Section */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-foreground">Ad Copy</h4>
+      <SectionCard
+        title="Ad Copy"
+        headerAction={
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -263,71 +266,74 @@ export function CreativesBulkStep() {
             />
             <span className="text-xs text-foreground">Same for all</span>
           </label>
-        </div>
-
+        }
+        className="p-4"
+      >
         {bulkCreatives.sameCopyForAll ? (
           <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">Headline (40)</label>
-              <input
-                type="text"
-                maxLength={40}
-                value={bulkCreatives.globalHeadline || ''}
-                onChange={(e) => updateBulkCreatives({ globalHeadline: e.target.value })}
-                placeholder="Your headline"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">Primary Text (125)</label>
-              <input
-                type="text"
-                maxLength={125}
-                value={bulkCreatives.globalPrimaryText || ''}
-                onChange={(e) => updateBulkCreatives({ globalPrimaryText: e.target.value })}
-                placeholder="Your message"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">CTA</label>
-              <select
-                value={bulkCreatives.globalCTA || 'Learn More'}
-                onChange={(e) => updateBulkCreatives({ globalCTA: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              >
-                {CTA_OPTIONS.map((cta) => (
-                  <option key={cta} value={cta}>
-                    {cta}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormField
+              label="Headline"
+              maxLength={40}
+              value={bulkCreatives.globalHeadline || ''}
+              onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
+              placeholder="Your headline"
+            />
+            <FormField
+              label="Primary Text"
+              maxLength={125}
+              value={bulkCreatives.globalPrimaryText || ''}
+              onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
+              placeholder="Your message"
+            />
+            <FormSelect
+              label="CTA"
+              value={bulkCreatives.globalCTA || 'Learn More'}
+              onChange={(val) => updateBulkCreatives({ globalCTA: val })}
+              options={CTA_OPTIONS}
+            />
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Individual copy editing per creative coming soon...</p>
         )}
-      </div>
+      </SectionCard>
 
       {/* Copy Variants */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-semibold text-foreground">Copy Variants (A/B Test)</h4>
-            <p className="text-[10px] text-muted-foreground">Multiply ads for testing</p>
+      <SectionCard
+        title="Copy Variants (A/B Test)"
+        subtitle="Multiply ads for testing"
+        headerAction={
+          <div className="flex items-center gap-3">
+            {bulkCreatives.sameCopyForAll && (
+              <div className="flex items-center gap-1.5 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                <Lock className="h-3 w-3" />
+                <span>Locked by "Same for all"</span>
+              </div>
+            )}
+            <label className={`flex items-center gap-2 ${bulkCreatives.sameCopyForAll ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={bulkCreatives.enableVariants}
+                onChange={(e) => {
+                  if (!bulkCreatives.sameCopyForAll) {
+                    updateBulkCreatives({ enableVariants: e.target.checked })
+                  }
+                }}
+                disabled={bulkCreatives.sameCopyForAll}
+                className="rounded border-border disabled:cursor-not-allowed"
+              />
+              <span className="text-xs text-foreground">Enable</span>
+            </label>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={bulkCreatives.enableVariants}
-              onChange={(e) => updateBulkCreatives({ enableVariants: e.target.checked })}
-              className="rounded border-border"
-            />
-            <span className="text-xs text-foreground">Enable</span>
-          </label>
-        </div>
-
-        {bulkCreatives.enableVariants && (
+        }
+        className="p-4"
+      >
+        {bulkCreatives.sameCopyForAll ? (
+          <div className="text-center py-6">
+            <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Copy variants are locked when "Same for all" is enabled</p>
+            <p className="text-xs text-muted-foreground mt-1">Disable "Same for all" to create copy variants</p>
+          </div>
+        ) : bulkCreatives.enableVariants && (
           <div className="space-y-2">
             {(bulkCreatives.copyVariants || []).map((variant) => (
               <div key={variant.id} className="flex items-center gap-2">
@@ -411,7 +417,7 @@ export function CreativesBulkStep() {
             </button>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

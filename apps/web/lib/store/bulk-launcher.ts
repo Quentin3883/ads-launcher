@@ -18,10 +18,20 @@ import {
   getDefaultRedirectionType,
 } from '@/lib/types/bulk-launcher'
 
+interface HistoryState {
+  audiences: AudiencePreset[]
+  creatives: Creative[]
+  copyVariants: CopyVariant[]
+}
+
 interface BulkLauncherState {
   // Current step
   currentStep: number
   setCurrentStep: (step: number) => void
+
+  // Client selection
+  clientId: string | null
+  setClientId: (clientId: string | null) => void
 
   // Step 1: Campaign
   campaign: Partial<CampaignConfig>
@@ -53,6 +63,16 @@ interface BulkLauncherState {
   generatedAdSets: GeneratedAdSet[]
   generateCampaign: () => BulkCampaignOutput | null
   getMatrixStats: () => { adSets: number; adsPerAdSet: number; totalAds: number }
+
+  // Undo/Redo
+  history: {
+    past: HistoryState[]
+    future: HistoryState[]
+  }
+  canUndo: () => boolean
+  canRedo: () => boolean
+  undo: () => void
+  redo: () => void
 
   // Actions
   reset: () => void
@@ -113,9 +133,80 @@ const initialMatrixConfig: MatrixConfig = {
   softLimit: 300,
 }
 
+const MAX_HISTORY_SIZE = 50
+
+// Helper to save current state to history
+const saveToHistory = (state: BulkLauncherState): HistoryState => ({
+  audiences: [...state.bulkAudiences.audiences],
+  creatives: [...state.bulkCreatives.creatives],
+  copyVariants: [...(state.bulkCreatives.copyVariants || [])],
+})
+
+// Helper to restore state from history
+const restoreFromHistory = (historyState: HistoryState, currentState: BulkLauncherState) => {
+  return {
+    bulkAudiences: {
+      ...currentState.bulkAudiences,
+      audiences: historyState.audiences,
+    },
+    bulkCreatives: {
+      ...currentState.bulkCreatives,
+      creatives: historyState.creatives,
+      copyVariants: historyState.copyVariants,
+    },
+  }
+}
+
 export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   currentStep: 1,
   setCurrentStep: (step) => set({ currentStep: step }),
+
+  // Client
+  clientId: null,
+  setClientId: (clientId) => set({ clientId }),
+
+  // History
+  history: {
+    past: [],
+    future: [],
+  },
+
+  canUndo: () => get().history.past.length > 0,
+  canRedo: () => get().history.future.length > 0,
+
+  undo: () => {
+    const state = get()
+    if (state.history.past.length === 0) return
+
+    const previous = state.history.past[state.history.past.length - 1]
+    const newPast = state.history.past.slice(0, -1)
+    const current = saveToHistory(state)
+
+    set({
+      ...restoreFromHistory(previous, state),
+      history: {
+        past: newPast,
+        future: [current, ...state.history.future],
+      },
+    })
+  },
+
+  redo: () => {
+    const state = get()
+    if (state.history.future.length === 0) return
+
+    const next = state.history.future[0]
+    const newFuture = state.history.future.slice(1)
+    const current = saveToHistory(state)
+
+    set({
+      ...restoreFromHistory(next, state),
+      history: {
+        past: [...state.history.past, current],
+        future: newFuture,
+      },
+    })
+  },
 
   // Campaign
   campaign: initialCampaign,
@@ -141,19 +232,46 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
       bulkAudiences: { ...state.bulkAudiences, ...data },
     })),
   addAudience: (audience) =>
-    set((state) => ({
-      bulkAudiences: {
-        ...state.bulkAudiences,
-        audiences: [...state.bulkAudiences.audiences, audience],
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      // Trim history if exceeds max size
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkAudiences: {
+          ...state.bulkAudiences,
+          audiences: [...state.bulkAudiences.audiences, audience],
+        },
+        history: {
+          past: newPast,
+          future: [], // Clear future on new action
+        },
+      }
+    }),
   removeAudience: (id) =>
-    set((state) => ({
-      bulkAudiences: {
-        ...state.bulkAudiences,
-        audiences: state.bulkAudiences.audiences.filter((a) => a.id !== id),
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkAudiences: {
+          ...state.bulkAudiences,
+          audiences: state.bulkAudiences.audiences.filter((a) => a.id !== id),
+        },
+        history: {
+          past: newPast,
+          future: [],
+        },
+      }
+    }),
   togglePlacementPreset: (preset) =>
     set((state) => {
       const current = state.bulkAudiences.placementPresets
@@ -176,19 +294,45 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
       bulkCreatives: { ...state.bulkCreatives, ...data },
     })),
   addCreative: (creative) =>
-    set((state) => ({
-      bulkCreatives: {
-        ...state.bulkCreatives,
-        creatives: [...state.bulkCreatives.creatives, creative],
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkCreatives: {
+          ...state.bulkCreatives,
+          creatives: [...state.bulkCreatives.creatives, creative],
+        },
+        history: {
+          past: newPast,
+          future: [],
+        },
+      }
+    }),
   removeCreative: (id) =>
-    set((state) => ({
-      bulkCreatives: {
-        ...state.bulkCreatives,
-        creatives: state.bulkCreatives.creatives.filter((c) => c.id !== id),
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkCreatives: {
+          ...state.bulkCreatives,
+          creatives: state.bulkCreatives.creatives.filter((c) => c.id !== id),
+        },
+        history: {
+          past: newPast,
+          future: [],
+        },
+      }
+    }),
   updateCreative: (id, data) =>
     set((state) => ({
       bulkCreatives: {
@@ -207,19 +351,45 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
       },
     })),
   addCopyVariant: (variant) =>
-    set((state) => ({
-      bulkCreatives: {
-        ...state.bulkCreatives,
-        copyVariants: [...(state.bulkCreatives.copyVariants || []), variant],
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkCreatives: {
+          ...state.bulkCreatives,
+          copyVariants: [...(state.bulkCreatives.copyVariants || []), variant],
+        },
+        history: {
+          past: newPast,
+          future: [],
+        },
+      }
+    }),
   removeCopyVariant: (id) =>
-    set((state) => ({
-      bulkCreatives: {
-        ...state.bulkCreatives,
-        copyVariants: (state.bulkCreatives.copyVariants || []).filter((v) => v.id !== id),
-      },
-    })),
+    set((state) => {
+      const currentSnapshot = saveToHistory(state)
+      let newPast = [...state.history.past, currentSnapshot]
+
+      if (newPast.length > MAX_HISTORY_SIZE) {
+        newPast = newPast.slice(newPast.length - MAX_HISTORY_SIZE)
+      }
+
+      return {
+        bulkCreatives: {
+          ...state.bulkCreatives,
+          copyVariants: (state.bulkCreatives.copyVariants || []).filter((v) => v.id !== id),
+        },
+        history: {
+          past: newPast,
+          future: [],
+        },
+      }
+    }),
 
   // Matrix
   matrixConfig: initialMatrixConfig,
@@ -281,10 +451,15 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   reset: () =>
     set({
       currentStep: 1,
+      clientId: null,
       campaign: initialCampaign,
       bulkAudiences: initialBulkAudiences,
       bulkCreatives: initialBulkCreatives,
       matrixConfig: initialMatrixConfig,
       generatedAdSets: [],
+      history: {
+        past: [],
+        future: [],
+      },
     }),
 }))

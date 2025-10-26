@@ -4,14 +4,26 @@ import { useState } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { Eye, Zap, ChevronDown, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ValidationChecklist } from './sub-components/validation-checklist'
+import { validateBulkLauncher } from '@/lib/validation/bulk-launcher'
 
 export function MatrixGenerationStep() {
-  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets } = useBulkLauncher()
+  const store = useBulkLauncher()
+  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets } = store
   const [showDryRun, setShowDryRun] = useState(false)
   const [expandedAdSets, setExpandedAdSets] = useState<Set<string>>(new Set())
 
   const stats = getMatrixStats()
   const isOverLimit = stats.totalAds > matrixConfig.softLimit
+
+  // Validate before launching
+  const validation = validateBulkLauncher({
+    clientId: store.clientId,
+    campaign: store.campaign,
+    bulkAudiences: store.bulkAudiences,
+    bulkCreatives: store.bulkCreatives,
+  })
+  const canLaunch = validation.success && !isOverLimit
 
   const handleDryRun = () => {
     const result = generateCampaign()
@@ -51,6 +63,9 @@ export function MatrixGenerationStep() {
         <h3 className="text-lg font-semibold text-foreground">Matrix Generation</h3>
         <p className="text-sm text-muted-foreground">Configure dimensions and generate campaign</p>
       </div>
+
+      {/* Validation Checklist */}
+      <ValidationChecklist />
 
       {/* Dimension Switches */}
       <div className="rounded-lg border border-border bg-card p-6 space-y-4">
@@ -121,9 +136,9 @@ export function MatrixGenerationStep() {
         </button>
         <button
           onClick={handleCreate}
-          disabled={isOverLimit}
+          disabled={!canLaunch}
           className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-            isOverLimit
+            !canLaunch
               ? 'bg-muted text-muted-foreground cursor-not-allowed'
               : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg'
           }`}
@@ -131,6 +146,11 @@ export function MatrixGenerationStep() {
           <Zap className="h-5 w-5" />
           💥 Create Full Campaign
         </button>
+        {!canLaunch && (
+          <p className="text-xs text-muted-foreground">
+            {!validation.success ? 'Fix validation errors to launch' : 'Exceeds soft limit'}
+          </p>
+        )}
       </div>
 
       {/* Dry Run Preview */}

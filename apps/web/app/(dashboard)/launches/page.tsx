@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Search, Plus } from 'lucide-react'
 import { LaunchTypeCards } from '@/components/dashboard/launch-type-cards'
 import { LaunchList } from '@/components/dashboard/launch-list'
-import { BulkLauncherModal } from '@/components/dashboard/bulk-launcher-modal'
+
+// Code-split the heavy modal component
+const BulkLauncherModal = dynamic(
+  () => import('@/components/dashboard/bulk-launcher-modal').then((mod) => ({ default: mod.BulkLauncherModal })),
+  { ssr: false }
+)
 
 export default function LaunchesPage() {
   const [searchQuery, setSearchQuery] = useState('')

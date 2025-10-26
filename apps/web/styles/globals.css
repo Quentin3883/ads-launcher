@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 270 5% 15%;
+    --background: 48 10% 93%;
+    --foreground: 0 0% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 270 5% 15%;
+    --card-foreground: 0 0% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 270 5% 15%;
+    --popover-foreground: 0 0% 8%;
 
-    --primary: 270 91% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 8%;
+    --primary-foreground: 48 10% 93%;
 
-    --secondary: 270 95% 97%;
-    --secondary-foreground: 270 50% 30%;
+    --secondary: 48 10% 88%;
+    --secondary-foreground: 0 0% 8%;
 
-    --muted: 270 20% 96%;
-    --muted-foreground: 270 5% 45%;
+    --muted: 48 10% 90%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 270 95% 97%;
-    --accent-foreground: 270 50% 30%;
+    --accent: 48 10% 88%;
+    --accent-foreground: 0 0% 8%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 270 15% 90%;
-    --input: 270 15% 90%;
-    --ring: 270 91% 65%;
+    --border: 48 10% 88%;
+    --input: 48 10% 88%;
+    --ring: 0 0% 8%;
 
     --radius: 0.75rem;
   }
@@ -45,5 +45,11 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-gray-200/40;
   }
 }

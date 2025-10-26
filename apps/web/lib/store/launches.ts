@@ -13,6 +13,7 @@ export interface Launch {
   progress: number
   createdAt: Date
   budget?: number
+  clientId?: string
 }
 
 interface LaunchesState {
@@ -20,6 +21,7 @@ interface LaunchesState {
   addLaunch: (launch: Omit<Launch, 'id' | 'createdAt'>) => void
   updateLaunch: (id: string, updates: Partial<Launch>) => void
   deleteLaunch: (id: string) => void
+  getFilteredLaunches: (clientId?: string | null) => Launch[]
 }
 
 // Mock data
@@ -35,6 +37,7 @@ const mockLaunches: Launch[] = [
     progress: 75,
     createdAt: new Date('2025-10-20'),
     budget: 5000,
+    clientId: '1', // Nike
   },
   {
     id: '2',
@@ -47,6 +50,7 @@ const mockLaunches: Launch[] = [
     progress: 45,
     createdAt: new Date('2025-10-18'),
     budget: 3000,
+    clientId: '2', // Adidas
   },
   {
     id: '3',
@@ -59,6 +63,7 @@ const mockLaunches: Launch[] = [
     progress: 20,
     createdAt: new Date('2025-10-15'),
     budget: 2000,
+    clientId: '1', // Nike
   },
   {
     id: '4',
@@ -71,10 +76,11 @@ const mockLaunches: Launch[] = [
     progress: 10,
     createdAt: new Date('2025-10-22'),
     budget: 1000,
+    clientId: '3', // Puma
   },
 ]
 
-export const useLaunchesStore = create<LaunchesState>((set) => ({
+export const useLaunchesStore = create<LaunchesState>((set, get) => ({
   launches: mockLaunches,
 
   addLaunch: (launch) =>
@@ -100,4 +106,10 @@ export const useLaunchesStore = create<LaunchesState>((set) => ({
     set((state) => ({
       launches: state.launches.filter((launch) => launch.id !== id),
     })),
+
+  getFilteredLaunches: (clientId) => {
+    const { launches } = get()
+    if (!clientId) return launches
+    return launches.filter((launch) => launch.clientId === clientId)
+  },
 }))

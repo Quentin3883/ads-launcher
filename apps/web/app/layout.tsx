@@ -16,7 +16,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Launcher Ads',
+  title: 'Pulza',
   description: 'Multi-platform ad campaign launcher and analyzer',
 }
 
