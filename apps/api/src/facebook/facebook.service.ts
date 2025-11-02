@@ -2058,13 +2058,12 @@ export class FacebookService {
                       },
                     ],
                     asset_customization_rules: [
-                      // Rule 1: All Feed placements (Facebook Feed, Instagram Feed/Explore/Reels, Messenger, Audience Network)
+                      // Rule 1: Feed placements only (Facebook Feed, Instagram Feed/Explore, Audience Network)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network'],
                           facebook_positions: ['feed'],
-                          instagram_positions: ['stream', 'ig_search', 'story', 'explore', 'reels', 'explore_home'],
-                          messenger_positions: ['story'],
+                          instagram_positions: ['stream', 'explore', 'explore_home'],
                           audience_network_positions: ['classic', 'rewarded_video'],
                         },
                         video_label: { name: 'LBL_FEED_VIDEO' },
@@ -2073,7 +2072,7 @@ export class FacebookService {
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story only (9:16 format)
+                      // Rule 2: Facebook Story (9:16 format)
                       {
                         customization_spec: {
                           publisher_platforms: ['facebook'],
@@ -2084,6 +2083,42 @@ export class FacebookService {
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 2,
+                      },
+                      // Rule 3: Instagram Story (9:16 format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['instagram'],
+                          instagram_positions: ['story'],
+                        },
+                        video_label: { name: 'LBL_STORY_VIDEO' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 3,
+                      },
+                      // Rule 4: Instagram Reels + Search (9:16 vertical format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['instagram'],
+                          instagram_positions: ['reels', 'ig_search'],
+                        },
+                        video_label: { name: 'LBL_STORY_VIDEO' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 4,
+                      },
+                      // Rule 5: Messenger Story (9:16 format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['messenger'],
+                          messenger_positions: ['story'],
+                        },
+                        video_label: { name: 'LBL_STORY_VIDEO' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 5,
                       },
                     ],
                   }
@@ -2182,13 +2217,12 @@ export class FacebookService {
                       },
                     ],
                     asset_customization_rules: [
-                      // Rule 1: All Feed placements (Facebook Feed, Instagram Feed/Explore/Reels, Messenger, Audience Network)
+                      // Rule 1: Feed placements only (Facebook Feed, Instagram Feed/Explore, Audience Network)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network'],
                           facebook_positions: ['feed'],
-                          instagram_positions: ['stream', 'ig_search', 'story', 'explore', 'reels', 'explore_home'],
-                          messenger_positions: ['story'],
+                          instagram_positions: ['stream', 'explore', 'explore_home'],
                           audience_network_positions: ['classic', 'rewarded_video'],
                         },
                         image_label: { name: 'LBL_FEED_IMG' },
@@ -2197,7 +2231,7 @@ export class FacebookService {
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story only (9:16 format)
+                      // Rule 2: Facebook Story (9:16 format)
                       {
                         customization_spec: {
                           publisher_platforms: ['facebook'],
@@ -2208,6 +2242,42 @@ export class FacebookService {
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 2,
+                      },
+                      // Rule 3: Instagram Story (9:16 format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['instagram'],
+                          instagram_positions: ['story'],
+                        },
+                        image_label: { name: 'LBL_STORY_IMG' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 3,
+                      },
+                      // Rule 4: Instagram Reels + Search (9:16 vertical format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['instagram'],
+                          instagram_positions: ['reels', 'ig_search'],
+                        },
+                        image_label: { name: 'LBL_STORY_IMG' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 4,
+                      },
+                      // Rule 5: Messenger Story (9:16 format)
+                      {
+                        customization_spec: {
+                          publisher_platforms: ['messenger'],
+                          messenger_positions: ['story'],
+                        },
+                        image_label: { name: 'LBL_STORY_IMG' },
+                        title_label: { name: 'LBL_COMMON' },
+                        body_label: { name: 'LBL_COMMON' },
+                        link_url_label: { name: 'LBL_COMMON' },
+                        priority: 5,
                       },
                     ],
                   }
@@ -2532,15 +2602,15 @@ export class FacebookService {
    * Includes connected Instagram accounts when ad account ID is provided
    */
   async getUserPages(accessToken: string, adAccountId?: string) {
-    // If ad account ID is provided, use promote_pages to get Instagram accounts
+    // If ad account ID is provided, use promote_pages to get Instagram accounts with details
     if (adAccountId) {
       const response = await this.apiClient.get<{ data: any[] }>(
         `${adAccountId}/promote_pages`,
         accessToken,
         {
-          fields: 'id,name,connected_instagram_account',
+          fields: 'id,name,picture{url},connected_instagram_account{id,name,username,profile_picture_url}',
         },
-        'Fetch promote pages with Instagram',
+        'Fetch promote pages with Instagram details',
       )
       return response.data || []
     }

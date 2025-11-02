@@ -108,10 +108,7 @@ export function CreativesBulkStep() {
 
   const handleAssignFile = (creativeId: string, type: 'feed' | 'story', file: File) => {
     const creative = bulkCreatives.creatives.find((c) => c.id === creativeId)
-    if (!creative) {
-      console.error('Creative not found:', creativeId)
-      return
-    }
+    if (!creative) return
 
     const newFormat = file.type.startsWith('video/') ? 'Video' : 'Image'
 
@@ -130,7 +127,14 @@ export function CreativesBulkStep() {
       thumbnail: blobUrl,
     }
 
+    // Auto-fill creative name from file name (remove extension)
+    const fileName = file.name.replace(/\.[^/.]+$/, '')
+    const newName = creative.name.startsWith('Creative ') || creative.name.startsWith('Library ')
+      ? fileName
+      : creative.name
+
     updateCreative(creativeId, {
+      name: newName,
       format: newFormat,
       [type === 'feed' ? 'feedVersion' : 'storyVersion']: version,
     })
@@ -216,8 +220,8 @@ export function CreativesBulkStep() {
           <p className="text-xs text-muted-foreground">Upload files • Auto-groups: "BR - SMS - Feed.png" + "BR - SMS - Story.png"</p>
         </div>
         <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground">Total Ads</div>
-          <div className="text-xl font-bold text-primary">{stats.totalAds}</div>
+          <div className="text-[10px] text-muted-foreground">Creatives</div>
+          <div className="text-xl font-bold text-primary">{bulkCreatives.creatives.length}</div>
         </div>
       </div>
 
