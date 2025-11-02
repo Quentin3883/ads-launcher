@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { useClientsStore } from '@/lib/store/clients'
 import { Eye, ChevronDown, ChevronRight, Loader2, Rocket } from 'lucide-react'
@@ -29,11 +29,22 @@ export function MatrixGenerationStep() {
     return 'f6a2a722-7ca8-4130-a78a-4d50e2ff8256'
   }, [])
 
-  // Fetch Facebook Pages from the selected ad account
+  // Fetch Facebook Pages from the selected ad account (includes connected Instagram accounts)
   const { data: facebookPages, isLoading: isLoadingPages } = trpc.facebookCampaigns.getUserPages.useQuery(
     { adAccountId: store.adAccountId! },
     { enabled: !!store.adAccountId }
   )
+
+  // Auto-detect Instagram account from selected Facebook Page
+  const selectedPage = facebookPages?.find((page: any) => page.id === facebookPageId)
+  const connectedInstagramId = selectedPage?.connected_instagram_account?.id
+
+  // Auto-set Instagram account ID when page is selected (use useEffect to avoid setState during render)
+  useEffect(() => {
+    if (connectedInstagramId && instagramAccountId !== connectedInstagramId) {
+      setInstagramAccountId(connectedInstagramId)
+    }
+  }, [connectedInstagramId, instagramAccountId, setInstagramAccountId])
 
   const [facebookPixelId] = useState('') // Optional
 
@@ -191,23 +202,51 @@ export function MatrixGenerationStep() {
         )}
       </div>
 
-      {/* Instagram Account Selection */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground">Instagram Account ID (Optional)</h4>
-        <p className="text-sm text-muted-foreground">
-          Enter your Instagram Account ID for Instagram placements. Required if using Instagram Story or Feed placements.
-        </p>
-        <input
-          type="text"
-          value={instagramAccountId || ''}
-          onChange={(e) => setInstagramAccountId(e.target.value)}
-          placeholder="Enter Instagram Account ID (e.g., 17841400605492769)"
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-        />
-        <p className="text-xs text-muted-foreground">
-          💡 Tip: You can find your Instagram Account ID by connecting your Instagram account to your Facebook Page
-        </p>
-      </div>
+      {/* Instagram Account - Auto-detected */}
+      {connectedInstagramId && (
+        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+          <h4 className="font-semibold text-foreground">Instagram Account</h4>
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-green-900">Instagram account connected</p>
+              <p className="text-xs text-green-700 mt-0.5">ID: {connectedInstagramId}</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            ℹ️ Automatically detected from selected Facebook Page
+          </p>
+        </div>
+      )}
+
+      {/* Instagram Account - Manual Input (if no connected account) */}
+      {!connectedInstagramId && facebookPageId && (
+        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+          <h4 className="font-semibold text-foreground">Instagram Account (Optional)</h4>
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-50 border border-yellow-200">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-900">No Instagram account connected to this page</p>
+              <p className="text-xs text-yellow-700 mt-0.5">Enter an Instagram Account ID manually if needed for Instagram placements</p>
+            </div>
+          </div>
+          <input
+            type="text"
+            value={instagramAccountId || ''}
+            onChange={(e) => setInstagramAccountId(e.target.value)}
+            placeholder="Enter Instagram Account ID (e.g., 17841400605492769)"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          />
+        </div>
+      )}
 
       {/* Dimension Switches */}
       <div className="rounded-lg border border-border bg-card p-6 space-y-4">

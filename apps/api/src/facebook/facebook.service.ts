@@ -1676,9 +1676,13 @@ export class FacebookService {
             },
             age_min: adSetConfig.demographics.ageMin,
             age_max: adSetConfig.demographics.ageMax,
-            // Add placements for PAC to work properly (Facebook Feed + Story)
-            publisher_platforms: ['facebook'],
+            // Add all placements (Facebook, Instagram, Audience Network, Messenger)
+            publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
             facebook_positions: ['feed', 'story'],
+            instagram_positions: ['stream', 'ig_search', 'story', 'explore', 'reels', 'explore_home'],
+            device_platforms: ['mobile', 'desktop'],
+            messenger_positions: ['story'],
+            audience_network_positions: ['classic', 'rewarded_video'],
           }
 
           // Add gender (1 = male, 2 = female)
@@ -1990,6 +1994,11 @@ export class FacebookService {
                 page_id: launchData.facebookPageId,
               }
 
+              // Add Instagram account ID if provided
+              if (launchData.instagramAccountId) {
+                objectStorySpec.instagram_user_id = launchData.instagramAccountId
+              }
+
               // Map CTA from frontend format to Facebook API format
               this.logger.log(`DEBUG: FACEBOOK_CTA_MAP = ${JSON.stringify(FACEBOOK_CTA_MAP)}`)
               this.logger.log(`DEBUG: adConfig.cta = ${adConfig.cta}`)
@@ -2049,11 +2058,14 @@ export class FacebookService {
                       },
                     ],
                     asset_customization_rules: [
-                      // Rule 1: Facebook Feed placement
+                      // Rule 1: All Feed placements (Facebook Feed, Instagram Feed/Explore/Reels, Messenger, Audience Network)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook'],
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
                           facebook_positions: ['feed'],
+                          instagram_positions: ['stream', 'ig_search', 'story', 'explore', 'reels', 'explore_home'],
+                          messenger_positions: ['story'],
+                          audience_network_positions: ['classic', 'rewarded_video'],
                         },
                         video_label: { name: 'LBL_FEED_VIDEO' },
                         title_label: { name: 'LBL_COMMON' },
@@ -2061,7 +2073,7 @@ export class FacebookService {
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story placement
+                      // Rule 2: Facebook Story only (9:16 format)
                       {
                         customization_spec: {
                           publisher_platforms: ['facebook'],
@@ -2076,9 +2088,14 @@ export class FacebookService {
                     ],
                   }
 
-                  // For now, use only Facebook placements (no Instagram)
-                  const objectStorySpecPAC = {
+                  // Build object_story_spec for PAC
+                  const objectStorySpecPAC: any = {
                     page_id: launchData.facebookPageId,
+                  }
+
+                  // Add Instagram account ID if provided
+                  if (launchData.instagramAccountId) {
+                    objectStorySpecPAC.instagram_user_id = launchData.instagramAccountId
                   }
 
                   this.logger.log('Creating video ad with asset_feed_spec + customization_rules (Feed + Story)')
@@ -2165,11 +2182,14 @@ export class FacebookService {
                       },
                     ],
                     asset_customization_rules: [
-                      // Rule 1: Facebook Feed placement (1:1 or 4:5 format)
+                      // Rule 1: All Feed placements (Facebook Feed, Instagram Feed/Explore/Reels, Messenger, Audience Network)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook'],
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
                           facebook_positions: ['feed'],
+                          instagram_positions: ['stream', 'ig_search', 'story', 'explore', 'reels', 'explore_home'],
+                          messenger_positions: ['story'],
+                          audience_network_positions: ['classic', 'rewarded_video'],
                         },
                         image_label: { name: 'LBL_FEED_IMG' },
                         title_label: { name: 'LBL_COMMON' },
@@ -2177,7 +2197,7 @@ export class FacebookService {
                         link_url_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story placement (9:16 format)
+                      // Rule 2: Facebook Story only (9:16 format)
                       {
                         customization_spec: {
                           publisher_platforms: ['facebook'],
@@ -2192,9 +2212,14 @@ export class FacebookService {
                     ],
                   }
 
-                  // For now, use only Facebook placements (no Instagram)
-                  const objectStorySpecPAC = {
+                  // Build object_story_spec for PAC
+                  const objectStorySpecPAC: any = {
                     page_id: launchData.facebookPageId,
+                  }
+
+                  // Add Instagram account ID if provided
+                  if (launchData.instagramAccountId) {
+                    objectStorySpecPAC.instagram_user_id = launchData.instagramAccountId
                   }
 
                   this.logger.log('Creating ad with asset_feed_spec + customization_rules (Facebook only)')
@@ -2504,8 +2529,23 @@ export class FacebookService {
 
   /**
    * Get Facebook Pages that the user can use for ads
+   * Includes connected Instagram accounts when ad account ID is provided
    */
-  async getUserPages(accessToken: string) {
+  async getUserPages(accessToken: string, adAccountId?: string) {
+    // If ad account ID is provided, use promote_pages to get Instagram accounts
+    if (adAccountId) {
+      const response = await this.apiClient.get<{ data: any[] }>(
+        `${adAccountId}/promote_pages`,
+        accessToken,
+        {
+          fields: 'id,name,connected_instagram_account',
+        },
+        'Fetch promote pages with Instagram',
+      )
+      return response.data || []
+    }
+
+    // Otherwise, use me/accounts (basic page list without Instagram)
     const response = await this.apiClient.get<{ data: any[] }>(
       'me/accounts',
       accessToken,
