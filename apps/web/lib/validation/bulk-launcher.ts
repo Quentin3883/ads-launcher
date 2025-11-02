@@ -1,12 +1,21 @@
 import { z } from 'zod'
 
-// Campaign validation schema
+// Campaign validation schema - aligned with SDK CampaignConfig
 export const campaignSchema = z.object({
   name: z.string().min(1, 'Campaign name is required').max(100),
-  country: z.string().min(1, 'Country is required'),
-  objective: z.enum(['CONVERSIONS', 'TRAFFIC', 'BRAND_AWARENESS', 'LEAD_GENERATION', 'APP_INSTALLS']),
+  type: z.enum(['Awareness', 'Traffic', 'Engagement', 'Leads', 'AppPromotion', 'Sales']),
+  objective: z.string().optional(),
+  country: z.string().optional(),
+  redirectionType: z.enum(['LANDING_PAGE', 'LEAD_FORM', 'DEEPLINK']),
+  redirectionUrl: z.string().url().optional(),
+  redirectionFormId: z.string().optional(),
+  redirectionDeeplink: z.string().optional(),
   budgetMode: z.enum(['CBO', 'ABO']),
-  totalBudget: z.number().min(50, 'Minimum budget is $50').optional(),
+  budgetType: z.enum(['daily', 'lifetime']),
+  budget: z.number().min(50, 'Minimum budget is $50').optional(),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().optional(),
+  urlParamsOverride: z.string().optional(),
 })
 
 // Audience validation schema
@@ -60,9 +69,9 @@ export const bulkAudiencesSchema = z.object({
 
 // Creative validation schema
 export const creativeVersionSchema = z.object({
-  file: z.instanceof(File),
+  file: z.instanceof(File).optional(),
   url: z.string(),
-  thumbnail: z.string(),
+  thumbnail: z.string().optional(),
 })
 
 export const creativeSchema = z.object({
@@ -101,15 +110,15 @@ export const bulkLauncherSchema = z
   })
   .refine(
     (data) => {
-      // If CBO, totalBudget is required
+      // If CBO, budget is required
       if (data.campaign.budgetMode === 'CBO') {
-        return data.campaign.totalBudget !== undefined && data.campaign.totalBudget > 0
+        return data.campaign.budget !== undefined && data.campaign.budget > 0
       }
       return true
     },
     {
       message: 'Total budget is required for CBO campaigns',
-      path: ['campaign', 'totalBudget'],
+      path: ['campaign', 'budget'],
     }
   )
   .refine(

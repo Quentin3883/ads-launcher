@@ -1,0 +1,5 @@
+export { FacebookAuthController } from './facebook-auth.controller'
+export { FacebookCampaignsController } from './facebook-campaigns.controller'
+export { FacebookInsightsController } from './facebook-insights.controller'
+export { FacebookAdminController } from './facebook-admin.controller'
+export { FacebookDebugController } from './facebook-debug.controller'

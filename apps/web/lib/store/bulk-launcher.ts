@@ -11,12 +11,12 @@ import type {
   BulkCampaignOutput,
   GeneratedAdSet,
   PlacementPreset,
-} from '@/lib/types/bulk-launcher'
+} from '@launcher-ads/sdk'
 import {
   generateAdSetsFromMatrix,
   calculateMatrixStats,
   getDefaultRedirectionType,
-} from '@/lib/types/bulk-launcher'
+} from '@launcher-ads/sdk'
 
 interface HistoryState {
   audiences: AudiencePreset[]
@@ -24,7 +24,15 @@ interface HistoryState {
   copyVariants: CopyVariant[]
 }
 
-interface BulkLauncherState {
+export interface ProgressStep {
+  id: string
+  label: string
+  status: 'pending' | 'in_progress' | 'completed' | 'error'
+  detail?: string
+  error?: string
+}
+
+export interface BulkLauncherState {
   // Current step
   currentStep: number
   setCurrentStep: (step: number) => void
@@ -32,6 +40,18 @@ interface BulkLauncherState {
   // Client selection
   clientId: string | null
   setClientId: (clientId: string | null) => void
+
+  // Ad Account selection
+  adAccountId: string | null
+  setAdAccountId: (adAccountId: string | null) => void
+
+  // Facebook Page selection
+  facebookPageId: string | null
+  setFacebookPageId: (pageId: string | null) => void
+
+  // Instagram Account selection
+  instagramAccountId: string | null
+  setInstagramAccountId: (instagramAccountId: string | null) => void
 
   // Step 1: Campaign
   campaign: Partial<CampaignConfig>
@@ -74,16 +94,24 @@ interface BulkLauncherState {
   undo: () => void
   redo: () => void
 
+  // Progress tracking
+  progressSteps: ProgressStep[]
+  showProgress: boolean
+  setProgressSteps: (steps: ProgressStep[]) => void
+  updateProgressStep: (id: string, update: Partial<ProgressStep>) => void
+  setShowProgress: (show: boolean) => void
+
   // Actions
   reset: () => void
 }
 
 const initialCampaign: Partial<CampaignConfig> = {
+  name: 'Test Campaign',
   type: 'Traffic',
   objective: '',
   country: 'United States',
   redirectionType: 'LANDING_PAGE',
-  redirectionUrl: '',
+  redirectionUrl: 'https://test.io',
   budgetMode: 'CBO',
   budgetType: 'daily',
   budget: 1000,
@@ -127,7 +155,7 @@ const initialMatrixConfig: MatrixConfig = {
     audiences: true,
     placements: true,
     creatives: true,
-    formatVariants: true, // Feed + Story variants
+    formatVariants: false, // Feed + Story variants - disabled by default, uses asset customization instead
     copyVariants: false,
   },
   softLimit: 300,
@@ -165,6 +193,18 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   clientId: null,
   setClientId: (clientId) => set({ clientId }),
 
+  // Ad Account
+  adAccountId: null,
+  setAdAccountId: (adAccountId) => set({ adAccountId }),
+
+  // Facebook Page
+  facebookPageId: null,
+  setFacebookPageId: (pageId) => set({ facebookPageId: pageId }),
+
+  // Instagram Account
+  instagramAccountId: null,
+  setInstagramAccountId: (instagramAccountId) => set({ instagramAccountId }),
+
   // History
   history: {
     past: [],
@@ -179,6 +219,8 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
     if (state.history.past.length === 0) return
 
     const previous = state.history.past[state.history.past.length - 1]
+    if (!previous) return
+
     const newPast = state.history.past.slice(0, -1)
     const current = saveToHistory(state)
 
@@ -196,6 +238,8 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
     if (state.history.future.length === 0) return
 
     const next = state.history.future[0]
+    if (!next) return
+
     const newFuture = state.history.future.slice(1)
     const current = saveToHistory(state)
 
@@ -448,6 +492,18 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
     )
   },
 
+  // Progress tracking
+  progressSteps: [],
+  showProgress: false,
+  setProgressSteps: (steps) => set({ progressSteps: steps }),
+  updateProgressStep: (id, update) =>
+    set((state) => ({
+      progressSteps: state.progressSteps.map((step) =>
+        step.id === id ? { ...step, ...update } : step
+      ),
+    })),
+  setShowProgress: (show) => set({ showProgress: show }),
+
   reset: () =>
     set({
       currentStep: 1,
@@ -461,5 +517,7 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
         past: [],
         future: [],
       },
+      progressSteps: [],
+      showProgress: false,
     }),
 }))
