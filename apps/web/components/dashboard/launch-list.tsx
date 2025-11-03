@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { Play, Pause, Trash2, Eye } from 'lucide-react'
 import { useLaunchesStore, type Launch, type LaunchStatus } from '@/lib/store/launches'
-import { cn } from '@/lib/utils'
+import { cn } from '@launcher-ads/ui'
 
 const statusConfig: Record<LaunchStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700' },

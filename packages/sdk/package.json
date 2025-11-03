@@ -5,10 +5,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./env": "./src/env.ts",
-    "./schemas": "./src/schemas/index.ts",
-    "./types": "./src/types/index.ts"
+    ".": "./dist/index.js",
+    "./env": "./dist/env.js",
+    "./schemas": "./dist/schemas/index.js",
+    "./types": "./dist/types/index.js"
   },
   "scripts": {
     "build": "tsc",

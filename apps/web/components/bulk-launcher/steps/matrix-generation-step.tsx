@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { useClientsStore } from '@/lib/store/clients'
 import { Eye, ChevronDown, ChevronRight, Loader2, Rocket } from 'lucide-react'
@@ -13,7 +13,7 @@ import { CampaignProgressModal } from '../campaign-progress-modal'
 
 export function MatrixGenerationStep() {
   const store = useBulkLauncher()
-  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId, progressSteps, showProgress, setShowProgress } = store
+  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId, progressSteps, showProgress, setShowProgress, setLaunchCallback } = store
   const { selectedClientId, getSelectedClient } = useClientsStore()
   const { launchCampaign, isLaunching, error: launchError } = useLaunchCampaign()
   const [showDryRun, setShowDryRun] = useState(false)
@@ -140,6 +140,19 @@ export function MatrixGenerationStep() {
     }
   }, [generateCampaign, getSelectedClient, launchCampaign, generatedAdSets, facebookPageId, facebookPixelId])
 
+  // Keep a ref to the latest handleLaunchToFacebook
+  const launchRef = useRef(handleLaunchToFacebook)
+  useEffect(() => {
+    launchRef.current = handleLaunchToFacebook
+  }, [handleLaunchToFacebook])
+
+  // Register a stable callback in the store that calls the latest function
+  useEffect(() => {
+    const stableCallback = () => launchRef.current()
+    setLaunchCallback(stableCallback)
+    return () => setLaunchCallback(null)
+  }, [setLaunchCallback])
+
   const toggleAdSet = useCallback((id: string) => {
     setExpandedAdSets((prev) => {
       const next = new Set(prev)
@@ -160,202 +173,78 @@ export function MatrixGenerationStep() {
         <p className="text-sm text-muted-foreground">Configure dimensions and generate campaign</p>
       </div>
 
+      {/* Compact Stats Summary at Top */}
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
+        <div className="flex items-center justify-around gap-4">
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-0.5">Ad Sets</div>
+            <div className="text-lg font-bold text-foreground">{stats.adSets}</div>
+          </div>
+          <div className="h-8 w-px bg-border" />
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-0.5">Ads/Set</div>
+            <div className="text-lg font-bold text-foreground">{stats.adsPerAdSet}</div>
+          </div>
+          <div className="h-8 w-px bg-border" />
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-0.5">Total Ads</div>
+            <div className={`text-lg font-bold ${isOverLimit ? 'text-destructive' : 'text-primary'}`}>
+              {stats.totalAds}
+            </div>
+            {isOverLimit && (
+              <div className="text-[10px] text-destructive mt-0.5">
+                Exceeds limit ({matrixConfig.softLimit})
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Validation Checklist */}
       <ValidationChecklist />
 
-      {/* Facebook Page Selection */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground">Facebook Page *</h4>
-        <p className="text-sm text-muted-foreground">Select or enter a Facebook Page ID for your ads</p>
-
-        {isLoadingPages ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading pages...
-          </div>
-        ) : facebookPages && facebookPages.length > 0 ? (
-          <select
-            value={facebookPageId || ''}
-            onChange={(e) => setFacebookPageId(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          >
-            <option value="">Select a Facebook Page...</option>
-            {facebookPages.map((page: any) => (
-              <option key={page.id} value={page.id}>
-                {page.name} (ID: {page.id})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              No Facebook Pages found in your account. Enter a Page ID manually:
-            </div>
-            <input
-              type="text"
-              value={facebookPageId || ''}
-              onChange={(e) => setFacebookPageId(e.target.value)}
-              placeholder="Enter Facebook Page ID (e.g., 397742766762941)"
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Instagram Account - Auto-detected */}
-      {connectedInstagramId && (
-        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-          <h4 className="font-semibold text-foreground">Instagram Account</h4>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-green-900">Instagram account connected</p>
-              <p className="text-xs text-green-700 mt-0.5">ID: {connectedInstagramId}</p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            ℹ️ Automatically detected from selected Facebook Page
-          </p>
-        </div>
-      )}
-
-      {/* Instagram Account - Manual Input (if no connected account) */}
-      {!connectedInstagramId && facebookPageId && (
-        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-          <h4 className="font-semibold text-foreground">Instagram Account (Optional)</h4>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-50 border border-yellow-200">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-yellow-900">No Instagram account connected to this page</p>
-              <p className="text-xs text-yellow-700 mt-0.5">Enter an Instagram Account ID manually if needed for Instagram placements</p>
-            </div>
-          </div>
-          <input
-            type="text"
-            value={instagramAccountId || ''}
-            onChange={(e) => setInstagramAccountId(e.target.value)}
-            placeholder="Enter Instagram Account ID (e.g., 17841400605492769)"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          />
-        </div>
-      )}
-
       {/* Dimension Switches */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h4 className="font-semibold text-foreground">Dimensions to Combine</h4>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <h4 className="text-sm font-semibold text-foreground">Dimensions to Combine</h4>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
           {[
-            { key: 'audiences' as const, label: 'Audiences', description: 'Create one Ad Set per audience' },
             { key: 'placements' as const, label: 'Placement Presets', description: 'Multiply Ad Sets by placements' },
-            { key: 'creatives' as const, label: 'Creatives', description: 'Create one Ad per creative' },
-            { key: 'formatVariants' as const, label: 'Format Variants (Feed/Story)', description: 'Create Feed + Story version per creative' },
-            { key: 'copyVariants' as const, label: 'Copy Variants', description: 'Multiply Ads by copy variants' },
+            { key: 'formatSplit' as const, label: 'Format Split', description: 'Separate Image/Video' },
+            { key: 'creatives' as const, label: 'Creatives', description: 'One Ad per creative' },
+            { key: 'formatVariants' as const, label: 'Format Variants', description: 'Feed + Story versions' },
+            { key: 'copyVariants' as const, label: 'Copy Variants', description: 'Multiply by copy' },
           ].map((dim) => (
             <label
               key={dim.key}
-              className="flex items-center justify-between p-4 rounded-lg border border-border bg-background cursor-pointer hover:bg-muted/30 transition-colors"
+              className="flex items-center gap-2 p-2.5 rounded border border-border bg-background cursor-pointer hover:bg-muted/50 transition-colors text-xs"
             >
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={matrixConfig.dimensions[dim.key]}
-                  onChange={() => toggleDimension(dim.key)}
-                  className="rounded border-border"
-                />
-                <div>
-                  <div className="text-sm font-medium text-foreground">{dim.label}</div>
-                  <div className="text-xs text-muted-foreground">{dim.description}</div>
-                </div>
+              <input
+                type="checkbox"
+                checked={matrixConfig.dimensions[dim.key]}
+                onChange={() => toggleDimension(dim.key)}
+                className="rounded border-border flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-foreground">{dim.label}</div>
+                <div className="text-muted-foreground text-[10px] leading-tight">{dim.description}</div>
               </div>
             </label>
           ))}
         </div>
       </div>
 
-      {/* Stats Card */}
-      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-6">
-        <div className="grid grid-cols-3 gap-6">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Ad Sets</div>
-            <div className="text-3xl font-bold text-foreground">{stats.adSets}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Ads per Ad Set</div>
-            <div className="text-3xl font-bold text-foreground">{stats.adsPerAdSet}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Total Ads</div>
-            <div className={`text-3xl font-bold ${isOverLimit ? 'text-destructive' : 'text-primary'}`}>
-              {stats.totalAds}
-            </div>
-            {isOverLimit && (
-              <div className="text-xs text-destructive mt-1">
-                ⚠️ Exceeds soft limit ({matrixConfig.softLimit})
-              </div>
-            )}
-          </div>
+      {/* Success/Error Messages (only show if present) */}
+      {createSuccess && (
+        <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
+          ✅ {createSuccess}
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDryRun}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-primary text-primary hover:bg-primary/10 transition-colors font-semibold"
-          >
-            <Eye className="h-5 w-5" />
-            Dry Run (Preview)
-          </button>
-          <button
-            onClick={handleLaunchToFacebook}
-            disabled={!canLaunch || isLaunching}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-              !canLaunch || isLaunching
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 hover:shadow-lg'
-            }`}
-          >
-            {isLaunching ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Launching to Facebook...
-              </>
-            ) : (
-              <>
-                <Rocket className="h-5 w-5" />
-                🚀 Launch to Facebook
-              </>
-            )}
-          </button>
-          {!canLaunch && (
-            <p className="text-xs text-muted-foreground">
-              {!validation.success ? 'Fix validation errors to launch' : 'Exceeds soft limit'}
-            </p>
-          )}
+      )}
+      {launchError && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          ❌ {launchError}
         </div>
-
-        {/* Success/Error Messages */}
-        {createSuccess && (
-          <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
-            ✅ {createSuccess}
-          </div>
-        )}
-        {launchError && (
-          <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-            ❌ {launchError}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Dry Run Preview */}
       {showDryRun && generatedAdSets.length > 0 && (

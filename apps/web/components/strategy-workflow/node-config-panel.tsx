@@ -1,9 +1,9 @@
 'use client'
 
 import { X, Plus, Trash2, Users, Target, Layers, Minimize2 } from 'lucide-react'
-import type { CampaignNodeData, NodeDimension, AudienceConfig, AudienceType } from '@/lib/types/strategy-workflow'
-import { META_OBJECTIVES, AUDIENCE_TYPES } from '@/lib/types/strategy-workflow'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import type { CampaignNodeData, NodeDimension, AudienceConfig, AudienceType } from '@/lib/types/workflow'
+import { META_OBJECTIVES, GOOGLE_CAMPAIGN_TYPES, AUDIENCE_TYPES } from '@/lib/types/workflow'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { CustomSelect } from '@/components/ui/custom-select'
 
 interface NodeConfigPanelProps {
@@ -20,6 +20,26 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
   const [multiplier, setMultiplier] = useState(nodeData?.multiplier || 1)
   const [dimensions, setDimensions] = useState<NodeDimension[]>(nodeData?.dimensions || [])
   const [audiences, setAudiences] = useState<AudienceConfig[]>(nodeData?.audiences || [])
+
+  // Get objectives based on platform
+  const objectiveOptions = useMemo(() => {
+    if (!nodeData) return []
+
+    if (nodeData.platform === 'google') {
+      return Object.entries(GOOGLE_CAMPAIGN_TYPES).map(([key, obj]) => ({
+        value: key,
+        label: obj.label,
+        icon: <Target className="h-3.5 w-3.5 text-blue-600" />,
+      }))
+    }
+
+    // Default to Meta objectives for other platforms
+    return Object.entries(META_OBJECTIVES).map(([key, obj]) => ({
+      value: key,
+      label: obj.label,
+      icon: <Target className="h-3.5 w-3.5 text-blue-600" />,
+    }))
+  }, [nodeData?.platform])
 
   // Sync state when node changes
   useEffect(() => {
@@ -141,11 +161,24 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
   }
 
   const addAudience = (type: AudienceType) => {
-    const newAudience: AudienceConfig = {
-      type,
-      count: 1,
+    // Check if this audience type already exists
+    const existingIndex = audiences.findIndex(a => a.type === type)
+
+    if (existingIndex !== -1) {
+      // If exists, increment the count
+      setAudiences(
+        audiences.map((aud, i) =>
+          i === existingIndex ? { ...aud, count: aud.count + 1 } : aud
+        )
+      )
+    } else {
+      // If doesn't exist, add new
+      const newAudience: AudienceConfig = {
+        type,
+        count: 1,
+      }
+      setAudiences([...audiences, newAudience])
     }
-    setAudiences([...audiences, newAudience])
   }
 
   const updateAudienceCount = (index: number, count: number) => {
@@ -165,7 +198,7 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
   // If no node selected, show general settings
   if (!node) {
     return (
-      <div className="w-80 bg-white border-l border-[#d9d8ce] flex flex-col">
+      <div className="w-80 bg-white border-l border-[#d9d8ce] flex flex-col h-full">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200">
           <h2 className="text-sm font-semibold text-gray-900">Strategy Settings</h2>
@@ -198,9 +231,9 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
   }
 
   return (
-    <div className="w-80 bg-white border-l border-[#d9d8ce] flex flex-col">
+    <div className="w-80 bg-white border-l border-[#d9d8ce] flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         <h2 className="text-sm font-semibold text-gray-900">Configure Block</h2>
         <button
           onClick={onClose}
@@ -231,12 +264,8 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
                 <CustomSelect
                   value={objective}
                   onChange={(value) => setObjective(value as any)}
-                  options={Object.entries(META_OBJECTIVES).map(([key, obj]) => ({
-                    value: key,
-                    label: obj.label,
-                    icon: <Target className="h-3.5 w-3.5 text-blue-600" />,
-                  }))}
-                  placeholder="Select objective"
+                  options={objectiveOptions}
+                  placeholder={nodeData?.platform === 'google' ? 'Select campaign type' : 'Select objective'}
                 />
               </div>
 
@@ -249,11 +278,23 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
                   type="number"
                   min="1"
                   value={multiplier}
-                  onChange={(e) => setMultiplier(parseInt(e.target.value) || 1)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === '') {
+                      setMultiplier('' as any)
+                    } else {
+                      setMultiplier(parseInt(value) || 1)
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '' || parseInt(e.target.value) < 1) {
+                      setMultiplier(1)
+                    }
+                  }}
                   className="w-full px-2 py-1.5 text-sm border border-[#d9d8ce] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#151515]"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {multiplier}x campaigns per combination
+                  {multiplier || 1}x campaigns per combination
                 </p>
               </div>
             </div>
@@ -272,47 +313,52 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
                 </label>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {audiences.map((audience, index) => {
                   const audienceType = AUDIENCE_TYPES[audience.type]
                   return (
                     <div
                       key={index}
-                      className="p-3 border border-[#d9d8ce] rounded-lg bg-gray-50 space-y-2"
+                      className="p-2 border border-[#d9d8ce] rounded-lg bg-gray-50 flex items-center gap-2"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-[#151515] flex items-center gap-2">
-                            <span>{audienceType.icon}</span>
-                            {audienceType.label}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {audienceType.description}
-                          </div>
+                      <span className="text-base">{audienceType.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-[#151515]">
+                          {audienceType.label}
+                        </div>
+                      </div>
+
+                      {/* Counter controls */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            if (audience.count === 1) {
+                              removeAudience(index)
+                            } else {
+                              updateAudienceCount(index, audience.count - 1)
+                            }
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-200 transition-colors text-gray-600"
+                        >
+                          −
+                        </button>
+                        <div className="w-8 text-center text-sm font-medium text-[#151515]">
+                          {audience.count}
                         </div>
                         <button
-                          onClick={() => removeAudience(index)}
-                          className="p-1 hover:bg-red-50 rounded transition-colors"
+                          onClick={() => updateAudienceCount(index, Math.min(20, audience.count + 1))}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-200 transition-colors text-gray-600"
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          +
                         </button>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Number of {audienceType.label} audiences
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={audience.count}
-                          onChange={(e) =>
-                            updateAudienceCount(index, parseInt(e.target.value) || 1)
-                          }
-                          className="w-full px-2 py-1 text-sm border border-[#d9d8ce] rounded focus:outline-none focus:ring-2 focus:ring-[#151515]"
-                        />
-                      </div>
+                      <button
+                        onClick={() => removeAudience(index)}
+                        className="p-1 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </button>
                     </div>
                   )
                 })}

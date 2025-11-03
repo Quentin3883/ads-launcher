@@ -9,7 +9,16 @@ export const redirectionTypeSchema = z.enum(['LANDING_PAGE', 'LEAD_FORM', 'DEEPL
 export const budgetModeSchema = z.enum(['CBO', 'ABO'])
 export const budgetTypeSchema = z.enum(['daily', 'lifetime'])
 export const audiencePresetTypeSchema = z.enum(['BROAD', 'INTEREST', 'LOOKALIKE', 'CUSTOM_AUDIENCE'])
-export const placementPresetSchema = z.enum(['FEEDS_REELS', 'STORIES_ONLY', 'ALL_PLACEMENTS', 'CUSTOM'])
+export const placementPresetSchema = z.enum([
+  'FEEDS_REELS',
+  'STORIES_ONLY',
+  'ALL_PLACEMENTS',
+  'CUSTOM',
+  'FACEBOOK_ONLY',
+  'INSTAGRAM_ONLY',
+  'FEED_ONLY',
+  'REELS_ONLY',
+])
 export const creativeFormatSchema = z.enum(['Image', 'Video', 'Carousel'])
 export const formatVariantSchema = z.enum(['Feed', 'Story'])
 export const genderSchema = z.enum(['All', 'Male', 'Female'])
@@ -162,7 +171,8 @@ export const matrixDimensionsSchema = z.object({
   audiences: z.boolean(),
   placements: z.boolean(),
   creatives: z.boolean(),
-  formatVariants: z.boolean(),
+  formatVariants: z.boolean(), // Feed + Story variants (asset customization)
+  formatSplit: z.boolean(), // Split by Image vs Video
   copyVariants: z.boolean(),
 })
 
@@ -234,6 +244,10 @@ export const PLACEMENT_PRESETS: Record<PlacementPreset, string[]> = {
   STORIES_ONLY: ['Stories'],
   ALL_PLACEMENTS: ['Feed', 'Stories', 'Reels', 'Explore', 'Messenger', 'Search', 'In-stream'],
   CUSTOM: [],
+  FACEBOOK_ONLY: ['Facebook Feed', 'Facebook Stories', 'Facebook Reels', 'Facebook Marketplace'],
+  INSTAGRAM_ONLY: ['Instagram Feed', 'Instagram Stories', 'Instagram Reels', 'Instagram Explore'],
+  FEED_ONLY: ['Facebook Feed', 'Instagram Feed'],
+  REELS_ONLY: ['Facebook Reels', 'Instagram Reels'],
 }
 
 export const COUNTRIES = [

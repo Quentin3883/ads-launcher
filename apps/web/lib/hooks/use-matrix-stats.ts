@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { BulkAudiences, BulkCreatives } from '@/lib/types/bulk-launcher'
+import type { BulkAudiencesConfig, BulkCreativesConfig } from '@launcher-ads/sdk'
 
 interface MatrixStats {
   audiences: number
@@ -15,8 +15,8 @@ interface MatrixStats {
  * Avoids expensive recalculations on every render
  */
 export function useMatrixStats(
-  bulkAudiences: BulkAudiences,
-  bulkCreatives: BulkCreatives
+  bulkAudiences: BulkAudiencesConfig,
+  bulkCreatives: BulkCreativesConfig
 ): MatrixStats {
   return useMemo(() => {
     const audiencesCount = bulkAudiences.audiences.length || 0
@@ -55,7 +55,7 @@ export function useMatrixStats(
 /**
  * Calculate detailed matrix breakdown for preview
  */
-export function useMatrixBreakdown(bulkAudiences: BulkAudiences, bulkCreatives: BulkCreatives) {
+export function useMatrixBreakdown(bulkAudiences: BulkAudiencesConfig, bulkCreatives: BulkCreativesConfig) {
   return useMemo(() => {
     const combinations: Array<{
       audience: string

@@ -24,7 +24,6 @@
     "postinstall": "cd apps/api && pnpm prisma generate"
   },
   "devDependencies": {
-    "@turbo/gen": "^2.3.3",
     "husky": "^9.1.7",
     "lint-staged": "^15.2.11",
     "prettier": "^3.4.2",

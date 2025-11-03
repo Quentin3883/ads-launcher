@@ -4,15 +4,29 @@ import { TrpcRouter } from './trpc/trpc.router'
 import * as trpcExpress from '@trpc/server/adapters/express'
 import { createContext } from './trpc/trpc.router'
 import { getEnv } from '@launcher-ads/sdk'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { join } from 'path'
+import { json, urlencoded } from 'express'
 
 async function bootstrap() {
   const env = getEnv()
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false, // Disable default body parser to configure manually
+  })
+
+  // Configure body parser with higher limits for video/image uploads
+  app.use(json({ limit: '500mb' }))
+  app.use(urlencoded({ limit: '500mb', extended: true }))
 
   // Enable CORS
   app.enableCors({
     origin: ['http://localhost:3000'],
     credentials: true,
+  })
+
+  // Serve static files from uploads directory
+  app.useStaticAssets(join(__dirname, '..', '..', 'uploads'), {
+    prefix: '/uploads/',
   })
 
   // Get tRPC router

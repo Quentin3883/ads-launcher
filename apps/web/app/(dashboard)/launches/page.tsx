@@ -3,8 +3,16 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Search, Plus } from 'lucide-react'
-import { LaunchTypeCards } from '@/components/dashboard/launch-type-cards'
-import { LaunchList } from '@/components/dashboard/launch-list'
+// Disable SSR for components with buttons to avoid Dashlane hydration mismatch
+const LaunchTypeCards = dynamic(
+  () => import('@/components/dashboard/launch-type-cards').then((mod) => mod.LaunchTypeCards),
+  { ssr: false }
+)
+
+const LaunchList = dynamic(
+  () => import('@/components/dashboard/launch-list').then((mod) => mod.LaunchList),
+  { ssr: false }
+)
 
 // Code-split the heavy modal component
 const BulkLauncherModal = dynamic(

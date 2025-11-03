@@ -4,36 +4,17 @@ import type { Client } from '@/lib/types/client'
 interface ClientsState {
   clients: Client[]
   selectedClientId: string | null
+  isLoading: boolean
   setSelectedClient: (clientId: string | null) => void
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void
   getSelectedClient: () => Client | null
+  fetchClients: () => Promise<void>
 }
 
-// Mock clients data
-const mockClients: Client[] = [
-  {
-    id: '1',
-    name: 'Nike',
-    color: '#FF6B35',
-    createdAt: new Date('2025-01-15'),
-  },
-  {
-    id: '2',
-    name: 'Adidas',
-    color: '#1E90FF',
-    createdAt: new Date('2025-02-10'),
-  },
-  {
-    id: '3',
-    name: 'Puma',
-    color: '#FFD700',
-    createdAt: new Date('2025-03-05'),
-  },
-]
-
 export const useClientsStore = create<ClientsState>((set, get) => ({
-  clients: mockClients,
+  clients: [],
   selectedClientId: null,
+  isLoading: false,
 
   setSelectedClient: (clientId) => set({ selectedClientId: clientId }),
 
@@ -53,5 +34,17 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
     const { clients, selectedClientId } = get()
     if (!selectedClientId) return null
     return clients.find((c) => c.id === selectedClientId) || null
+  },
+
+  fetchClients: async () => {
+    set({ isLoading: true })
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`)
+      const data = await response.json()
+      set({ clients: Array.isArray(data) ? data : [], isLoading: false })
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+      set({ clients: [], isLoading: false })
+    }
   },
 }))

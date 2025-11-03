@@ -1,4 +1,4 @@
-import type { AudiencePreset, Demographics, PlacementPreset } from './bulk-launcher'
+import type { AudiencePreset, Demographics, PlacementPreset } from '@launcher-ads/sdk'
 
 /**
  * LaunchBlueprint - Exportable/Importable JSON contract

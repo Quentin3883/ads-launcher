@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn } from '@launcher-ads/ui'
 
 interface CharacterCounterProps {
   current: number

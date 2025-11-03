@@ -33,6 +33,10 @@ export interface ProgressStep {
 }
 
 export interface BulkLauncherState {
+  // Launch mode
+  launchMode: 'express' | 'pro' | 'custom' | null
+  setLaunchMode: (mode: 'express' | 'pro' | 'custom' | null) => void
+
   // Current step
   currentStep: number
   setCurrentStep: (step: number) => void
@@ -52,6 +56,20 @@ export interface BulkLauncherState {
   // Instagram Account selection
   instagramAccountId: string | null
   setInstagramAccountId: (instagramAccountId: string | null) => void
+
+  // Express Mode - Simple fields
+  campaignObjective: string | null
+  setCampaignObjective: (objective: string | null) => void
+  geoTargeting: any
+  setGeoTargeting: (geo: any) => void
+  placementPreset: string | null
+  setPlacementPreset: (preset: string | null) => void
+  audiencePreset: string | null
+  setAudiencePreset: (preset: string | null) => void
+  adCreatives: any[]
+  setAdCreatives: (creatives: any[]) => void
+  adCopy: { primaryText?: string; headline?: string; description?: string }
+  setAdCopy: (copy: any) => void
 
   // Step 1: Campaign
   campaign: Partial<CampaignConfig>
@@ -101,6 +119,10 @@ export interface BulkLauncherState {
   updateProgressStep: (id: string, update: Partial<ProgressStep>) => void
   setShowProgress: (show: boolean) => void
 
+  // Launch callback
+  launchCallback: (() => Promise<void>) | null
+  setLaunchCallback: (callback: (() => Promise<void>) | null) => void
+
   // Actions
   reset: () => void
 }
@@ -116,7 +138,7 @@ const initialCampaign: Partial<CampaignConfig> = {
   budgetType: 'daily',
   budget: 1000,
   startDate: new Date().toISOString().split('T')[0],
-  urlParamsOverride: '',
+  urlParamsOverride: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}',
 }
 
 const initialBulkAudiences: BulkAudiencesConfig = {
@@ -124,7 +146,7 @@ const initialBulkAudiences: BulkAudiencesConfig = {
   placementPresets: ['ALL_PLACEMENTS'],
   customPlacements: [],
   geoLocations: {
-    countries: ['United States'],
+    countries: ['US'],
     regions: [],
     cities: [],
   },
@@ -152,10 +174,11 @@ const initialBulkCreatives: BulkCreativesConfig = {
 
 const initialMatrixConfig: MatrixConfig = {
   dimensions: {
-    audiences: true,
-    placements: true,
-    creatives: true,
+    audiences: false, // Disabled by default - not useful for adset generation
+    placements: false,
+    creatives: false,
     formatVariants: false, // Feed + Story variants - disabled by default, uses asset customization instead
+    formatSplit: false, // Split by Image vs Video - disabled by default
     copyVariants: false,
   },
   softLimit: 300,
@@ -186,7 +209,11 @@ const restoreFromHistory = (historyState: HistoryState, currentState: BulkLaunch
 }
 
 export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
-  currentStep: 1,
+  // Launch Mode
+  launchMode: null,
+  setLaunchMode: (mode) => set({ launchMode: mode }),
+
+  currentStep: 0, // Start at mode selection
   setCurrentStep: (step) => set({ currentStep: step }),
 
   // Client
@@ -204,6 +231,20 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   // Instagram Account
   instagramAccountId: null,
   setInstagramAccountId: (instagramAccountId) => set({ instagramAccountId }),
+
+  // Express Mode
+  campaignObjective: null,
+  setCampaignObjective: (objective) => set({ campaignObjective: objective }),
+  geoTargeting: null,
+  setGeoTargeting: (geo) => set({ geoTargeting: geo }),
+  placementPreset: null,
+  setPlacementPreset: (preset) => set({ placementPreset: preset }),
+  audiencePreset: null,
+  setAudiencePreset: (preset) => set({ audiencePreset: preset }),
+  adCreatives: [],
+  setAdCreatives: (creatives) => set({ adCreatives: creatives }),
+  adCopy: {},
+  setAdCopy: (copy) => set({ adCopy: copy }),
 
   // History
   history: {
@@ -503,6 +544,10 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
       ),
     })),
   setShowProgress: (show) => set({ showProgress: show }),
+
+  // Launch callback
+  launchCallback: null,
+  setLaunchCallback: (callback) => set({ launchCallback: callback }),
 
   reset: () =>
     set({

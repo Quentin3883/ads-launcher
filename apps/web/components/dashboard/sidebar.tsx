@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -16,20 +16,28 @@ import {
   Building2,
   Check,
   Target,
+  Plug,
+  BarChart3,
+  Users,
+  Terminal,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@launcher-ads/ui'
 import { useClientsStore } from '@/lib/store/clients'
 
 const mainNavigation = [
   { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Strategy Builder', href: '/strategy', icon: Target },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Analyze', href: '/analyze', icon: Search },
+  { name: 'Clients', href: '/clients', icon: Users },
+  { name: 'Strategies', href: '/strategies', icon: Target },
+  { name: 'Integrations', href: '/integrations', icon: Plug },
   { name: 'Notifications', href: '/notifications', icon: Bell, disabled: true },
   { name: 'Launches', href: '/launches', icon: Rocket },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 const otherNavigation = [
+  { name: 'Debug Console', href: '/debug', icon: Terminal },
   { name: 'Documentation', href: '/docs', icon: BookOpen, disabled: true },
   { name: 'Templates', href: '/templates', icon: FileText, disabled: true },
   { name: 'Support', href: '/support', icon: MessageCircle, disabled: true },
@@ -37,10 +45,14 @@ const otherNavigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { clients, selectedClientId, setSelectedClient, getSelectedClient } = useClientsStore()
+  const { clients, selectedClientId, setSelectedClient, getSelectedClient, fetchClients } = useClientsStore()
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
 
   const selectedClient = getSelectedClient()
+
+  useEffect(() => {
+    fetchClients()
+  }, [])
 
   return (
     <aside className="relative w-[280px] bg-[#151515] border-r border-white/10"
@@ -145,10 +157,17 @@ export function Sidebar() {
             >
               {selectedClient ? (
                 <>
-                  <div
-                    className="h-8 w-8 rounded-lg flex-shrink-0"
-                    style={{ backgroundColor: selectedClient.color || '#d9d8ce' }}
-                  />
+                  <div className="h-8 w-8 rounded-lg flex-shrink-0 bg-white flex items-center justify-center overflow-hidden p-1">
+                    {selectedClient.logoUrl ? (
+                      <img
+                        src={selectedClient.logoUrl}
+                        alt={selectedClient.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-semibold text-white truncate">{selectedClient.name}</p>
                     <p className="text-xs text-white/60 truncate">Client selected</p>
@@ -174,13 +193,9 @@ export function Sidebar() {
             </button>
 
               {/* Dropdown */}
-              <AnimatePresence>
                 {isClientDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50"
+                  <div
+                    className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
                   >
                       <div className="p-2 max-h-64 overflow-y-auto">
                         {/* All Clients Option */}
@@ -214,18 +229,24 @@ export function Sidebar() {
                               selectedClientId === client.id ? 'bg-white text-[#151515]' : 'text-white/70 hover:bg-white/10'
                             )}
                           >
-                            <div
-                              className="h-5 w-5 rounded"
-                              style={{ backgroundColor: client.color || '#d9d8ce' }}
-                            />
-                            <span className="text-sm font-medium">{client.name}</span>
-                            {selectedClientId === client.id && <Check className="ml-auto h-4 w-4" />}
+                            <div className="h-5 w-5 rounded bg-white flex items-center justify-center overflow-hidden p-0.5">
+                              {client.logoUrl ? (
+                                <img
+                                  src={client.logoUrl}
+                                  alt={client.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <Building2 className="h-3 w-3 text-gray-400" />
+                              )}
+                            </div>
+                            <span className="text-sm font-medium truncate flex-1 text-left">{client.name}</span>
+                            {selectedClientId === client.id && <Check className="ml-auto h-4 w-4 flex-shrink-0" />}
                           </button>
                         ))}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
             </div>
           </div>
 

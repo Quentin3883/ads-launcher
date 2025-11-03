@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -54,16 +54,16 @@ model Blueprint {
 }
 
 model Launch {
-  id                 String        @id @default(uuid())
+  id                 String       @id @default(uuid())
   blueprintId        String
-  status             LaunchStatus  @default(pending)
+  status             LaunchStatus @default(pending)
   externalCampaignId String?
   scheduledFor       DateTime?
   startedAt          DateTime?
   completedAt        DateTime?
   errorMessage       String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   blueprint Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
   leads     Lead[]
@@ -87,4 +87,273 @@ model Lead {
   @@index([launchId])
   @@index([source])
   @@map("leads")
+}
+
+// ============================================
+// Facebook Integration Models
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  facebookTokens FacebookToken[]
+
+  @@map("users")
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String // Company name
+  industry  String?
+  website   String?
+  logoUrl   String? // URL to logo image
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts   ClientContact[]
+  adAccounts FacebookAdAccount[]
+
+  @@map("clients")
+}
+
+model ClientContact {
+  id        String   @id @default(uuid())
+  clientId  String
+  name      String
+  email     String
+  phone     String?
+  position  String? // Job title
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("client_contacts")
+}
+
+model FacebookToken {
+  id           String   @id @default(uuid())
+  userId       String
+  accessToken  String   @db.Text
+  refreshToken String?  @db.Text
+  expiresAt    DateTime
+  scopes       String[] // Permissions granted
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adAccounts FacebookAdAccount[]
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("facebook_tokens")
+}
+
+model FacebookAdAccount {
+  id            String   @id @default(uuid())
+  tokenId       String
+  clientId      String? // Link to Client
+  facebookId    String   @unique // Ad Account ID from Facebook
+  name          String
+  currency      String
+  timezone      String?
+  accountStatus String? // ACTIVE, DISABLED, etc.
+  businessName  String?
+  businessId    String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  token     FacebookToken      @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  client    Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  campaigns FacebookCampaign[]
+
+  @@index([tokenId])
+  @@index([facebookId])
+  @@index([clientId])
+  @@map("facebook_ad_accounts")
+}
+
+model FacebookCampaign {
+  id             String    @id @default(uuid())
+  adAccountId    String
+  facebookId     String    @unique // Campaign ID from Facebook
+  name           String
+  status         String // ACTIVE, PAUSED, ARCHIVED, DELETED
+  objective      String // OUTCOME_AWARENESS, OUTCOME_ENGAGEMENT, etc.
+  dailyBudget    Float?
+  lifetimeBudget Float?
+  bidStrategy    String?
+  startTime      DateTime?
+  stopTime       DateTime?
+  strategyNodeId String? // Link to Strategy Workflow node
+  rawData        Json? // Store full Facebook API response
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastSyncedAt   DateTime  @default(now())
+
+  adAccount FacebookAdAccount         @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  insights  FacebookCampaignInsight[]
+  adSets    FacebookAdSet[]
+
+  @@index([adAccountId])
+  @@index([facebookId])
+  @@index([status])
+  @@index([adAccountId, status]) // Composite index for filtered queries
+  @@index([lastSyncedAt]) // For sync operations
+  @@map("facebook_campaigns")
+}
+
+model FacebookCampaignInsight {
+  id            String   @id @default(uuid())
+  campaignId    String
+  dateStart     DateTime
+  dateEnd       DateTime
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  uniqueClicks  Int      @default(0)
+  spend         Float    @default(0)
+  reach         Int      @default(0)
+  leads         Int      @default(0)
+  videoViews25  Int      @default(0)
+  videoViews50  Int      @default(0)
+  videoViews75  Int      @default(0)
+  videoViews100 Int      @default(0)
+  videoThruplay Int      @default(0)
+  actions       Json?
+  actionValues  Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campaign FacebookCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, dateStart, dateEnd])
+  @@index([campaignId])
+  @@index([dateStart])
+  @@index([dateStart, dateEnd]) // Composite index for date range queries
+  @@map("facebook_campaign_insights")
+}
+
+model FacebookAdSet {
+  id               String    @id @default(uuid())
+  campaignId       String
+  facebookId       String    @unique
+  name             String
+  status           String
+  optimizationGoal String?
+  billingEvent     String?
+  bidStrategy      String?
+  dailyBudget      Float?
+  lifetimeBudget   Float?
+  targeting        Json?
+  startTime        DateTime?
+  endTime          DateTime?
+  rawData          Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastSyncedAt     DateTime  @default(now())
+
+  campaign FacebookCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  insights FacebookAdSetInsight[]
+  ads      FacebookAd[]
+
+  @@index([campaignId])
+  @@index([facebookId])
+  @@index([status])
+  @@index([campaignId, status]) // Composite index for filtered queries
+  @@index([lastSyncedAt]) // For sync operations
+  @@map("facebook_ad_sets")
+}
+
+model FacebookAdSetInsight {
+  id            String   @id @default(uuid())
+  adSetId       String
+  dateStart     DateTime
+  dateEnd       DateTime
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  uniqueClicks  Int      @default(0)
+  spend         Float    @default(0)
+  reach         Int      @default(0)
+  leads         Int      @default(0)
+  videoViews25  Int      @default(0)
+  videoViews50  Int      @default(0)
+  videoViews75  Int      @default(0)
+  videoViews100 Int      @default(0)
+  videoThruplay Int      @default(0)
+  actions       Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  adSet FacebookAdSet @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+
+  @@unique([adSetId, dateStart, dateEnd])
+  @@index([adSetId])
+  @@index([dateStart])
+  @@index([dateStart, dateEnd]) // Composite index for date range queries
+  @@map("facebook_ad_set_insights")
+}
+
+model FacebookAd {
+  id           String   @id @default(uuid())
+  adSetId      String
+  facebookId   String   @unique
+  name         String
+  status       String
+  creativeId   String?
+  headline     String?
+  primaryText  String?
+  description  String?
+  callToAction String?
+  linkUrl      String?
+  imageUrl     String?
+  videoUrl     String?
+  rawData      Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastSyncedAt DateTime @default(now())
+
+  adSet    FacebookAdSet       @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  insights FacebookAdInsight[]
+
+  @@index([adSetId])
+  @@index([facebookId])
+  @@index([status])
+  @@map("facebook_ads")
+}
+
+model FacebookAdInsight {
+  id            String   @id @default(uuid())
+  adId          String
+  dateStart     DateTime
+  dateEnd       DateTime
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  uniqueClicks  Int      @default(0)
+  spend         Float    @default(0)
+  reach         Int      @default(0)
+  leads         Int      @default(0)
+  videoViews25  Int      @default(0)
+  videoViews50  Int      @default(0)
+  videoViews75  Int      @default(0)
+  videoViews100 Int      @default(0)
+  videoThruplay Int      @default(0)
+  actions       Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ad FacebookAd @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@unique([adId, dateStart, dateEnd])
+  @@index([adId])
+  @@index([dateStart])
+  @@map("facebook_ad_insights")
 }

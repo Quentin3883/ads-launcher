@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
-import { generateId } from '@/lib/types/bulk-launcher'
-import type { AudiencePreset, AudiencePresetType } from '@/lib/types/bulk-launcher'
+import { generateId } from '@launcher-ads/sdk'
+import type { AudiencePreset, AudiencePresetType } from '@launcher-ads/sdk'
 
 /**
  * Custom hook for audience form logic
