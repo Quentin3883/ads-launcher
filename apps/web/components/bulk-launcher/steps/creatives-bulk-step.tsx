@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { CTA_OPTIONS, generateId } from '@launcher-ads/sdk'
-import type { Creative, CreativeVersion } from '@launcher-ads/sdk'
+import type { Creative, CreativeVersion, CreativeLabel } from '@launcher-ads/sdk'
 import { Upload, Trash2, Plus, X, Monitor, Smartphone, Lock, Library, ChevronDown } from 'lucide-react'
 import { FormField } from '@/components/ui/form-field'
 import { FormSelect } from '@/components/ui/form-select'
@@ -76,10 +76,18 @@ export function CreativesBulkStep() {
     Object.entries(creativeMap).forEach(([_baseName, { feed, story, name }]) => {
       const format = feed?.type.startsWith('video/') || story?.type.startsWith('video/') ? 'Video' : 'Image'
 
+      // Auto-detect label: Image -> Static, Video -> check for UGC in filename, otherwise Video
+      let label: CreativeLabel = 'Static'
+      if (format === 'Video') {
+        const hasUGC = /ugc/i.test(name)
+        label = hasUGC ? 'UGC' : 'Video'
+      }
+
       const creative: Creative = {
         id: generateId(),
         name,
         format,
+        label,
         feedVersion: feed
           ? {
               file: feed,
@@ -177,6 +185,7 @@ export function CreativesBulkStep() {
         id: generateId(),
         name,
         format: mediaType === 'image' ? 'Image' : 'Video',
+        label: mediaType === 'image' ? 'Static' : 'Video',
       }
 
       if (format === 'Feed' || format === 'Both') {
@@ -206,6 +215,7 @@ export function CreativesBulkStep() {
       id: generateId(),
       name: `Creative ${bulkCreatives.creatives.length + 1}`,
       format: 'Image',
+      label: 'Static',
     }
 
     addCreative(creative)
@@ -302,6 +312,50 @@ export function CreativesBulkStep() {
                       onChange={(e) => updateCreative(creative.id, { name: e.target.value })}
                       className="w-full px-2 py-1 text-xs font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded"
                     />
+                  </div>
+
+                  {/* Label Pills */}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => updateCreative(creative.id, { label: 'Static' })}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
+                        creative.label === 'Static'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Static
+                    </button>
+                    <button
+                      onClick={() => updateCreative(creative.id, { label: 'Video' })}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
+                        creative.label === 'Video'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Video
+                    </button>
+                    <button
+                      onClick={() => updateCreative(creative.id, { label: 'UGC' })}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
+                        creative.label === 'UGC'
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      UGC
+                    </button>
+                    <button
+                      onClick={() => updateCreative(creative.id, { label: 'Other' })}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
+                        creative.label === 'Other'
+                          ? 'bg-yellow-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Other
+                    </button>
                   </div>
 
                   {/* Feed Preview */}

@@ -21,6 +21,7 @@ export const placementPresetSchema = z.enum([
 ])
 export const creativeFormatSchema = z.enum(['Image', 'Video', 'Carousel'])
 export const formatVariantSchema = z.enum(['Feed', 'Story'])
+export const creativeLabelSchema = z.enum(['Static', 'Video', 'UGC', 'Other'])
 export const genderSchema = z.enum(['All', 'Male', 'Female'])
 
 // TypeScript types from Zod schemas
@@ -32,6 +33,7 @@ export type AudiencePresetType = z.infer<typeof audiencePresetTypeSchema>
 export type PlacementPreset = z.infer<typeof placementPresetSchema>
 export type CreativeFormat = z.infer<typeof creativeFormatSchema>
 export type FormatVariant = z.infer<typeof formatVariantSchema>
+export type CreativeLabel = z.infer<typeof creativeLabelSchema>
 export type Gender = z.infer<typeof genderSchema>
 
 // ============================================
@@ -84,6 +86,7 @@ export const creativeSchema = z.object({
   id: z.string(),
   name: z.string(),
   format: creativeFormatSchema,
+  label: creativeLabelSchema.default('Static'),
   feedVersion: creativeVersionSchema.optional(),
   storyVersion: creativeVersionSchema.optional(),
 })
@@ -193,6 +196,7 @@ export const generatedAdSchema = z.object({
   adSetId: z.string(),
   name: z.string(),
   format: creativeFormatSchema,
+  label: creativeLabelSchema.optional(),
   creativeUrl: z.string().url(),
   creativeUrlStory: z.string().url().optional(), // Story format URL for asset customization
   headline: z.string(),

@@ -314,6 +314,7 @@ export function useLaunchCampaign() {
         return {
           name: ad.name,
           format: ad.format,
+          label: (ad as any).label, // Include label from ad
           creativeUrl,
           creativeUrlStory,
           headline: ad.headline,

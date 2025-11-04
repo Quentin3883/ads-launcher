@@ -1015,7 +1015,7 @@ export class FacebookService {
     adAccountId: string,
     imageData: string,
     name?: string,
-  ) {
+  ): Promise<{ hash: string; id: string }> {
     try {
       this.logger.log(`Uploading image${name ? ` (${name})` : ''}...`)
 
@@ -1071,8 +1071,8 @@ export class FacebookService {
         )
 
         const imageDataResponse = Object.values(response.data.images)[0] as any
-        this.logger.log(`Image uploaded successfully: hash=${imageDataResponse.hash}, width=${imageDataResponse.width}, height=${imageDataResponse.height}`)
-        return imageDataResponse.hash
+        this.logger.log(`Image uploaded successfully: id=${imageDataResponse.id}, hash=${imageDataResponse.hash}, width=${imageDataResponse.width}, height=${imageDataResponse.height}`)
+        return { hash: imageDataResponse.hash, id: imageDataResponse.id }
       } else if (imageData.startsWith('blob:')) {
         // It's a blob URL - we can't access it from the backend
         throw new Error('Blob URLs are not supported. Please send the image as base64 data URL.')
@@ -1096,8 +1096,8 @@ export class FacebookService {
         )
 
         const imageDataResponse = Object.values(response.data.images)[0] as any
-        this.logger.log(`Image uploaded successfully: hash=${imageDataResponse.hash}, width=${imageDataResponse.width}, height=${imageDataResponse.height}`)
-        return imageDataResponse.hash
+        this.logger.log(`Image uploaded successfully: id=${imageDataResponse.id}, hash=${imageDataResponse.hash}, width=${imageDataResponse.width}, height=${imageDataResponse.height}`)
+        return { hash: imageDataResponse.hash, id: imageDataResponse.id }
       }
     } catch (error: any) {
       this.logger.error(`Error uploading image:`, error.response?.data)
@@ -1626,6 +1626,7 @@ export class FacebookService {
         ads: Array<{
           name: string
           format: string
+          label?: string
           creativeUrl: string
           creativeUrlStory?: string
           headline: string
@@ -1889,6 +1890,8 @@ export class FacebookService {
               // Upload creative (image or video) for Feed format
               let imageHashFeed: string | undefined
               let imageHashStory: string | undefined
+              let imageIdFeed: string | undefined
+              let imageIdStory: string | undefined
               let videoIdFeed: string | undefined
               let videoIdStory: string | undefined
               let videoThumbnailFeed: string | null | undefined
@@ -1910,12 +1913,14 @@ export class FacebookService {
                     this.logger.log(`✅ Using pre-uploaded Feed image hash: ${imageHashFeed}`)
                   } else {
                     // Upload image (base64 data URL or regular URL)
-                    imageHashFeed = await this.uploadImage(
+                    const result = await this.uploadImage(
                       token.accessToken,
                       adAccount.facebookId,
                       adConfig.creativeUrl,
                       `${adConfig.name} - Feed`,
                     )
+                    imageHashFeed = result.hash
+                    imageIdFeed = result.id
                   }
                 }
 
@@ -1934,12 +1939,14 @@ export class FacebookService {
                       this.logger.log(`✅ Using pre-uploaded Story image hash: ${imageHashStory}`)
                     } else {
                       // Upload image (base64 data URL or regular URL)
-                      imageHashStory = await this.uploadImage(
+                      const result = await this.uploadImage(
                         token.accessToken,
                         adAccount.facebookId,
                         adConfig.creativeUrlStory!,
                         `${adConfig.name} - Story`,
                       )
+                      imageHashStory = result.hash
+                      imageIdStory = result.id
                     }
                   }
 
@@ -2355,12 +2362,30 @@ export class FacebookService {
                 }
               }
 
+              // Build ad name with format: (Label) Name [asset_id=xxx]
+              let adName = adConfig.name
+              const label = adConfig.label || (adConfig.format === 'Image' ? 'Static' : 'Video')
+
+              // Get asset ID based on format
+              let assetId = ''
+              if (adConfig.format === 'Video') {
+                assetId = videoIdFeed || videoIdStory || ''
+              } else {
+                // Use image ID if available (from upload), otherwise fall back to hash
+                assetId = imageIdFeed || imageIdStory || imageHashFeed || imageHashStory || ''
+              }
+
+              if (label && assetId) {
+                const assetType = adConfig.format === 'Video' ? 'video_id' : 'image_id'
+                adName = `(${label}) ${adConfig.name} [${assetType}=${assetId}]`
+              }
+
               // Create ad
               const createdAd = await this.createAd(
                 token.accessToken,
                 adAccount.facebookId,
                 {
-                  name: adConfig.name,
+                  name: adName,
                   adset_id: createdAdSet.id,
                   creative_id: createdCreative.id,
                   status: 'PAUSED',
@@ -2373,7 +2398,7 @@ export class FacebookService {
                 data: {
                   adSetId: savedAdSet.id,
                   facebookId: createdAd.id,
-                  name: adConfig.name,
+                  name: adName,
                   status: 'PAUSED',
                   headline: adConfig.headline,
                   primaryText: adConfig.primaryText,

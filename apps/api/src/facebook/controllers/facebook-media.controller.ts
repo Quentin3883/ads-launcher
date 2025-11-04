@@ -187,8 +187,8 @@ export class FacebookMediaController {
         throw new HttpException('Ad account not found', HttpStatus.NOT_FOUND)
       }
 
-      // Upload image and return hash
-      const imageHash = await this.facebookService.uploadImage(
+      // Upload image and return hash and id
+      const result = await this.facebookService.uploadImage(
         adAccount.token.accessToken,
         adAccount.facebookId,
         imageData,
@@ -196,7 +196,8 @@ export class FacebookMediaController {
       )
 
       return {
-        imageHash,
+        imageHash: result.hash,
+        imageId: result.id,
         success: true,
       }
     } catch (error: any) {

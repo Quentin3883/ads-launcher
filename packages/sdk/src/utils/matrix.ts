@@ -185,6 +185,7 @@ function createAd(
     adSetId,
     name: `${creative.name} - ${copy.headline}`,
     format: creative.format,
+    label: creative.label,
     creativeUrl: feedUrl || storyUrl, // Use Feed if available, otherwise Story
     creativeUrlStory: storyUrl || undefined,
     headline: copy.headline,
