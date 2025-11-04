@@ -1,6 +1,8 @@
 'use client'
 
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
+import { UploadProgressList } from './upload-progress-list'
+import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 
 export interface ProgressStep {
   id: string
@@ -17,10 +19,14 @@ interface CampaignProgressModalProps {
 }
 
 export function CampaignProgressModal({ open, steps, onClose }: CampaignProgressModalProps) {
+  const { uploadProgress } = useBulkLauncher()
+
   if (!open) return null
 
   const allCompleted = steps.every((s) => s.status === 'completed')
   const hasError = steps.some((s) => s.status === 'error')
+  const uploadStep = steps.find((s) => s.id === 'upload')
+  const showUploads = uploadProgress.length > 0 && uploadStep?.status === 'in_progress'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -75,6 +81,13 @@ export function CampaignProgressModal({ open, steps, onClose }: CampaignProgress
                 )}
                 {step.error && (
                   <p className="text-xs text-destructive mt-1">{step.error}</p>
+                )}
+
+                {/* Show upload progress list for upload step */}
+                {step.id === 'upload' && showUploads && (
+                  <div className="mt-3 pl-2 border-l-2 border-primary/30">
+                    <UploadProgressList />
+                  </div>
                 )}
               </div>
             </div>

@@ -18,24 +18,25 @@ interface LaunchCampaignParams {
 export function useLaunchCampaign() {
   const mutation = trpc.facebookCampaigns.launchBulkCampaign.useMutation()
 
-  const uploadVideo = async (adAccountId: string, videoData: string): Promise<string> => {
+  const uploadVideo = async (adAccountId: string, videoData: string, uploadId?: string, fileName?: string): Promise<string> => {
     const response = await fetch(`http://localhost:4000/facebook/media/upload-video/${adAccountId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoData }),
+      body: JSON.stringify({ videoData, uploadId, fileName }),
     })
     if (!response.ok) {
-      throw new Error('Failed to upload video')
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+      throw new Error(`Failed to upload video: ${errorData.message || response.statusText}`)
     }
     const data = await response.json()
     return data.videoId
   }
 
-  const uploadImage = async (adAccountId: string, imageData: string): Promise<string> => {
+  const uploadImage = async (adAccountId: string, imageData: string, fileName?: string): Promise<string> => {
     const response = await fetch(`http://localhost:4000/facebook/media/upload-image/${adAccountId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData }),
+      body: JSON.stringify({ imageData, fileName }),
     })
     if (!response.ok) {
       throw new Error('Failed to upload image')
@@ -74,91 +75,198 @@ export function useLaunchCampaign() {
       updateProgressStep('upload', { status: 'in_progress' })
       console.log('📤 Pre-uploading media assets...')
 
-    const videoCache = new Map<string, Promise<string>>()
-    const imageCache = new Map<string, Promise<string>>()
-
-    const videoUploadPromises: Promise<{ adSetIndex: number; adIndex: number; field: 'feed' | 'story'; videoId: string }>[] = []
-    const imageUploadPromises: Promise<{ adSetIndex: number; adIndex: number; field: 'feed' | 'story'; imageHash: string }>[] = []
+    // Track unique videos/images and their metadata (don't upload yet)
+    const uniqueVideos = new Map<string, { name: string; refs: { adSetIndex: number; adIndex: number; field: 'feed' | 'story' }[] }>()
+    const uniqueImages = new Map<string, { name: string; refs: { adSetIndex: number; adIndex: number; field: 'feed' | 'story' }[] }>()
 
     params.generatedAdSets.forEach((adSet, adSetIndex) => {
       adSet.ads.forEach((ad, adIndex) => {
         if (ad.format === 'Video') {
-          // Upload Feed video if it's a data URL
+          // Track Feed video if it's a data URL
           if (ad.creativeUrl.startsWith('data:video')) {
-            // Check cache to avoid duplicate uploads
-            if (!videoCache.has(ad.creativeUrl)) {
-              videoCache.set(ad.creativeUrl, uploadVideo(adAccountId, ad.creativeUrl))
+            if (!uniqueVideos.has(ad.creativeUrl)) {
+              const videoName = `${ad.name || `Video_${adSetIndex}_${adIndex}`}_feed`
+              uniqueVideos.set(ad.creativeUrl, { name: videoName, refs: [] })
             }
-            videoUploadPromises.push(
-              videoCache.get(ad.creativeUrl)!.then((videoId) => ({
-                adSetIndex,
-                adIndex,
-                field: 'feed' as const,
-                videoId,
-              }))
-            )
+            uniqueVideos.get(ad.creativeUrl)!.refs.push({ adSetIndex, adIndex, field: 'feed' })
           }
 
-          // Upload Story video if it's a data URL
+          // Track Story video if it's a data URL
           if (ad.creativeUrlStory?.startsWith('data:video')) {
-            // Check cache to avoid duplicate uploads
-            if (!videoCache.has(ad.creativeUrlStory)) {
-              videoCache.set(ad.creativeUrlStory, uploadVideo(adAccountId, ad.creativeUrlStory))
+            if (!uniqueVideos.has(ad.creativeUrlStory)) {
+              const videoName = `${ad.name || `Video_${adSetIndex}_${adIndex}`}_story`
+              uniqueVideos.set(ad.creativeUrlStory, { name: videoName, refs: [] })
             }
-            videoUploadPromises.push(
-              videoCache.get(ad.creativeUrlStory)!.then((videoId) => ({
-                adSetIndex,
-                adIndex,
-                field: 'story' as const,
-                videoId,
-              }))
-            )
+            uniqueVideos.get(ad.creativeUrlStory)!.refs.push({ adSetIndex, adIndex, field: 'story' })
           }
         } else if (ad.format === 'Image') {
-          // Upload Feed image if it's a data URL
+          // Track Feed image if it's a data URL
           if (ad.creativeUrl.startsWith('data:image')) {
-            // Check cache to avoid duplicate uploads
-            if (!imageCache.has(ad.creativeUrl)) {
-              imageCache.set(ad.creativeUrl, uploadImage(adAccountId, ad.creativeUrl))
+            if (!uniqueImages.has(ad.creativeUrl)) {
+              const imageName = `${ad.name || `Image_${adSetIndex}_${adIndex}`}_feed`
+              uniqueImages.set(ad.creativeUrl, { name: imageName, refs: [] })
             }
-            imageUploadPromises.push(
-              imageCache.get(ad.creativeUrl)!.then((imageHash) => ({
-                adSetIndex,
-                adIndex,
-                field: 'feed' as const,
-                imageHash,
-              }))
-            )
+            uniqueImages.get(ad.creativeUrl)!.refs.push({ adSetIndex, adIndex, field: 'feed' })
           }
 
-          // Upload Story image if it's a data URL
+          // Track Story image if it's a data URL
           if (ad.creativeUrlStory?.startsWith('data:image')) {
-            // Check cache to avoid duplicate uploads
-            if (!imageCache.has(ad.creativeUrlStory)) {
-              imageCache.set(ad.creativeUrlStory, uploadImage(adAccountId, ad.creativeUrlStory))
+            if (!uniqueImages.has(ad.creativeUrlStory)) {
+              const imageName = `${ad.name || `Image_${adSetIndex}_${adIndex}`}_story`
+              uniqueImages.set(ad.creativeUrlStory, { name: imageName, refs: [] })
             }
-            imageUploadPromises.push(
-              imageCache.get(ad.creativeUrlStory)!.then((imageHash) => ({
-                adSetIndex,
-                adIndex,
-                field: 'story' as const,
-                imageHash,
-              }))
-            )
+            uniqueImages.get(ad.creativeUrlStory)!.refs.push({ adSetIndex, adIndex, field: 'story' })
           }
         }
       })
     })
 
-    // Wait for all uploads to complete
-    const [uploadedVideos, uploadedImages] = await Promise.all([
-      Promise.all(videoUploadPromises),
-      Promise.all(imageUploadPromises),
-    ])
-    console.log(`✅ Uploaded ${videoCache.size} unique videos and ${imageCache.size} unique images (${uploadedVideos.length} video refs, ${uploadedImages.length} image refs)`)
+    // Upload all media in parallel with progress tracking
+    const totalVideos = uniqueVideos.size
+    const totalImages = uniqueImages.size
+    let completedVideos = 0
+    let completedImages = 0
+
+    // Initialize upload progress in store for each file with SSE connections
+    const { setUploadProgress, updateUploadProgress } = useBulkLauncher.getState()
+
+    // Create unique upload IDs and progress list
+    const uploadIds: string[] = []
+    const uploadProgressList = Array.from(uniqueVideos.entries()).map(([dataUrl, videoInfo], index) => {
+      const uploadId = `upload_${Date.now()}_${index}`
+      uploadIds.push(uploadId)
+      return {
+        id: uploadId,
+        fileName: videoInfo.name,
+        type: 'video' as const,
+        status: 'uploading' as const,
+        progress: 0,
+      }
+    })
+    setUploadProgress(uploadProgressList)
+
+    // Setup SSE listeners for each upload
+    const eventSources: EventSource[] = []
+    uploadIds.forEach((uploadId) => {
+      const eventSource = new EventSource(`http://localhost:4000/facebook/media/upload-progress/${uploadId}`)
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          updateUploadProgress(uploadId, {
+            status: data.status,
+            progress: data.progress,
+            phase: data.phase,
+            error: data.error,
+          })
+        } catch (error) {
+          console.error('Failed to parse SSE data:', error)
+        }
+      }
+
+      eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error)
+        eventSource.close()
+      }
+
+      eventSources.push(eventSource)
+    })
+
+    // Upload videos (only once per unique video)
+    const videoIdMap = new Map<string, string>() // Map dataUrl -> videoId
+    const videoUploadPromises = Array.from(uniqueVideos.entries()).map(([dataUrl, videoInfo], index) => {
+      const uploadId = uploadIds[index]
+
+      return uploadVideo(adAccountId, dataUrl, uploadId, videoInfo.name)
+        .then((videoId) => {
+          videoIdMap.set(dataUrl, videoId)
+          completedVideos++
+          updateProgressStep('upload', {
+            status: 'in_progress',
+            detail: `Uploaded ${completedVideos}/${totalVideos} videos, ${completedImages}/${totalImages} images`
+          })
+          return videoId
+        })
+        .catch((error) => {
+          updateUploadProgress(uploadId, {
+            status: 'error',
+            progress: 0,
+            error: error.message,
+          })
+          throw error
+        })
+    })
+
+    // Upload images (only once per unique image)
+    const imageHashMap = new Map<string, string>() // Map dataUrl -> imageHash
+    const imageUploadPromises = Array.from(uniqueImages.entries()).map(([dataUrl, imageInfo]) => {
+      return uploadImage(adAccountId, dataUrl, imageInfo.name)
+        .then((imageHash) => {
+          imageHashMap.set(dataUrl, imageHash)
+          completedImages++
+          updateProgressStep('upload', {
+            status: 'in_progress',
+            detail: `Uploaded ${completedVideos}/${totalVideos} videos, ${completedImages}/${totalImages} images`
+          })
+          return imageHash
+        })
+    })
+
+    // Wait for all uploads to complete in parallel
+    await Promise.all([...videoUploadPromises, ...imageUploadPromises])
+
+    // Close all SSE connections
+    eventSources.forEach(es => es.close())
+
+    console.log(`✅ Uploaded ${totalVideos} unique videos and ${totalImages} unique images`)
+
+    // Update all uploads to "processing" status
+    uploadProgressList.forEach(upload => {
+      updateUploadProgress(upload.id, {
+        status: 'processing',
+        progress: 100,
+        phase: 'processing',
+      })
+    })
+
+    updateProgressStep('upload', {
+      status: 'in_progress',
+      detail: `Processing ${totalVideos} videos...`
+    })
+
+    // Now wait for all videos to be ready (check status)
+    console.log('⏳ Waiting for all videos to be processed by Facebook...')
+    const videoReadyPromises = Array.from(videoIdMap.entries()).map(async ([dataUrl, videoId], index) => {
+      const uploadId = uploadIds[index]
+      try {
+        // Poll video status until ready
+        const response = await fetch(`http://localhost:4000/facebook/media/video-status/${adAccountId}/${videoId}`)
+        if (!response.ok) {
+          throw new Error('Failed to check video status')
+        }
+        const data = await response.json()
+
+        updateUploadProgress(uploadId, {
+          status: 'completed',
+          progress: 100,
+        })
+
+        return data
+      } catch (error: any) {
+        updateUploadProgress(uploadId, {
+          status: 'error',
+          error: error.message,
+        })
+        throw error
+      }
+    })
+
+    await Promise.all(videoReadyPromises)
+    console.log('✅ All videos processed and ready')
+
     updateProgressStep('upload', {
       status: 'completed',
-      detail: `Uploaded ${videoCache.size + imageCache.size} media assets`
+      detail: `Uploaded and processed ${totalVideos} videos and ${totalImages} images`
     })
 
     // Step 3: Replace media data URLs with Facebook hashes/IDs
@@ -171,35 +279,35 @@ export function useLaunchCampaign() {
 
         if (ad.format === 'Video') {
           // Replace Feed video data URL with Facebook video ID URL
-          const feedVideo = uploadedVideos.find(
-            (v) => v.adSetIndex === adSetIndex && v.adIndex === adIndex && v.field === 'feed'
-          )
-          if (feedVideo) {
-            creativeUrl = `https://facebook.com/video/${feedVideo.videoId}`
+          if (ad.creativeUrl.startsWith('data:video')) {
+            const videoId = videoIdMap.get(ad.creativeUrl)
+            if (videoId) {
+              creativeUrl = `https://facebook.com/video/${videoId}`
+            }
           }
 
           // Replace Story video data URL with Facebook video ID URL
-          const storyVideo = uploadedVideos.find(
-            (v) => v.adSetIndex === adSetIndex && v.adIndex === adIndex && v.field === 'story'
-          )
-          if (storyVideo) {
-            creativeUrlStory = `https://facebook.com/video/${storyVideo.videoId}`
+          if (ad.creativeUrlStory?.startsWith('data:video')) {
+            const videoId = videoIdMap.get(ad.creativeUrlStory)
+            if (videoId) {
+              creativeUrlStory = `https://facebook.com/video/${videoId}`
+            }
           }
         } else if (ad.format === 'Image') {
           // Replace Feed image data URL with Facebook image hash URL
-          const feedImage = uploadedImages.find(
-            (i) => i.adSetIndex === adSetIndex && i.adIndex === adIndex && i.field === 'feed'
-          )
-          if (feedImage) {
-            creativeUrl = `https://facebook.com/image/${feedImage.imageHash}`
+          if (ad.creativeUrl.startsWith('data:image')) {
+            const imageHash = imageHashMap.get(ad.creativeUrl)
+            if (imageHash) {
+              creativeUrl = `https://facebook.com/image/${imageHash}`
+            }
           }
 
           // Replace Story image data URL with Facebook image hash URL
-          const storyImage = uploadedImages.find(
-            (i) => i.adSetIndex === adSetIndex && i.adIndex === adIndex && i.field === 'story'
-          )
-          if (storyImage) {
-            creativeUrlStory = `https://facebook.com/image/${storyImage.imageHash}`
+          if (ad.creativeUrlStory?.startsWith('data:image')) {
+            const imageHash = imageHashMap.get(ad.creativeUrlStory)
+            if (imageHash) {
+              creativeUrlStory = `https://facebook.com/image/${imageHash}`
+            }
           }
         }
 

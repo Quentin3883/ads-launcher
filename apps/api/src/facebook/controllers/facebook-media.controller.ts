@@ -7,9 +7,39 @@ import {
   Query,
   HttpException,
   HttpStatus,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common'
 import { FacebookService } from '../facebook.service'
 import { PrismaService } from '../../prisma/prisma.service'
+import { Observable, Subject } from 'rxjs'
+
+// Progress event manager for tracking upload progress
+export class UploadProgressManager {
+  private static progressStreams = new Map<string, Subject<MessageEvent>>()
+
+  static getOrCreateStream(uploadId: string): Subject<MessageEvent> {
+    if (!this.progressStreams.has(uploadId)) {
+      this.progressStreams.set(uploadId, new Subject<MessageEvent>())
+    }
+    return this.progressStreams.get(uploadId)!
+  }
+
+  static emitProgress(uploadId: string, data: any) {
+    const stream = this.progressStreams.get(uploadId)
+    if (stream) {
+      stream.next({ data })
+    }
+  }
+
+  static completeStream(uploadId: string) {
+    const stream = this.progressStreams.get(uploadId)
+    if (stream) {
+      stream.complete()
+      this.progressStreams.delete(uploadId)
+    }
+  }
+}
 
 @Controller('facebook/media')
 export class FacebookMediaController {
@@ -19,6 +49,15 @@ export class FacebookMediaController {
   ) {}
 
   /**
+   * SSE endpoint to stream upload progress
+   * GET /facebook/media/upload-progress/:uploadId
+   */
+  @Sse('upload-progress/:uploadId')
+  streamUploadProgress(@Param('uploadId') uploadId: string): Observable<MessageEvent> {
+    return UploadProgressManager.getOrCreateStream(uploadId)
+  }
+
+  /**
    * Upload a video file to Facebook
    * POST /facebook/media/upload-video/:adAccountId
    */
@@ -26,6 +65,8 @@ export class FacebookMediaController {
   async uploadVideo(
     @Param('adAccountId') adAccountId: string,
     @Body('videoData') videoData: string,
+    @Body('uploadId') uploadId?: string,
+    @Body('fileName') fileName?: string,
   ) {
     try {
       // Get ad account with token
@@ -45,6 +86,9 @@ export class FacebookMediaController {
         adAccount.token.accessToken,
         adAccount.facebookId,
         videoData,
+        undefined,
+        uploadId,
+        fileName,
       )
 
       return {
@@ -53,8 +97,68 @@ export class FacebookMediaController {
         success: true,
       }
     } catch (error: any) {
+      // Emit error to progress stream if uploadId exists
+      if (uploadId) {
+        UploadProgressManager.emitProgress(uploadId, {
+          status: 'error',
+          error: error.message,
+        })
+        UploadProgressManager.completeStream(uploadId)
+      }
       throw new HttpException(
         error.message || 'Failed to upload video',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
+  /**
+   * Check video status and wait until ready
+   * GET /facebook/media/video-status/:adAccountId/:videoId
+   */
+  @Get('video-status/:adAccountId/:videoId')
+  async checkVideoStatus(
+    @Param('adAccountId') adAccountId: string,
+    @Param('videoId') videoId: string,
+  ) {
+    try {
+      // Get ad account with token
+      const adAccount = await this.prisma.facebookAdAccount.findUnique({
+        where: { id: adAccountId },
+        include: {
+          token: true,
+        },
+      })
+
+      if (!adAccount) {
+        throw new HttpException('Ad account not found', HttpStatus.NOT_FOUND)
+      }
+
+      // Wait for video to be ready
+      const isReady = await this.facebookService.waitForVideoReady(
+        adAccount.token.accessToken,
+        videoId,
+      )
+
+      if (!isReady) {
+        throw new HttpException('Video processing failed or timed out', HttpStatus.REQUEST_TIMEOUT)
+      }
+
+      // Fetch thumbnail
+      const thumbnailUrl = await this.facebookService.getVideoThumbnail(
+        adAccount.token.accessToken,
+        videoId,
+      )
+
+      return {
+        videoId,
+        thumbnailUrl,
+        ready: true,
+        success: true,
+      }
+    } catch (error: any) {
+      throw new HttpException(
+        error.message || 'Failed to check video status',
         HttpStatus.INTERNAL_SERVER_ERROR,
       )
     }
@@ -68,6 +172,7 @@ export class FacebookMediaController {
   async uploadImage(
     @Param('adAccountId') adAccountId: string,
     @Body('imageData') imageData: string,
+    @Body('fileName') fileName?: string,
   ) {
     try {
       // Get ad account with token
@@ -87,6 +192,7 @@ export class FacebookMediaController {
         adAccount.token.accessToken,
         adAccount.facebookId,
         imageData,
+        fileName,
       )
 
       return {

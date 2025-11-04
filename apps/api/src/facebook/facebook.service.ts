@@ -1017,7 +1017,7 @@ export class FacebookService {
     name?: string,
   ) {
     try {
-      this.logger.log(`Uploading image...`)
+      this.logger.log(`Uploading image${name ? ` (${name})` : ''}...`)
 
       // Check if it's a data URL (base64) or a blob URL
       if (imageData.startsWith('data:')) {
@@ -1032,6 +1032,16 @@ export class FacebookService {
         const mimeType = mimeTypePart ? mimeTypePart.split(':')[1] || 'image/jpeg' : 'image/jpeg'
         const buffer = Buffer.from(base64Data, 'base64')
 
+        // Determine file extension from MIME type
+        const extensionMap: Record<string, string> = {
+          'image/jpeg': '.jpg',
+          'image/jpg': '.jpg',
+          'image/png': '.png',
+          'image/gif': '.gif',
+          'image/webp': '.webp',
+        }
+        const extension = extensionMap[mimeType] || '.jpg'
+
         this.logger.log(`Uploading from base64 data (${mimeType}, ${buffer.length} bytes)`)
 
         // Use FormData to upload the file
@@ -1040,9 +1050,15 @@ export class FacebookService {
         formData.append('access_token', accessToken)
         if (name) {
           formData.append('name', name)
+          this.logger.log(`📝 Setting image name: "${name}"`)
+        } else {
+          this.logger.warn('⚠️  No name provided for image upload')
         }
+
+        // Use name with correct extension for filename, or default to 'image' + extension
+        const filename = name ? `${name}${extension}` : `image${extension}`
         formData.append('file', buffer, {
-          filename: 'image.jpg',
+          filename: filename,
           contentType: mimeType,
         })
 
@@ -1101,8 +1117,8 @@ export class FacebookService {
    * Wait for video to be ready for use in ads
    * Checks video status until it's ready or timeout
    */
-  async waitForVideoReady(accessToken: string, videoId: string): Promise<boolean> {
-    const maxRetries = 10
+  async waitForVideoReady(accessToken: string, videoId: string, uploadId?: string, fileName?: string): Promise<boolean> {
+    const maxRetries = 20 // Increased for large videos (up to 60 seconds total)
     const retryDelay = 3000 // 3 seconds between retries
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -1130,19 +1146,69 @@ export class FacebookService {
         this.logger.log(`  - processing_phase: ${processingPhase}`)
         this.logger.log(`  - publishing_phase: ${publishingPhase}`)
 
-        if (videoStatus === 'ready' && processingPhase === 'complete') {
-          this.logger.log(`✅ Video ${videoId} is ready for use`)
-          return true
-        }
-
+        // Check for errors first
         if (videoStatus === 'error') {
           this.logger.error(`❌ Video ${videoId} processing failed`)
           return false
         }
 
-        // Status is 'processing' or not all phases complete - wait and retry
+        // Wait for uploading phase to complete FIRST
+        if (uploadingPhase && uploadingPhase !== 'complete') {
+          if (attempt < maxRetries) {
+            this.logger.log(`⏳ Video still uploading (${uploadingPhase}), waiting ${retryDelay / 1000} seconds...`)
+
+            // Emit progress update
+            if (uploadId) {
+              const { UploadProgressManager } = await import('./controllers/facebook-media.controller')
+              UploadProgressManager.emitProgress(uploadId, {
+                status: 'uploading',
+                progress: 100,
+                fileName: fileName || 'Video',
+                phase: 'finalizing',
+              })
+            }
+
+            await new Promise(resolve => setTimeout(resolve, retryDelay))
+            continue
+          }
+        }
+
+        // Then check if video is fully ready
+        if (videoStatus === 'ready' && processingPhase === 'complete') {
+          this.logger.log(`✅ Video ${videoId} is ready for use`)
+
+          // Emit completion
+          if (uploadId) {
+            const { UploadProgressManager } = await import('./controllers/facebook-media.controller')
+            UploadProgressManager.emitProgress(uploadId, {
+              status: 'completed',
+              progress: 100,
+              fileName: fileName || 'Video',
+              phase: 'ready',
+              videoId,
+            })
+            UploadProgressManager.completeStream(uploadId)
+          }
+
+          return true
+        }
+
+        // Still processing - wait and retry
         if (attempt < maxRetries) {
           this.logger.log(`⏳ Video still processing, waiting ${retryDelay / 1000} seconds before retry...`)
+
+          // Emit processing progress
+          if (uploadId) {
+            const { UploadProgressManager } = await import('./controllers/facebook-media.controller')
+            const processingProgress = Math.min(100, Math.round((attempt / maxRetries) * 100))
+            UploadProgressManager.emitProgress(uploadId, {
+              status: 'processing',
+              progress: processingProgress,
+              fileName: fileName || 'Video',
+              phase: 'processing',
+            })
+          }
+
           await new Promise(resolve => setTimeout(resolve, retryDelay))
           continue
         }
@@ -1241,9 +1307,22 @@ export class FacebookService {
     adAccountId: string,
     videoData: string,
     title?: string,
+    uploadId?: string,
+    fileName?: string,
   ): Promise<{ videoId: string; thumbnailUrl: string | null }> {
     try {
-      this.logger.log(`Uploading video...`)
+      this.logger.log(`Uploading video${fileName ? ` (${fileName})` : ''}...`)
+
+      // Emit initial progress
+      if (uploadId) {
+        const { UploadProgressManager } = await import('./controllers/facebook-media.controller')
+        UploadProgressManager.emitProgress(uploadId, {
+          status: 'uploading',
+          progress: 0,
+          fileName: fileName || 'Video',
+          phase: 'starting',
+        })
+      }
 
       // Check if it's a data URL (base64) or a regular URL
       if (videoData.startsWith('data:')) {
@@ -1261,18 +1340,26 @@ export class FacebookService {
         const fileSizeMB = buffer.length / 1024 / 1024
         this.logger.log(`Uploading video from base64 data (${mimeType}, ${fileSizeMB.toFixed(2)} MB)`)
 
-        // For videos > 50MB, use resumable upload API
-        if (fileSizeMB > 50) {
-          this.logger.log('Using resumable upload API for large video...')
+        // Always use resumable upload API (works for all sizes)
+        this.logger.log('Using resumable upload API...')
 
           // Step 1: Initialize resumable upload session
           const initPayload: any = {
             upload_phase: 'start',
             file_size: buffer.length,
           }
+
+          if (fileName) {
+            initPayload.title = fileName
+            this.logger.log(`📝 Setting video title for resumable upload START: "${fileName}"`)
+          } else {
+            this.logger.warn('⚠️  No fileName provided for resumable upload')
+          }
           if (title) {
             initPayload.title = title
           }
+
+          this.logger.log(`Init payload: ${JSON.stringify(initPayload)}`)
 
           const initResponse = await axios.post(
             `${this.baseUrl}/${adAccountId}/advideos`,
@@ -1315,15 +1402,38 @@ export class FacebookService {
             offset += chunk.length
             const progress = ((offset / buffer.length) * 100).toFixed(1)
             this.logger.log(`Upload progress: ${progress}%`)
+
+            // Emit progress update
+            if (uploadId) {
+              const { UploadProgressManager } = await import('./controllers/facebook-media.controller')
+              UploadProgressManager.emitProgress(uploadId, {
+                status: 'uploading',
+                progress: parseFloat(progress),
+                fileName: fileName || 'Video',
+                phase: 'transferring',
+              })
+            }
           }
 
-          // Step 3: Finalize upload
+          // Step 3: Finalize upload with name and title
+          const finishPayload: any = {
+            upload_phase: 'finish',
+            upload_session_id,
+          }
+
+          if (fileName) {
+            finishPayload.title = fileName
+            this.logger.log(`📝 Setting video title in FINISH phase: "${fileName}"`)
+          }
+          if (title) {
+            finishPayload.title = title
+          }
+
+          this.logger.log(`Finish payload: ${JSON.stringify(finishPayload)}`)
+
           await axios.post(
             `${this.baseUrl}/${adAccountId}/advideos`,
-            {
-              upload_phase: 'finish',
-              upload_session_id,
-            },
+            finishPayload,
             {
               params: { access_token: accessToken },
             },
@@ -1331,50 +1441,9 @@ export class FacebookService {
 
           this.logger.log(`Video uploaded successfully (resumable): id=${video_id}`)
 
-          // Wait for video to be ready for use
-          const isReady = await this.waitForVideoReady(accessToken, video_id)
-          if (!isReady) {
-            throw new Error('Video processing failed or timed out')
-          }
-
-          // Fetch thumbnail
-          const thumbnailUrl = await this.getVideoThumbnail(accessToken, video_id)
-          return { videoId: video_id, thumbnailUrl }
-        } else {
-          // For smaller videos, use direct upload
-          const FormData = require('form-data')
-          const formData = new FormData()
-          formData.append('access_token', accessToken)
-          if (title) {
-            formData.append('title', title)
-          }
-          formData.append('source', buffer, {
-            filename: 'video.mp4',
-            contentType: mimeType,
-          })
-
-          const response = await axios.post(
-            `${this.baseUrl}/${adAccountId}/advideos`,
-            formData,
-            {
-              headers: formData.getHeaders(),
-              maxContentLength: Infinity,
-              maxBodyLength: Infinity,
-            },
-          )
-
-          this.logger.log(`Video uploaded successfully: id=${response.data.id}`)
-
-          // Wait for video to be ready for use
-          const isReady = await this.waitForVideoReady(accessToken, response.data.id)
-          if (!isReady) {
-            throw new Error('Video processing failed or timed out')
-          }
-
-          // Fetch thumbnail
-          const thumbnailUrl = await this.getVideoThumbnail(accessToken, response.data.id)
-          return { videoId: response.data.id, thumbnailUrl }
-        }
+          // Return immediately - status check will be done later
+          this.logger.log(`✅ Upload complete at 100% for video ${video_id}`)
+          return { videoId: video_id, thumbnailUrl: null }
       } else if (videoData.startsWith('blob:')) {
         // It's a blob URL - we can't access it from the backend
         throw new Error('Blob URLs are not supported. Please send the video as base64 data URL.')
@@ -2023,11 +2092,12 @@ export class FacebookService {
 
               if (adConfig.format === 'Video' && (videoIdFeed || videoIdStory)) {
                 // For videos with multiple placements (Feed + Story in ONE ad)
-                if (videoIdFeed && videoIdStory) {
-                  // Use asset_feed_spec with asset_customization_rules for video PAC
+                // IMPORTANT: Only create PAC if Feed and Story are DIFFERENT videos
+                if (videoIdFeed && videoIdStory && videoIdFeed !== videoIdStory) {
+                  // Use asset_feed_spec with asset_customization_rules (PAC)
+                  // Using label-based approach matching Ads Manager structure
                   const assetFeedSpec = {
                     ad_formats: ['AUTOMATIC_FORMAT'],
-                    optimization_type: 'PLACEMENT',
                     videos: [
                       {
                         video_id: videoIdFeed,
@@ -2038,102 +2108,77 @@ export class FacebookService {
                         adlabels: [{ name: 'LBL_STORY_VIDEO' }],
                       },
                     ],
-                    titles: [
-                      {
-                        text: adConfig.headline,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
                     bodies: [
                       {
                         text: adConfig.primaryText,
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
-                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
+                    titles: [
+                      {
+                        text: adConfig.headline,
+                        adlabels: [{ name: 'LBL_COMMON' }],
+                      },
+                    ],
+                    descriptions: [
+                      { text: '' },
+                    ],
                     link_urls: [
                       {
                         website_url: adConfig.destination.url || '',
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
+                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
                     asset_customization_rules: [
-                      // Rule 1: Feed placements only (Facebook Feed, Instagram Feed/Explore, Audience Network)
+                      // Rule 1: All Stories/Reels/Search placements (portrait video)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network'],
-                          facebook_positions: ['feed'],
-                          instagram_positions: ['stream', 'explore', 'explore_home'],
+                          age_max: 65,
+                          age_min: 13,
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
+                          facebook_positions: ['story'],
+                          instagram_positions: ['ig_search', 'story', 'reels'],
+                          messenger_positions: ['story'],
                           audience_network_positions: ['classic', 'rewarded_video'],
                         },
-                        video_label: { name: 'LBL_FEED_VIDEO' },
-                        title_label: { name: 'LBL_COMMON' },
+                        video_label: { name: 'LBL_STORY_VIDEO' },
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
+                        title_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story (9:16 format)
+                      // Rule 2: Default/fallback for everything else (Feed - square/landscape video)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook'],
-                          facebook_positions: ['story'],
+                          age_max: 65,
+                          age_min: 13,
                         },
-                        video_label: { name: 'LBL_STORY_VIDEO' },
-                        title_label: { name: 'LBL_COMMON' },
+                        video_label: { name: 'LBL_FEED_VIDEO' },
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
+                        title_label: { name: 'LBL_COMMON' },
                         priority: 2,
                       },
-                      // Rule 3: Instagram Story (9:16 format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['instagram'],
-                          instagram_positions: ['story'],
-                        },
-                        video_label: { name: 'LBL_STORY_VIDEO' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 3,
-                      },
-                      // Rule 4: Instagram Reels + Search (9:16 vertical format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['instagram'],
-                          instagram_positions: ['reels', 'ig_search'],
-                        },
-                        video_label: { name: 'LBL_STORY_VIDEO' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 4,
-                      },
-                      // Rule 5: Messenger Story (9:16 format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['messenger'],
-                          messenger_positions: ['story'],
-                        },
-                        video_label: { name: 'LBL_STORY_VIDEO' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 5,
-                      },
                     ],
+                    optimization_type: 'PLACEMENT',
+                    additional_data: {
+                      multi_share_end_card: false,
+                      is_click_to_message: false,
+                    },
+                    reasons_to_shop: false,
+                    shops_bundle: false,
                   }
 
-                  // Build object_story_spec for PAC
+                  // Build object_story_spec (required even for PAC)
                   const objectStorySpecPAC: any = {
                     page_id: launchData.facebookPageId,
                   }
-
-                  // Add Instagram account ID if provided
                   if (launchData.instagramAccountId) {
                     objectStorySpecPAC.instagram_user_id = launchData.instagramAccountId
                   }
 
-                  this.logger.log('Creating video ad with asset_feed_spec + customization_rules (Feed + Story)')
+                  this.logger.log('Creating PAC video ad with asset_feed_spec (Feed vs Stories/Reels)')
                   this.logger.log('Object Story Spec:', JSON.stringify(objectStorySpecPAC, null, 2))
                   this.logger.log('Asset Feed Spec:', JSON.stringify(assetFeedSpec, null, 2))
 
@@ -2161,7 +2206,8 @@ export class FacebookService {
                     call_to_action: callToAction,
                   }
 
-                  // Add thumbnail if available
+                  // Add thumbnail (required by Facebook API)
+                  // NOTE: Facebook will save this thumbnail as a separate image in Media Library
                   if (videoThumbnail) {
                     objectStorySpec.video_data.image_url = videoThumbnail
                     this.logger.log(`Using video thumbnail: ${videoThumbnail.substring(0, 100)}...`)
@@ -2180,13 +2226,13 @@ export class FacebookService {
                 }
               } else if (adConfig.format === 'Image' && (imageHashFeed || imageHashStory)) {
                 // For images with multiple placements (Feed + Story in ONE ad)
-                if (imageHashFeed && imageHashStory) {
-                  // Use asset_feed_spec with asset_customization_rules
-                  // This creates ONE ad with placement-specific images (Feed → Feed image, Story → Story image)
-                  // IMPORTANT: When using asset_feed_spec, DO NOT include object_story_spec
+                // IMPORTANT: Only create PAC if Feed and Story are DIFFERENT images
+                if (imageHashFeed && imageHashStory && imageHashFeed !== imageHashStory) {
+                  // Use asset_feed_spec with asset_customization_rules (PAC)
+                  // Using label-based approach matching Ads Manager structure
+
                   const assetFeedSpec = {
                     ad_formats: ['AUTOMATIC_FORMAT'],
-                    optimization_type: 'PLACEMENT',
                     images: [
                       {
                         hash: imageHashFeed,
@@ -2197,102 +2243,77 @@ export class FacebookService {
                         adlabels: [{ name: 'LBL_STORY_IMG' }],
                       },
                     ],
-                    titles: [
-                      {
-                        text: adConfig.headline,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
                     bodies: [
                       {
                         text: adConfig.primaryText,
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
-                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
+                    titles: [
+                      {
+                        text: adConfig.headline,
+                        adlabels: [{ name: 'LBL_COMMON' }],
+                      },
+                    ],
+                    descriptions: [
+                      { text: '' },
+                    ],
                     link_urls: [
                       {
                         website_url: adConfig.destination.url || '',
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
+                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
                     asset_customization_rules: [
-                      // Rule 1: Feed placements only (Facebook Feed, Instagram Feed/Explore, Audience Network)
+                      // Rule 1: All Stories/Reels/Search placements (portrait image)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network'],
-                          facebook_positions: ['feed'],
-                          instagram_positions: ['stream', 'explore', 'explore_home'],
+                          age_max: 65,
+                          age_min: 13,
+                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
+                          facebook_positions: ['story'],
+                          instagram_positions: ['ig_search', 'story', 'reels'],
+                          messenger_positions: ['story'],
                           audience_network_positions: ['classic', 'rewarded_video'],
                         },
-                        image_label: { name: 'LBL_FEED_IMG' },
-                        title_label: { name: 'LBL_COMMON' },
+                        image_label: { name: 'LBL_STORY_IMG' },
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
+                        title_label: { name: 'LBL_COMMON' },
                         priority: 1,
                       },
-                      // Rule 2: Facebook Story (9:16 format)
+                      // Rule 2: Default/fallback for everything else (Feed - square image)
                       {
                         customization_spec: {
-                          publisher_platforms: ['facebook'],
-                          facebook_positions: ['story'],
+                          age_max: 65,
+                          age_min: 13,
                         },
-                        image_label: { name: 'LBL_STORY_IMG' },
-                        title_label: { name: 'LBL_COMMON' },
+                        image_label: { name: 'LBL_FEED_IMG' },
                         body_label: { name: 'LBL_COMMON' },
                         link_url_label: { name: 'LBL_COMMON' },
+                        title_label: { name: 'LBL_COMMON' },
                         priority: 2,
                       },
-                      // Rule 3: Instagram Story (9:16 format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['instagram'],
-                          instagram_positions: ['story'],
-                        },
-                        image_label: { name: 'LBL_STORY_IMG' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 3,
-                      },
-                      // Rule 4: Instagram Reels + Search (9:16 vertical format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['instagram'],
-                          instagram_positions: ['reels', 'ig_search'],
-                        },
-                        image_label: { name: 'LBL_STORY_IMG' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 4,
-                      },
-                      // Rule 5: Messenger Story (9:16 format)
-                      {
-                        customization_spec: {
-                          publisher_platforms: ['messenger'],
-                          messenger_positions: ['story'],
-                        },
-                        image_label: { name: 'LBL_STORY_IMG' },
-                        title_label: { name: 'LBL_COMMON' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        priority: 5,
-                      },
                     ],
+                    optimization_type: 'PLACEMENT',
+                    additional_data: {
+                      multi_share_end_card: false,
+                      is_click_to_message: false,
+                    },
+                    reasons_to_shop: false,
+                    shops_bundle: false,
                   }
 
-                  // Build object_story_spec for PAC
+                  // Build object_story_spec (required even for PAC)
                   const objectStorySpecPAC: any = {
                     page_id: launchData.facebookPageId,
                   }
-
-                  // Add Instagram account ID if provided
                   if (launchData.instagramAccountId) {
                     objectStorySpecPAC.instagram_user_id = launchData.instagramAccountId
                   }
 
-                  this.logger.log('Creating ad with asset_feed_spec + customization_rules (Facebook only)')
+                  this.logger.log('Creating PAC ad with asset_feed_spec (Feed vs Stories/Reels)')
                   this.logger.log('Object Story Spec:', JSON.stringify(objectStorySpecPAC, null, 2))
                   this.logger.log('Asset Feed Spec:', JSON.stringify(assetFeedSpec, null, 2))
 

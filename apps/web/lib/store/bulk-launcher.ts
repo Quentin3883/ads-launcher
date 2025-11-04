@@ -32,6 +32,16 @@ export interface ProgressStep {
   error?: string
 }
 
+export interface UploadProgress {
+  id: string
+  fileName: string
+  type: 'video' | 'image'
+  status: 'uploading' | 'processing' | 'completed' | 'error'
+  progress: number
+  phase?: string
+  error?: string
+}
+
 export interface BulkLauncherState {
   // Launch mode
   launchMode: 'express' | 'pro' | 'custom' | null
@@ -118,6 +128,12 @@ export interface BulkLauncherState {
   setProgressSteps: (steps: ProgressStep[]) => void
   updateProgressStep: (id: string, update: Partial<ProgressStep>) => void
   setShowProgress: (show: boolean) => void
+
+  // Upload progress tracking
+  uploadProgress: UploadProgress[]
+  setUploadProgress: (uploads: UploadProgress[]) => void
+  updateUploadProgress: (id: string, update: Partial<UploadProgress>) => void
+  addUploadProgress: (upload: UploadProgress) => void
 
   // Launch callback
   launchCallback: (() => Promise<void>) | null
@@ -545,6 +561,20 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
     })),
   setShowProgress: (show) => set({ showProgress: show }),
 
+  // Upload progress tracking
+  uploadProgress: [],
+  setUploadProgress: (uploads) => set({ uploadProgress: uploads }),
+  updateUploadProgress: (id, update) =>
+    set((state) => ({
+      uploadProgress: state.uploadProgress.map((upload) =>
+        upload.id === id ? { ...upload, ...update } : upload
+      ),
+    })),
+  addUploadProgress: (upload) =>
+    set((state) => ({
+      uploadProgress: [...state.uploadProgress, upload],
+    })),
+
   // Launch callback
   launchCallback: null,
   setLaunchCallback: (callback) => set({ launchCallback: callback }),
@@ -564,5 +594,6 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
       },
       progressSteps: [],
       showProgress: false,
+      uploadProgress: [],
     }),
 }))
