@@ -1606,14 +1606,14 @@ export class FacebookService {
         audience: {
           type: string
           name: string
-          interests?: string[]
+          interests?: Array<string | { id: string; name: string }>
           customAudienceId?: string
         }
         placements: string[]
         geoLocations: {
-          countries: string[]
-          regions?: string[]
-          cities?: string[]
+          countries?: string[]
+          regions?: Array<string | { key: string; name?: string }>
+          cities?: Array<string | { key: string; name?: string }>
         }
         demographics: {
           ageMin: number
@@ -1741,9 +1741,7 @@ export class FacebookService {
 
           // Build targeting
           const targeting: any = {
-            geo_locations: {
-              countries: adSetConfig.geoLocations.countries,
-            },
+            geo_locations: {} as any,
             age_min: adSetConfig.demographics.ageMin,
             age_max: adSetConfig.demographics.ageMax,
             // Add all placements (Facebook, Instagram, Audience Network, Messenger)
@@ -1755,6 +1753,21 @@ export class FacebookService {
             audience_network_positions: ['classic', 'rewarded_video'],
           }
 
+          // Build geo_locations with support for countries, regions, and cities
+          if (adSetConfig.geoLocations.countries && adSetConfig.geoLocations.countries.length > 0) {
+            targeting.geo_locations.countries = adSetConfig.geoLocations.countries
+          }
+          if (adSetConfig.geoLocations.regions && adSetConfig.geoLocations.regions.length > 0) {
+            targeting.geo_locations.regions = adSetConfig.geoLocations.regions.map((region: any) =>
+              typeof region === 'string' ? { key: region } : region
+            )
+          }
+          if (adSetConfig.geoLocations.cities && adSetConfig.geoLocations.cities.length > 0) {
+            targeting.geo_locations.cities = adSetConfig.geoLocations.cities.map((city: any) =>
+              typeof city === 'string' ? { key: city } : city
+            )
+          }
+
           // Add gender (1 = male, 2 = female)
           if (adSetConfig.demographics.gender === 'Male') {
             targeting.genders = [1]
@@ -1762,25 +1775,28 @@ export class FacebookService {
             targeting.genders = [2]
           }
 
-          // Add interests
-          // Note: interests must be numeric IDs from Facebook's targeting API
-          // TODO: Store interest IDs instead of names in the frontend
+          // Add interests - support both string IDs and objects with id/name
           if (
             adSetConfig.audience.type === 'INTEREST' &&
             adSetConfig.audience.interests &&
             adSetConfig.audience.interests.length > 0
           ) {
-            // Only add interests if they look like numeric IDs
-            const validInterests = adSetConfig.audience.interests.filter((interest) =>
-              /^\d+$/.test(interest)
-            )
+            const interestObjects = adSetConfig.audience.interests.map((interest: any) => {
+              // If it's already an object with id, use it
+              if (typeof interest === 'object' && interest.id) {
+                return { id: interest.id, name: interest.name }
+              }
+              // If it's a string that looks like a numeric ID, use it
+              if (typeof interest === 'string' && /^\d+$/.test(interest)) {
+                return { id: interest }
+              }
+              return null
+            }).filter(Boolean)
 
-            if (validInterests.length > 0) {
+            if (interestObjects.length > 0) {
               targeting.flexible_spec = [
                 {
-                  interests: validInterests.map((interest) => ({
-                    id: interest,
-                  })),
+                  interests: interestObjects,
                 },
               ]
             }
