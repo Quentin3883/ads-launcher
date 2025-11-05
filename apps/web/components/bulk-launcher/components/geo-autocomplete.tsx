@@ -14,7 +14,7 @@ interface GeoLocation {
 }
 
 interface GeoAutocompleteProps {
-  adAccountId: string
+  userId: string
   selectedLocations: GeoLocation[]
   onAdd: (location: GeoLocation) => void
   onRemove: (key: string) => void
@@ -23,7 +23,7 @@ interface GeoAutocompleteProps {
 }
 
 export function GeoAutocomplete({
-  adAccountId,
+  userId,
   selectedLocations,
   onAdd,
   onRemove,
@@ -50,7 +50,7 @@ export function GeoAutocomplete({
       try {
         const typesParam = types.join(',')
         const response = await fetch(
-          `http://localhost:4000/facebook/targeting/geo/search?adAccountId=${adAccountId}&q=${encodeURIComponent(query)}&types=${typesParam}`
+          `http://localhost:4000/facebook/targeting/geo/search?userId=${userId}&q=${encodeURIComponent(query)}&types=${typesParam}`
         )
         const data = await response.json()
 
@@ -67,7 +67,7 @@ export function GeoAutocomplete({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, adAccountId, types])
+  }, [query, userId, types])
 
   // Close dropdown when clicking outside
   useEffect(() => {

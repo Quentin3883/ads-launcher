@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useCallback, memo, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import {
-  COUNTRIES,
-  REGIONS,
-  CITIES,
-  INTERESTS_OPTIONS,
   LANGUAGES,
   OPTIMIZATION_EVENTS,
   PLACEMENT_PRESETS,
@@ -15,10 +11,9 @@ import {
   type AudiencePresetType,
   type PlacementPreset,
 } from '@launcher-ads/sdk'
-import { Plus, Trash2, List, Info } from 'lucide-react'
+import { Info, ChevronDown, X } from 'lucide-react'
 import { FormField } from '@/components/ui/form-field'
 import { FormSelect } from '@/components/ui/form-select'
-import { ToggleButtonGroup } from '@/components/ui/toggle-button-group'
 import { SectionCard } from '@/components/ui/section-card'
 import { InterestAutocomplete } from '../components/interest-autocomplete'
 import { GeoLocationAutocomplete } from '../components/geo-location-autocomplete'
@@ -52,6 +47,8 @@ export function AudiencesBulkStep() {
   const [lalSource, setLalSource] = useState('')
   const [lalPercentages, setLalPercentages] = useState<number[]>([1])
   const [customAudienceId, setCustomAudienceId] = useState('')
+  const [geoExpanded, setGeoExpanded] = useState(false)
+  const [placementsExpanded, setPlacementsExpanded] = useState(false)
 
   // Get userId from URL params (TODO: replace with proper auth)
   const userId = useMemo(() => {
@@ -176,10 +173,6 @@ export function AudiencesBulkStep() {
     })
   }, [bulkAudiences.demographics, updateBulkAudiences])
 
-  const selectedCountry = bulkAudiences.geoLocations.countries[0]
-  const availableRegions = selectedCountry ? REGIONS[selectedCountry] || [] : []
-  const availableCities = selectedCountry ? CITIES[selectedCountry] || [] : []
-
   return (
     <div className="space-y-6">
       {/* Header + Stats Preview */}
@@ -194,364 +187,446 @@ export function AudiencesBulkStep() {
         </div>
       </div>
 
-      {/* Audience Builder */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-foreground">Audiences ({bulkAudiences.audiences.length})</h4>
-          <button
-            onClick={() => setShowBulkPaste(!showBulkPaste)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
-          >
-            <List className="h-4 w-4" />
-            Bulk Paste
-          </button>
+      {/* Audience Builder - Compact */}
+      <SectionCard title={`Audiences (${bulkAudiences.audiences.length})`}>
+        {/* Quick Add Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {AUDIENCE_PRESET_TYPES.map((type) => (
+            <button
+              key={type.value}
+              onClick={() => {
+                setNewAudienceType(type.value)
+                // Auto-add Broad immediately
+                if (type.value === 'BROAD') {
+                  addAudience({
+                    id: generateId(),
+                    type: 'BROAD',
+                    name: 'Broad',
+                  })
+                }
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                newAudienceType === type.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              + {type.label}
+            </button>
+          ))}
         </div>
 
-        {/* Bulk Paste */}
-        {showBulkPaste && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-            <textarea
-              value={bulkPasteText}
-              onChange={(e) => setBulkPasteText(e.target.value)}
-              placeholder="Paste interests (one per line)&#10;Shopping&#10;Fashion&#10;Technology"
-              rows={5}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm font-mono resize-none"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBulkPasteInterests}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm"
-              >
-                Add All as Separate Audiences
-              </button>
-              <button
-                onClick={() => setShowBulkPaste(false)}
-                className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Audience Type Selector */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Audience Type
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {AUDIENCE_PRESET_TYPES.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => setNewAudienceType(type.value)}
-                className={`p-3 rounded-lg border text-left transition-all ${
-                  newAudienceType === type.value
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-background hover:border-primary/50'
-                }`}
-              >
-                <div className={`font-medium text-sm ${
-                  newAudienceType === type.value ? 'text-primary' : 'text-foreground'
-                }`}>
-                  {type.label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{type.description}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Conditional Fields */}
+        {/* Conditional inline forms */}
         {newAudienceType === 'INTEREST' && (
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Select Interests *
-            </label>
+          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+            <div className="text-xs font-medium text-foreground">Add Interest Audience</div>
             <InterestAutocomplete
-              value={selectedInterests}
-              onChange={setSelectedInterests}
               userId={userId}
-              placeholder="Search for interests..."
-              showSuggestions={true}
+              selectedInterests={selectedInterests}
+              onAdd={(interest) => setSelectedInterests(prev => [...prev, interest])}
+              onRemove={(id) => setSelectedInterests(prev => prev.filter(i => i.id !== id))}
+              placeholder="Search interests..."
             />
+            {selectedInterests.length > 0 && (
+              <button
+                onClick={handleAddAudience}
+                className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+              >
+                Add ({selectedInterests.length} interests)
+              </button>
+            )}
           </div>
         )}
 
         {newAudienceType === 'LOOKALIKE' && (
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              label="LAL Source"
-              value={lalSource}
-              onChange={setLalSource}
-              placeholder="e.g., Website Visitors 30D"
-            />
-            <ToggleButtonGroup
-              label="LAL %"
-              items={LAL_PERCENTAGES.map((p) => `${p}%`)}
-              selectedItems={lalPercentages.map((p) => `${p}%`)}
-              onToggle={(pct) => {
-                const num = parseInt(pct)
-                setLalPercentages((prev) =>
-                  prev.includes(num) ? prev.filter((p) => p !== num) : [...prev, num]
-                )
-              }}
-            />
+          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+            <div className="text-xs font-medium text-foreground">Add Lookalike Audience</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={lalSource}
+                onChange={(e) => setLalSource(e.target.value)}
+                placeholder="LAL Source"
+                className="px-2 py-1.5 text-xs rounded-lg border border-border bg-background"
+              />
+              <div className="flex flex-wrap gap-1">
+                {LAL_PERCENTAGES.map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => {
+                      setLalPercentages((prev) =>
+                        prev.includes(pct) ? prev.filter((p) => p !== pct) : [...prev, pct]
+                      )
+                    }}
+                    className={`px-2 py-1 text-xs rounded ${
+                      lalPercentages.includes(pct)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleAddAudience}
+              className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+            >
+              Add Lookalike
+            </button>
           </div>
         )}
 
         {newAudienceType === 'CUSTOM_AUDIENCE' && (
-          <FormField
-            label="Custom Audience ID"
-            value={customAudienceId}
-            onChange={setCustomAudienceId}
-            placeholder="e.g., 123456789"
-          />
+          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+            <div className="text-xs font-medium text-foreground">Add Custom Audience</div>
+            <input
+              type="text"
+              value={customAudienceId}
+              onChange={(e) => setCustomAudienceId(e.target.value)}
+              placeholder="Custom Audience ID"
+              className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background"
+            />
+            <button
+              onClick={handleAddAudience}
+              className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+            >
+              Add Custom Audience
+            </button>
+          </div>
         )}
 
-        <button
-          onClick={handleAddAudience}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors w-full justify-center"
-        >
-          <Plus className="h-4 w-4" />
-          Add Audience
-        </button>
-
-        {/* Audiences List */}
+        {/* Added Audiences - Compact Pills */}
         {bulkAudiences.audiences.length > 0 && (
-          <div className="space-y-2">
-            <h5 className="text-sm font-medium text-foreground">Added Audiences:</h5>
-            <div className="space-y-2">
+          <div className="mt-3 pt-3 border-t border-border">
+            <div className="text-xs font-medium text-muted-foreground mb-2">Added:</div>
+            <div className="flex flex-wrap gap-2">
               {bulkAudiences.audiences.map((audience) => (
                 <div
                   key={audience.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{audience.name}</div>
-                    <div className="text-xs text-muted-foreground capitalize">{audience.type.toLowerCase()}</div>
-                  </div>
+                  <span>{audience.name}</span>
                   <button
                     onClick={() => removeAudience(audience.id)}
-                    className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                    className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      {/* Placement Presets */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <div>
-          <h4 className="font-semibold text-foreground">Placement Presets</h4>
-          <p className="text-sm text-muted-foreground mt-1">Select placements to multiply ad sets by placement</p>
+      {/* Placement Presets - Compact */}
+      <SectionCard title="Placement Presets">
+        {/* Quick selection - Most used */}
+        <div className="flex flex-wrap gap-2">
+          {PLACEMENT_PRESET_OPTIONS.filter(p => !p.category).map((preset) => (
+            <button
+              key={preset.value}
+              onClick={() => togglePlacementPreset(preset.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                bulkAudiences.placementPresets.includes(preset.value)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
 
-        {/* General Presets */}
-        <div>
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">General</div>
-          <div className="grid grid-cols-3 gap-3">
-            {PLACEMENT_PRESET_OPTIONS.filter(p => !p.category).map((preset) => (
-              <button
-                key={preset.value}
-                onClick={() => togglePlacementPreset(preset.value)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  bulkAudiences.placementPresets.includes(preset.value)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-background hover:border-primary/50'
-                }`}
-              >
-                <div className={`font-semibold text-sm ${
-                  bulkAudiences.placementPresets.includes(preset.value) ? 'text-primary' : 'text-foreground'
-                }`}>
-                  {preset.label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                  {preset.placements.slice(0, 2).join(', ')}{preset.placements.length > 2 ? '...' : ''}
-                </div>
-              </button>
-            ))}
+        {/* Expandable advanced options */}
+        {bulkAudiences.placementPresets.length > 0 && (
+          <button
+            onClick={() => setPlacementsExpanded(!placementsExpanded)}
+            className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${placementsExpanded ? 'rotate-180' : ''}`} />
+            {placementsExpanded ? 'Hide' : 'Show'} advanced options
+          </button>
+        )}
+
+        {placementsExpanded && (
+          <div className="mt-3 pt-3 border-t border-border space-y-3">
+            {/* Platform Split */}
+            <div>
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">By Platform</div>
+              <div className="flex flex-wrap gap-2">
+                {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Platform').map((preset) => (
+                  <button
+                    key={preset.value}
+                    onClick={() => togglePlacementPreset(preset.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      bulkAudiences.placementPresets.includes(preset.value)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Placement Type Split */}
+            <div>
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">By Placement Type</div>
+              <div className="flex flex-wrap gap-2">
+                {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Placement').map((preset) => (
+                  <button
+                    key={preset.value}
+                    onClick={() => togglePlacementPreset(preset.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      bulkAudiences.placementPresets.includes(preset.value)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+      </SectionCard>
 
-        {/* Platform Split */}
+      {/* Geo Locations - Compact with Collapse */}
+      <SectionCard title="Geo Locations *" icon={Info}>
+        {/* Main autocomplete - searches all types */}
         <div>
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">By Platform</div>
-          <div className="grid grid-cols-2 gap-3">
-            {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Platform').map((preset) => (
-              <button
-                key={preset.value}
-                onClick={() => togglePlacementPreset(preset.value)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  bulkAudiences.placementPresets.includes(preset.value)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-background hover:border-primary/50'
-                }`}
-              >
-                <div className={`font-semibold text-sm ${
-                  bulkAudiences.placementPresets.includes(preset.value) ? 'text-primary' : 'text-foreground'
-                }`}>
-                  {preset.label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                  {preset.placements.slice(0, 2).join(', ')}{preset.placements.length > 2 ? '...' : ''}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Placement Split */}
-        <div>
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">By Placement Type</div>
-          <div className="grid grid-cols-2 gap-3">
-            {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Placement').map((preset) => (
-              <button
-                key={preset.value}
-                onClick={() => togglePlacementPreset(preset.value)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  bulkAudiences.placementPresets.includes(preset.value)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-background hover:border-primary/50'
-                }`}
-              >
-                <div className={`font-semibold text-sm ${
-                  bulkAudiences.placementPresets.includes(preset.value) ? 'text-primary' : 'text-foreground'
-                }`}>
-                  {preset.label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                  {preset.placements.join(', ')}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Geo Locations */}
-      <SectionCard
-        title="Geo Locations *"
-        icon={Info}
-      >
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Countries *
-          </label>
           <GeoLocationAutocomplete
-            value={selectedGeoLocations.filter(loc => loc.type === 'country')}
+            value={selectedGeoLocations}
             onChange={(locs) => {
-              const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'country')
-              setSelectedGeoLocations([...locs, ...otherLocs])
-              // Update bulk audiences with country keys
+              setSelectedGeoLocations(locs)
+              // Update bulk audiences
               updateBulkAudiences({
                 geoLocations: {
-                  ...bulkAudiences.geoLocations,
-                  countries: locs.map(l => l.key),
+                  countries: locs.filter(l => l.type === 'country').map(l => l.key),
+                  regions: locs.filter(l => l.type === 'region').map(l => l.key),
+                  cities: locs.filter(l => l.type === 'city').map(l => l.key),
                 }
               })
             }}
             userId={userId}
-            locationTypes={['country']}
-            placeholder="Search for countries..."
+            locationTypes={['country', 'region', 'city']}
+            placeholder="Search countries, regions, or cities..."
           />
         </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Regions (optional)
-          </label>
-          <GeoLocationAutocomplete
-            value={selectedGeoLocations.filter(loc => loc.type === 'region')}
-            onChange={(locs) => {
-              const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'region')
-              setSelectedGeoLocations([...locs, ...otherLocs])
-              // Update bulk audiences with region keys
-              updateBulkAudiences({
-                geoLocations: {
-                  ...bulkAudiences.geoLocations,
-                  regions: locs.map(l => l.key),
-                }
-              })
-            }}
-            userId={userId}
-            locationTypes={['region']}
-            placeholder="Search for regions..."
-          />
-        </div>
+        {/* Advanced options (collapsible) */}
+        {selectedGeoLocations.length > 0 && (
+          <button
+            onClick={() => setGeoExpanded(!geoExpanded)}
+            className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${geoExpanded ? 'rotate-180' : ''}`} />
+            {geoExpanded ? 'Hide' : 'Show'} by type ({selectedGeoLocations.filter(l => l.type === 'country').length} countries, {selectedGeoLocations.filter(l => l.type === 'region').length} regions, {selectedGeoLocations.filter(l => l.type === 'city').length} cities)
+          </button>
+        )}
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Cities (optional)
-          </label>
-          <GeoLocationAutocomplete
-            value={selectedGeoLocations.filter(loc => loc.type === 'city')}
-            onChange={(locs) => {
-              const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'city')
-              setSelectedGeoLocations([...locs, ...otherLocs])
-              // Update bulk audiences with city keys
-              updateBulkAudiences({
-                geoLocations: {
-                  ...bulkAudiences.geoLocations,
-                  cities: locs.map(l => l.key),
-                }
-              })
-            }}
-            userId={userId}
-            locationTypes={['city']}
-            placeholder="Search for cities..."
-          />
-        </div>
+        {geoExpanded && (
+          <div className="mt-3 space-y-3 pt-3 border-t border-border">
+            {/* Countries */}
+            {selectedGeoLocations.filter(l => l.type === 'country').length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Countries</label>
+                <GeoLocationAutocomplete
+                  value={selectedGeoLocations.filter(loc => loc.type === 'country')}
+                  onChange={(locs) => {
+                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'country')
+                    const newLocs = [...locs, ...otherLocs]
+                    setSelectedGeoLocations(newLocs)
+                    updateBulkAudiences({
+                      geoLocations: {
+                        ...bulkAudiences.geoLocations,
+                        countries: locs.map(l => l.key),
+                      }
+                    })
+                  }}
+                  userId={userId}
+                  locationTypes={['country']}
+                  placeholder="Search countries..."
+                />
+              </div>
+            )}
+
+            {/* Regions */}
+            {selectedGeoLocations.filter(l => l.type === 'region').length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Regions</label>
+                <GeoLocationAutocomplete
+                  value={selectedGeoLocations.filter(loc => loc.type === 'region')}
+                  onChange={(locs) => {
+                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'region')
+                    const newLocs = [...locs, ...otherLocs]
+                    setSelectedGeoLocations(newLocs)
+                    updateBulkAudiences({
+                      geoLocations: {
+                        ...bulkAudiences.geoLocations,
+                        regions: locs.map(l => l.key),
+                      }
+                    })
+                  }}
+                  userId={userId}
+                  locationTypes={['region']}
+                  placeholder="Search regions..."
+                />
+              </div>
+            )}
+
+            {/* Cities */}
+            {selectedGeoLocations.filter(l => l.type === 'city').length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Cities</label>
+                <GeoLocationAutocomplete
+                  value={selectedGeoLocations.filter(loc => loc.type === 'city')}
+                  onChange={(locs) => {
+                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'city')
+                    const newLocs = [...locs, ...otherLocs]
+                    setSelectedGeoLocations(newLocs)
+                    updateBulkAudiences({
+                      geoLocations: {
+                        ...bulkAudiences.geoLocations,
+                        cities: locs.map(l => l.key),
+                      }
+                    })
+                  }}
+                  userId={userId}
+                  locationTypes={['city']}
+                  placeholder="Search cities..."
+                />
+              </div>
+            )}
+          </div>
+        )}
       </SectionCard>
 
       {/* Demographics */}
       <SectionCard title="Demographics">
-        <div className="grid grid-cols-3 gap-4">
-          <FormField
-            label="Age Min"
-            type="number"
-            min={13}
-            max={65}
-            value={bulkAudiences.demographics.ageMin}
-            onChange={(val) =>
-              updateBulkAudiences({
-                demographics: { ...bulkAudiences.demographics, ageMin: Number(val) },
-              })
-            }
-          />
-          <FormField
-            label="Age Max"
-            type="number"
-            min={13}
-            max={65}
-            value={bulkAudiences.demographics.ageMax}
-            onChange={(val) =>
-              updateBulkAudiences({
-                demographics: { ...bulkAudiences.demographics, ageMax: Number(val) },
-              })
-            }
-          />
-          <FormSelect
-            label="Gender"
-            value={bulkAudiences.demographics.gender}
-            onChange={(val) =>
-              updateBulkAudiences({
-                demographics: { ...bulkAudiences.demographics, gender: val as any },
-              })
-            }
-            options={['All', 'Male', 'Female']}
-          />
-        </div>
+        <div className="space-y-4">
+          {/* Age Range and Gender - Same Line */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Age Range Slider - Dual Handle */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">Age Range</label>
+              <div className="relative h-10 flex items-center">
+                {/* Age labels above handles */}
+                <div
+                  className="absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded shadow-sm"
+                  style={{
+                    left: `calc(${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}% - 12px)`,
+                    transition: 'left 0.05s ease-out'
+                  }}
+                >
+                  {bulkAudiences.demographics.ageMin}
+                </div>
+                <div
+                  className="absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded shadow-sm"
+                  style={{
+                    left: `calc(${((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}% - 12px)`,
+                    transition: 'left 0.05s ease-out'
+                  }}
+                >
+                  {bulkAudiences.demographics.ageMax === 65 ? '65+' : bulkAudiences.demographics.ageMax}
+                </div>
 
-        <ToggleButtonGroup
-          label="Languages (optional)"
-          items={LANGUAGES}
-          selectedItems={bulkAudiences.demographics.languages || []}
-          onToggle={handleLanguageToggle}
-        />
+                {/* Track */}
+                <div className="absolute w-full h-1.5 bg-muted rounded-full"></div>
+
+                {/* Active track between handles */}
+                <div
+                  className="absolute h-1.5 bg-primary rounded-full"
+                  style={{
+                    left: `${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}%`,
+                    right: `${100 - ((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}%`,
+                    transition: 'left 0.05s ease-out, right 0.05s ease-out'
+                  }}
+                ></div>
+
+                {/* Min handle */}
+                <input
+                  type="range"
+                  min={13}
+                  max={65}
+                  value={bulkAudiences.demographics.ageMin}
+                  onChange={(e) =>
+                    updateBulkAudiences({
+                      demographics: {
+                        ...bulkAudiences.demographics,
+                        ageMin: Math.min(Number(e.target.value), bulkAudiences.demographics.ageMax - 1)
+                      },
+                    })
+                  }
+                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
+                />
+
+                {/* Max handle */}
+                <input
+                  type="range"
+                  min={13}
+                  max={65}
+                  value={bulkAudiences.demographics.ageMax}
+                  onChange={(e) =>
+                    updateBulkAudiences({
+                      demographics: {
+                        ...bulkAudiences.demographics,
+                        ageMax: Math.max(Number(e.target.value), bulkAudiences.demographics.ageMin + 1)
+                      },
+                    })
+                  }
+                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
+                />
+              </div>
+            </div>
+
+            {/* Gender Selection (Pills) */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Gender</label>
+              <div className="flex flex-wrap gap-2">
+                {['All', 'Male', 'Female'].map((gender) => (
+                  <button
+                    key={gender}
+                    onClick={() =>
+                      updateBulkAudiences({
+                        demographics: { ...bulkAudiences.demographics, gender: gender as any },
+                      })
+                    }
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      bulkAudiences.demographics.gender === gender
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {gender}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Languages Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Languages (optional)</label>
+            <FormSelect
+              value={(bulkAudiences.demographics.languages || [])[0] || ''}
+              onChange={(val) =>
+                updateBulkAudiences({
+                  demographics: { ...bulkAudiences.demographics, languages: val ? [val] : [] },
+                })
+              }
+              options={[
+                { value: '', label: 'No language targeting' },
+                ...LANGUAGES.map(lang => ({ value: lang, label: lang }))
+              ]}
+            />
+          </div>
+        </div>
       </SectionCard>
 
       {/* Optimization & Budget */}

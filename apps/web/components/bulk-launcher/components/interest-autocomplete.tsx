@@ -1,37 +1,34 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, MapPin } from 'lucide-react'
+import { Search, X, Target } from 'lucide-react'
 
-interface GeoLocation {
-  key: string
+interface Interest {
+  id: string
   name: string
-  type: string
-  country_code?: string
-  country_name?: string
-  region?: string
-  region_id?: number
+  audience_size_lower_bound?: number
+  audience_size_upper_bound?: number
+  topic?: string
+  path?: string[]
 }
 
-interface GeoAutocompleteProps {
-  adAccountId: string
-  selectedLocations: GeoLocation[]
-  onAdd: (location: GeoLocation) => void
-  onRemove: (key: string) => void
+interface InterestAutocompleteProps {
+  userId: string
+  selectedInterests: Interest[]
+  onAdd: (interest: Interest) => void
+  onRemove: (id: string) => void
   placeholder?: string
-  types?: Array<'country' | 'region' | 'city' | 'zip'>
 }
 
-export function GeoAutocomplete({
-  adAccountId,
-  selectedLocations,
+export function InterestAutocomplete({
+  userId,
+  selectedInterests,
   onAdd,
   onRemove,
-  placeholder = 'Search cities, regions, countries...',
-  types = ['country', 'region', 'city'],
-}: GeoAutocompleteProps) {
+  placeholder = 'Search interests (e.g., fitness, technology, cooking...)',
+}: InterestAutocompleteProps) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GeoLocation[]>([])
+  const [results, setResults] = useState<Interest[]>([])
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -48,9 +45,8 @@ export function GeoAutocomplete({
     const timer = setTimeout(async () => {
       setLoading(true)
       try {
-        const typesParam = types.join(',')
         const response = await fetch(
-          `http://localhost:4000/facebook/targeting/geo/search?adAccountId=${adAccountId}&q=${encodeURIComponent(query)}&types=${typesParam}`
+          `http://localhost:4000/facebook/targeting/interests/search?userId=${userId}&q=${encodeURIComponent(query)}&limit=25`
         )
         const data = await response.json()
 
@@ -59,7 +55,7 @@ export function GeoAutocomplete({
           setShowResults(true)
         }
       } catch (error) {
-        console.error('Error searching geo locations:', error)
+        console.error('Error searching interests:', error)
         setResults([])
       } finally {
         setLoading(false)
@@ -67,7 +63,7 @@ export function GeoAutocomplete({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, adAccountId, types])
+  }, [query, userId])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -85,10 +81,10 @@ export function GeoAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSelect = (location: GeoLocation) => {
+  const handleSelect = (interest: Interest) => {
     // Check if already selected
-    if (!selectedLocations.find(l => l.key === location.key)) {
-      onAdd(location)
+    if (!selectedInterests.find(i => i.id === interest.id)) {
+      onAdd(interest)
     }
     setQuery('')
     setResults([])
@@ -96,22 +92,19 @@ export function GeoAutocomplete({
     inputRef.current?.focus()
   }
 
-  const getLocationIcon = (type: string) => {
-    return '📍'
-  }
+  const formatAudienceSize = (lower?: number, upper?: number) => {
+    if (!lower && !upper) return null
 
-  const getLocationSubtext = (location: GeoLocation) => {
-    const parts: string[] = []
-    if (location.region && location.type === 'city') {
-      parts.push(location.region)
+    const formatNumber = (num: number) => {
+      if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+      if (num >= 1000) return `${(num / 1000).toFixed(0)}K`
+      return num.toString()
     }
-    if (location.country_name && location.type !== 'country') {
-      parts.push(location.country_name)
+
+    if (lower && upper) {
+      return `${formatNumber(lower)} - ${formatNumber(upper)} people`
     }
-    if (location.type) {
-      parts.push(location.type.charAt(0).toUpperCase() + location.type.slice(1))
-    }
-    return parts.join(' • ')
+    return null
   }
 
   return (
@@ -142,26 +135,30 @@ export function GeoAutocomplete({
             ref={resultsRef}
             className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
           >
-            {results.map((location) => {
-              const isSelected = selectedLocations.some(l => l.key === location.key)
+            {results.map((interest) => {
+              const isSelected = selectedInterests.some(i => i.id === interest.id)
+              const audienceSize = formatAudienceSize(interest.audience_size_lower_bound, interest.audience_size_upper_bound)
+
               return (
                 <button
-                  key={location.key}
-                  onClick={() => !isSelected && handleSelect(location)}
+                  key={interest.id}
+                  onClick={() => !isSelected && handleSelect(interest)}
                   disabled={isSelected}
                   className={`w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-start gap-2 ${
                     isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   }`}
                 >
-                  <span className="text-base mt-0.5">{getLocationIcon(location.type)}</span>
+                  <Target className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
-                      {location.name}
+                      {interest.name}
                       {isSelected && <span className="ml-2 text-xs text-muted-foreground">(selected)</span>}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {getLocationSubtext(location)}
-                    </div>
+                    {audienceSize && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {audienceSize}
+                      </div>
+                    )}
                   </div>
                 </button>
               )
@@ -175,27 +172,24 @@ export function GeoAutocomplete({
             ref={resultsRef}
             className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg p-4 text-center text-sm text-muted-foreground"
           >
-            No locations found for "{query}"
+            No interests found for "{query}"
           </div>
         )}
       </div>
 
-      {/* Selected Locations */}
-      {selectedLocations.length > 0 && (
+      {/* Selected Interests */}
+      {selectedInterests.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {selectedLocations.map((location) => (
+          {selectedInterests.map((interest) => (
             <div
-              key={location.key}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+              key={interest.id}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-700 dark:text-green-400 rounded-full text-xs font-medium"
             >
-              <MapPin className="h-3 w-3" />
-              <span>{location.name}</span>
-              {location.country_code && location.type !== 'country' && (
-                <span className="text-[10px] opacity-70">({location.country_code})</span>
-              )}
+              <Target className="h-3 w-3" />
+              <span>{interest.name}</span>
               <button
-                onClick={() => onRemove(location.key)}
-                className="ml-1 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                onClick={() => onRemove(interest.id)}
+                className="ml-1 hover:bg-green-500/20 rounded-full p-0.5 transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>

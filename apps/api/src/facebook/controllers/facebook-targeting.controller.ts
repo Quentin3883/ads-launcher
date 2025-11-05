@@ -11,39 +11,42 @@ export class FacebookTargetingController {
 
   /**
    * Search geo locations (countries, regions, cities)
-   * GET /facebook/targeting/geo/search?adAccountId=xxx&q=paris&types=city,region
+   * GET /facebook/targeting/geo/search?userId=xxx&q=paris&types=city,region
    */
   @Get('geo/search')
   async searchGeoLocations(
-    @Query('adAccountId') adAccountId: string,
+    @Query('userId') userId: string,
     @Query('q') query: string,
     @Query('types') types?: string,
     @Query('country_code') countryCode?: string,
     @Query('region_id') regionId?: string,
   ) {
     try {
-      if (!adAccountId || !query) {
-        throw new HttpException('Missing required parameters: adAccountId, q', HttpStatus.BAD_REQUEST)
+      if (!userId || !query) {
+        throw new HttpException('Missing required parameters: userId, q', HttpStatus.BAD_REQUEST)
       }
 
-      // Get ad account with token
-      const adAccount = await this.prisma.facebookAdAccount.findUnique({
-        where: { id: adAccountId },
-        include: { token: true },
+      // Get user's Facebook token
+      const token = await this.prisma.facebookToken.findFirst({
+        where: { userId },
       })
 
-      if (!adAccount) {
-        throw new HttpException('Ad account not found', HttpStatus.NOT_FOUND)
+      if (!token) {
+        throw new HttpException('Facebook token not found for user', HttpStatus.NOT_FOUND)
       }
 
-      // Parse location types
-      const locationTypes = types
-        ? (types.split(',') as Array<'country' | 'region' | 'city' | 'zip' | 'country_group' | 'geo_market' | 'electoral_district'>)
-        : ['country', 'region', 'city']
+      // Parse location types with proper type safety
+      const validLocationTypes = ['country', 'region', 'city', 'zip', 'country_group', 'geo_market', 'electoral_district'] as const
+      type LocationType = (typeof validLocationTypes)[number]
+
+      const defaultTypes: LocationType[] = ['country', 'region', 'city']
+      const locationTypes: LocationType[] = types
+        ? types.split(',').filter((t): t is LocationType => validLocationTypes.includes(t as any))
+        : defaultTypes
 
       // Search geo locations
       const results = await this.facebookService.searchGeoLocations(
-        adAccount.token.accessToken,
+        token.accessToken,
         {
           q: query,
           location_types: locationTypes,
@@ -66,32 +69,31 @@ export class FacebookTargetingController {
 
   /**
    * Search interests for targeting
-   * GET /facebook/targeting/interests/search?adAccountId=xxx&q=fitness&limit=25
+   * GET /facebook/targeting/interests/search?userId=xxx&q=fitness&limit=25
    */
   @Get('interests/search')
   async searchInterests(
-    @Query('adAccountId') adAccountId: string,
+    @Query('userId') userId: string,
     @Query('q') query: string,
     @Query('limit') limit?: string,
   ) {
     try {
-      if (!adAccountId || !query) {
-        throw new HttpException('Missing required parameters: adAccountId, q', HttpStatus.BAD_REQUEST)
+      if (!userId || !query) {
+        throw new HttpException('Missing required parameters: userId, q', HttpStatus.BAD_REQUEST)
       }
 
-      // Get ad account with token
-      const adAccount = await this.prisma.facebookAdAccount.findUnique({
-        where: { id: adAccountId },
-        include: { token: true },
+      // Get user's Facebook token
+      const token = await this.prisma.facebookToken.findFirst({
+        where: { userId },
       })
 
-      if (!adAccount) {
-        throw new HttpException('Ad account not found', HttpStatus.NOT_FOUND)
+      if (!token) {
+        throw new HttpException('Facebook token not found for user', HttpStatus.NOT_FOUND)
       }
 
       // Search interests
       const results = await this.facebookService.searchInterests(
-        adAccount.token.accessToken,
+        token.accessToken,
         query,
         limit ? parseInt(limit) : 25,
       )
