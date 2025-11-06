@@ -30,6 +30,7 @@ export function CreativesBulkStep() {
   const [targetCreativeId, setTargetCreativeId] = useState<string | undefined>()
   const [targetSlot, setTargetSlot] = useState<'feed' | 'story' | undefined>()
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [expandedCreativeId, setExpandedCreativeId] = useState<string | null>(null)
 
   const stats = getMatrixStats()
 
@@ -500,6 +501,15 @@ export function CreativesBulkStep() {
                     )}
                   </div>
 
+                  {/* Toggle Copy Fields */}
+                  <button
+                    onClick={() => setExpandedCreativeId(expandedCreativeId === creative.id ? null : creative.id)}
+                    className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Edit copy for this creative"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedCreativeId === creative.id ? 'rotate-180' : ''}`} />
+                  </button>
+
                   {/* Delete Creative */}
                   <button
                     onClick={() => removeCreative(creative.id)}
@@ -508,6 +518,53 @@ export function CreativesBulkStep() {
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
+
+                {/* Expandable Copy Fields */}
+                {expandedCreativeId === creative.id && (
+                  <div className="mt-2 pt-2 border-t border-border space-y-2">
+                    <div className="text-[10px] font-medium text-muted-foreground mb-1.5">
+                      Optional Copy (overrides copy variants)
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FormField
+                        label="Headline"
+                        maxLength={255}
+                        value={creative.headline || ''}
+                        onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
+                        placeholder="Optional headline..."
+                        className="text-xs"
+                      />
+                      <FormSelect
+                        label="CTA"
+                        value={creative.cta || ''}
+                        onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
+                        options={[
+                          { value: '', label: '(Use copy variant)' },
+                          ...CTA_OPTIONS.map((cta) => ({ value: cta.value, label: cta.label }))
+                        ]}
+                        className="text-xs"
+                      />
+                    </div>
+                    <FormField
+                      label="Primary Text"
+                      maxLength={2000}
+                      value={creative.primaryText || ''}
+                      onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
+                      placeholder="Optional primary text..."
+                      multiline
+                      rows={2}
+                      className="text-xs"
+                    />
+                    <FormField
+                      label="Description"
+                      maxLength={255}
+                      value={creative.description || ''}
+                      onChange={(val) => updateCreative(creative.id, { description: val || undefined })}
+                      placeholder="Optional description..."
+                      className="text-xs"
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

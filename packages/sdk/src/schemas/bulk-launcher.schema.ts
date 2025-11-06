@@ -89,6 +89,11 @@ export const creativeSchema = z.object({
   label: creativeLabelSchema.default('Static'),
   feedVersion: creativeVersionSchema.optional(),
   storyVersion: creativeVersionSchema.optional(),
+  // Optional per-creative copy (overrides copy variants if provided)
+  headline: z.string().max(255).optional(),
+  primaryText: z.string().max(2000).optional(),
+  description: z.string().max(255).optional(),
+  cta: z.string().max(50).optional(),
 })
 
 export const copyVariantSchema = z.object({

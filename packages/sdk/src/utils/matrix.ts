@@ -104,8 +104,27 @@ export function generateAdSetsFromMatrix(
                   cta: 'Learn More',
                 }
 
-            // If copy variants enabled, create multiple ads
-            if (activeCopyVariants.length > 0) {
+            // Check if creative has its own copy (per-creative wording)
+            const hasPerCreativeCopy = creative.headline || creative.primaryText || creative.cta
+
+            if (hasPerCreativeCopy) {
+              // Use per-creative copy (overrides copy variants)
+              const creativeCopy = {
+                headline: creative.headline || copy.headline,
+                primaryText: creative.primaryText || copy.primaryText,
+                cta: creative.cta || copy.cta,
+              }
+              const ad = createAd(
+                adSetId,
+                creative,
+                feedUrl,
+                storyUrl,
+                creativeCopy,
+                campaign
+              )
+              ads.push(ad)
+            } else if (activeCopyVariants.length > 0) {
+              // Use copy variants (standard behavior)
               for (const variant of activeCopyVariants) {
                 const ad = createAd(
                   adSetId,
@@ -118,7 +137,7 @@ export function generateAdSetsFromMatrix(
                 ads.push(ad)
               }
             } else {
-              // Single ad with both Feed and Story formats
+              // Single ad with default copy
               const ad = createAd(
                 adSetId,
                 creative,
