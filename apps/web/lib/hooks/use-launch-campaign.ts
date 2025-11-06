@@ -369,8 +369,40 @@ export function useLaunchCampaign() {
 
       const result = await mutation.mutateAsync(launchData)
 
-      // Step 6: Complete
+      // Step 6: Save to database
       updateProgressStep('ads', { status: 'completed' })
+      updateProgressStep('complete', { status: 'in_progress', detail: 'Saving launch configuration...' })
+
+      try {
+        const { bulkAudiences, bulkCreatives, matrixConfig, clientId } = store
+
+        // Save bulk launch to database
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bulk-launches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: params.userId,
+            clientId: clientId,
+            adAccountId: adAccountId,
+            name: campaign.name || 'Untitled Campaign',
+            mode: 'create',
+            launchMode: store.launchMode,
+            campaign: campaign,
+            bulkAudiences: bulkAudiences,
+            bulkCreatives: bulkCreatives,
+            matrixConfig: matrixConfig,
+            totalAdSets: params.generatedAdSets.length,
+            totalAds: params.generatedAdSets.reduce((sum, adSet) => sum + adSet.ads.length, 0),
+          }),
+        })
+
+        // Mark as launched
+        console.log('✅ Launch saved to database')
+      } catch (error) {
+        console.error('Failed to save launch to database:', error)
+        // Don't fail the entire launch if saving fails
+      }
+
       updateProgressStep('complete', {
         status: 'completed',
         detail: 'Campaign created successfully'

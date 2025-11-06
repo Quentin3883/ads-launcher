@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { Play, Pause, Trash2, Eye, Edit2 } from 'lucide-react'
 import { useLaunchesStore, type Launch, type LaunchStatus } from '@/lib/store/launches'
 import { cn } from '@launcher-ads/ui'
+import { getUserId } from '@/lib/utils/get-user-id'
 
 const statusConfig: Record<LaunchStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700' },
@@ -128,6 +129,53 @@ function LaunchRow({ launch, onEdit }: { launch: Launch; onEdit?: (launch: Launc
 
 export function LaunchList({ searchQuery, onEdit }: { searchQuery: string; onEdit?: (launch: Launch) => void }) {
   const launches = useLaunchesStore((state) => state.launches)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchLaunches = async () => {
+      try {
+        setIsLoading(true)
+        const userId = getUserId()
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/bulk-launches?userId=${userId}`
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch launches')
+        }
+
+        const bulkLaunches = await response.json()
+
+        // Transform to Launch interface format
+        const transformedLaunches: Launch[] = bulkLaunches.map((bl: any) => ({
+          id: bl.id,
+          name: bl.name,
+          type: bl.launchMode || 'Bulk',
+          status: bl.status,
+          country: bl.bulkAudiences?.geoLocations?.countries?.[0] || 'N/A',
+          objective: bl.campaign?.objective || 'N/A',
+          formats: bl.bulkCreatives?.creatives?.map((c: any) => c.format) || [],
+          progress: bl.status === 'active' ? 100 : bl.status === 'launching' ? 50 : 0,
+          createdAt: new Date(bl.createdAt),
+          budget: bl.campaign?.budget,
+          clientId: bl.clientId,
+        }))
+
+        // Update store
+        useLaunchesStore.setState({ launches: transformedLaunches })
+        setError(null)
+      } catch (err: any) {
+        setError(err.message)
+        console.error('Error fetching launches:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchLaunches()
+  }, [])
 
   const filteredLaunches = useMemo(() => {
     if (!searchQuery) return launches
@@ -139,6 +187,22 @@ export function LaunchList({ searchQuery, onEdit }: { searchQuery: string; onEdi
         launch.country.toLowerCase().includes(query)
     )
   }, [launches, searchQuery])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/50 bg-destructive/10 py-16">
+        <p className="text-sm text-destructive">Error loading launches: {error}</p>
+      </div>
+    )
+  }
 
   if (filteredLaunches.length === 0) {
     return (

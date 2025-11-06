@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, ArrowLeft, ArrowRight, Check, Maximize2, Minimize2, Rocket, Loader2 } from 'lucide-react'
+import { X, ArrowLeft, ArrowRight, Check, Maximize2, Minimize2, Rocket, Loader2, Settings } from 'lucide-react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { useClientsStore } from '@/lib/store/clients'
 import { ClientSelectionStep } from '../bulk-launcher/steps/client-selection-step'
@@ -14,6 +14,7 @@ import { AudiencesBulkStep } from '../bulk-launcher/steps/audiences-bulk-step'
 import { CreativesBulkStep } from '../bulk-launcher/steps/creatives-bulk-step'
 import { MatrixGenerationStep } from '../bulk-launcher/steps/matrix-generation-step'
 import { UndoRedoControls } from '../bulk-launcher/controls/undo-redo-controls'
+import { trpc } from '@/lib/trpc'
 
 interface BulkLauncherModalProps {
   open: boolean
@@ -51,10 +52,28 @@ const proSteps = [
  */
 
 export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLauncherModalProps) {
-  const { currentStep, setCurrentStep, reset, clientId, setClientId, launchMode, launchCallback, mode, setMode } = useBulkLauncher()
+  const { currentStep, setCurrentStep, reset, clientId, setClientId, launchMode, launchCallback, mode, setMode, campaign } = useBulkLauncher()
   const { selectedClientId } = useClientsStore()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isLaunching, setIsLaunching] = useState(false)
+
+  // Fetch Naming Conventions
+  const { data: namingConventions } = trpc.facebookCampaigns.getNamingConventions.useQuery()
+  const { data: defaultConvention } = trpc.facebookCampaigns.getDefaultNamingConvention.useQuery()
+
+  // Selected naming convention
+  const [selectedConventionId, setSelectedConventionId] = useState<string>('')
+
+  // Set default convention when loaded
+  useEffect(() => {
+    if (defaultConvention && !selectedConventionId) {
+      setSelectedConventionId(defaultConvention.id)
+    }
+  }, [defaultConvention, selectedConventionId])
+
+  // Generate campaign name preview
+  const selectedConvention = namingConventions?.find((c: any) => c.id === selectedConventionId)
+  const campaignNamePreview = selectedConvention?.template || 'Configure a naming convention in Settings to see preview'
 
   // Set edit mode when editing
   useEffect(() => {
@@ -259,6 +278,37 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
             </button>
           </div>
         </div>
+
+        {/* Naming Convention - Always visible */}
+        {launchMode && currentStep >= STEP_FIRST_MODE && (
+          <div className="border-b border-border bg-background px-6 py-4">
+            <div className="flex items-center gap-4 max-w-6xl mx-auto">
+              <div className="flex items-center gap-3 flex-1">
+                <label className="text-sm font-medium text-foreground whitespace-nowrap">Campaign Name:</label>
+                <input
+                  type="text"
+                  value={campaign.name || ''}
+                  onChange={(e) => {
+                    const { updateCampaign } = useBulkLauncher.getState()
+                    updateCampaign({ name: e.target.value })
+                  }}
+                  placeholder={campaignNamePreview}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-sm italic font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                />
+              </div>
+              <a
+                href="/settings?tab=naming"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                title="Manage naming conventions"
+              >
+                <Settings className="h-4 w-4" />
+                {selectedConvention?.name || 'Configure'}
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Progress Steps - Only show when in mode steps */}
         {launchMode && currentStep >= STEP_FIRST_MODE && modeSteps.length > 0 && (

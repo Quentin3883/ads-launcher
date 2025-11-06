@@ -347,6 +347,48 @@ export const facebookCampaignsRouter = (
       }),
 
     /**
+     * Get Lead Forms for a Facebook Page
+     */
+    getLeadForms: publicProcedure
+      .input(
+        z.object({
+          adAccountId: z.string().uuid(),
+          pageId: z.string(),
+        }),
+      )
+      .query(async ({ input }) => {
+        // Get ad account with token
+        const adAccount = await prisma.facebookAdAccount.findUnique({
+          where: { id: input.adAccountId },
+          include: {
+            token: true,
+          },
+        })
+
+        if (!adAccount) {
+          throw new Error('Ad account not found')
+        }
+
+        // First, get the pages to retrieve the page access token
+        const pages = await facebookService.getUserPages(
+          adAccount.token.accessToken,
+          adAccount.facebookId,
+        )
+
+        const selectedPage = pages.find((page: any) => page.id === input.pageId)
+
+        if (!selectedPage || !selectedPage.access_token) {
+          throw new Error('Page not found or no access token available')
+        }
+
+        // Use the page access token to get lead forms
+        return await facebookService.getLeadForms(
+          selectedPage.access_token,
+          input.pageId,
+        )
+      }),
+
+    /**
      * Upload a video file to Facebook (pre-upload before campaign launch)
      * This prevents JSON payload size issues when launching with multiple videos
      */
@@ -419,4 +461,32 @@ export const facebookCampaignsRouter = (
           success: true,
         }
       }),
+
+    /**
+     * Get all naming conventions
+     */
+    getNamingConventions: publicProcedure.query(async () => {
+      const conventions = await prisma.namingConvention.findMany({
+        where: {
+          isActive: true,
+        },
+        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+      })
+
+      return conventions
+    }),
+
+    /**
+     * Get default naming convention
+     */
+    getDefaultNamingConvention: publicProcedure.query(async () => {
+      const convention = await prisma.namingConvention.findFirst({
+        where: {
+          isDefault: true,
+          isActive: true,
+        },
+      })
+
+      return convention
+    }),
   })

@@ -126,9 +126,30 @@ export const campaignConfigSchema = z.object({
   budgetMode: budgetModeSchema,
   budgetType: budgetTypeSchema,
   budget: z.number().positive().optional(),
-  startDate: z.string(),
+  startDate: z.string(), // 'NOW' or ISO date (YYYY-MM-DD)
+  startTime: z.string().optional(), // HH:MM format (only used when startDate is not 'NOW')
   endDate: z.string().optional(),
+  endTime: z.string().optional(), // HH:MM format (only used when endDate is set)
   urlParamsOverride: z.string().optional(),
+
+  // Facebook API v24 Advanced Fields
+  optimizationGoal: z.string().optional(), // Ex: 'LINK_CLICKS', 'REACH', 'OFFSITE_CONVERSIONS'
+  billingEvent: z.string().optional(), // Ex: 'IMPRESSIONS', 'LINK_CLICKS'
+  bidStrategy: z.string().optional(), // Ex: 'LOWEST_COST_WITHOUT_CAP'
+  buyingType: z.string().optional(), // 'AUCTION' (default) ou 'RESERVED'
+  destinationType: z.string().optional(), // 'WEBSITE', 'APP', 'MESSENGER', etc.
+
+  // Promoted Object (conversions, pixel, app)
+  pixelId: z.string().optional(), // Pour conversions off-Facebook
+  customEventType: z.string().optional(), // Ex: 'PURCHASE', 'LEAD', 'ADD_TO_CART'
+  applicationId: z.string().optional(), // Pour app promotion
+  objectStoreUrl: z.string().optional(), // URL App Store / Play Store
+  productCatalogId: z.string().optional(), // Pour dynamic ads
+  productSetId: z.string().optional(), // Pour dynamic ads
+
+  // Special Ad Categories
+  specialAdCategories: z.array(z.string()).optional(), // ['HOUSING'], ['CREDIT'], etc.
+  specialAdCategoryCountry: z.array(z.string()).optional(), // ['FR'], ['US'], etc.
 })
 
 export type CampaignConfig = z.infer<typeof campaignConfigSchema>

@@ -1663,7 +1663,9 @@ export class FacebookService {
         budgetType: 'daily' | 'lifetime'
         budget?: number
         startDate: string
+        startTime?: string
         endDate?: string
+        endTime?: string
       }
       adSets: Array<{
         name: string
@@ -1742,6 +1744,22 @@ export class FacebookService {
       // Step 1: Create Campaign
       this.logger.log(`Creating campaign: ${launchData.campaign.name}`)
 
+      // Helper function to build datetime strings
+      const buildDateTime = (date: string, time?: string): string => {
+        const timeValue = time || '12:00'
+        return `${date}T${timeValue}:00`
+      }
+
+      // Build start_time: either 'NOW' or ISO datetime with time
+      const startTime = launchData.campaign.startDate === 'NOW'
+        ? 'NOW'
+        : buildDateTime(launchData.campaign.startDate, launchData.campaign.startTime)
+
+      // Build stop_time: ISO datetime with time if endDate is set
+      const stopTime = launchData.campaign.endDate
+        ? buildDateTime(launchData.campaign.endDate, launchData.campaign.endTime)
+        : undefined
+
       const campaignData = {
         name: launchData.campaign.name,
         objective: launchData.campaign.objective,
@@ -1759,9 +1777,9 @@ export class FacebookService {
           launchData.campaign.budgetType === 'lifetime' && {
             lifetime_budget: launchData.campaign.budget,
           }),
-        start_time: launchData.campaign.startDate,
-        ...(launchData.campaign.endDate && {
-          stop_time: launchData.campaign.endDate,
+        start_time: startTime,
+        ...(stopTime && {
+          stop_time: stopTime,
         }),
       }
 
@@ -1790,10 +1808,11 @@ export class FacebookService {
             launchData.campaign.budgetType === 'lifetime'
               ? launchData.campaign.budget
               : null,
-          startTime: new Date(launchData.campaign.startDate),
-          stopTime: launchData.campaign.endDate
-            ? new Date(launchData.campaign.endDate)
-            : null,
+          startTime:
+            launchData.campaign.startDate === 'NOW'
+              ? new Date() // Use current time for 'NOW'
+              : new Date(startTime), // Use the ISO datetime string we built
+          stopTime: stopTime ? new Date(stopTime) : null,
           rawData: createdCampaign,
         },
       })
@@ -1889,10 +1908,27 @@ export class FacebookService {
           const optimizationGoal =
             optimizationGoalMap[launchData.campaign.objective] || 'LINK_CLICKS'
 
+          // Build promoted_object based on campaign objective
+          let promotedObject: any = undefined
+
+          // For LEADS campaigns, we need the page_id
+          if (launchData.campaign.objective === 'OUTCOME_LEADS') {
+            promotedObject = {
+              page_id: launchData.facebookPageId,
+            }
+          }
+          // For conversion-based campaigns, add pixel info
+          else if (launchData.facebookPixelId) {
+            promotedObject = {
+              pixel_id: launchData.facebookPixelId,
+              custom_event_type: adSetConfig.optimizationEvent,
+            }
+          }
+
           const adSetData = {
             name: adSetConfig.name,
             campaign_id: createdCampaign.id,
-            status: 'PAUSED' as const,
+            status: 'ACTIVE' as const,
             optimization_goal: optimizationGoal,
             billing_event: 'IMPRESSIONS',
             targeting,
@@ -1909,12 +1945,7 @@ export class FacebookService {
               adSetConfig.budgetType === 'lifetime' && {
                 lifetime_budget: adSetConfig.budget,
               }),
-            ...(launchData.facebookPixelId && {
-              promoted_object: {
-                pixel_id: launchData.facebookPixelId,
-                custom_event_type: adSetConfig.optimizationEvent,
-              },
-            }),
+            ...(promotedObject && { promoted_object: promotedObject }),
           }
 
           const createdAdSet = await this.createAdSet(
@@ -1934,7 +1965,7 @@ export class FacebookService {
               )!.id,
               facebookId: createdAdSet.id,
               name: adSetConfig.name,
-              status: 'PAUSED',
+              status: 'ACTIVE',
               optimizationGoal: adSetConfig.optimizationEvent,
               bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
               dailyBudget:
@@ -2468,7 +2499,7 @@ export class FacebookService {
                   name: adName,
                   adset_id: createdAdSet.id,
                   creative_id: createdCreative.id,
-                  status: 'PAUSED',
+                  status: 'ACTIVE',
                 },
               )
               results.ads.push(createdAd)
@@ -2479,7 +2510,7 @@ export class FacebookService {
                   adSetId: savedAdSet.id,
                   facebookId: createdAd.id,
                   name: adName,
-                  status: 'PAUSED',
+                  status: 'ACTIVE',
                   headline: adConfig.headline,
                   primaryText: adConfig.primaryText,
                   callToAction: adConfig.cta,
@@ -2734,7 +2765,7 @@ export class FacebookService {
         `${adAccountId}/promote_pages`,
         accessToken,
         {
-          fields: 'id,name,picture{url},connected_instagram_account{id,name,username,profile_picture_url}',
+          fields: 'id,name,picture{url},access_token,connected_instagram_account{id,name,username,profile_picture_url}',
         },
         'Fetch promote pages with Instagram details',
       )
@@ -2749,6 +2780,22 @@ export class FacebookService {
         fields: 'id,name,picture,access_token',
       },
       'Fetch user pages',
+    )
+
+    return response.data || []
+  }
+
+  /**
+   * Get Lead Forms for a Facebook Page
+   */
+  async getLeadForms(accessToken: string, pageId: string) {
+    const response = await this.apiClient.get<{ data: any[] }>(
+      `${pageId}/leadgen_forms`,
+      accessToken,
+      {
+        fields: 'id,name',
+      },
+      'Fetch page lead forms',
     )
 
     return response.data || []

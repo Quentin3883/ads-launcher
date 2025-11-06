@@ -14,6 +14,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   options: SelectOption[]
   placeholder?: string
   onChange?: (value: string) => void
+  onValueChange?: (value: string) => void
   onCreateNew?: () => void
   createNewLabel?: string
   variant?: 'default' | 'warning'
@@ -24,6 +25,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     options,
     placeholder = 'Select an option',
     onChange,
+    onValueChange,
     onCreateNew,
     createNewLabel = 'Create new',
     value,
@@ -74,6 +76,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       setSelectedValue(optionValue)
       setIsOpen(false)
       onChange?.(optionValue)
+      onValueChange?.(optionValue)
     }
 
     const handleCreateNew = () => {

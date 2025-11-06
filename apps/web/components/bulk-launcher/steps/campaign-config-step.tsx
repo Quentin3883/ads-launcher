@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
-import { COUNTRIES } from '@launcher-ads/sdk'
 import type { CampaignType, RedirectionType, BudgetMode } from '@launcher-ads/sdk'
 import { Settings, Loader2, CheckCircle2, Facebook, Instagram } from 'lucide-react'
+import { Select } from '@launcher-ads/ui'
+import type { SelectOption } from '@launcher-ads/ui'
 import { UrlParamsModal } from '../url-params-modal'
 import { trpc } from '@/lib/trpc'
 
-const CAMPAIGN_TYPES: { value: CampaignType; label: string }[] = [
+const CAMPAIGN_TYPES: SelectOption[] = [
   { value: 'Awareness', label: 'Awareness' },
   { value: 'Traffic', label: 'Traffic' },
   { value: 'Engagement', label: 'Engagement' },
@@ -29,12 +30,11 @@ export function CampaignConfigStep() {
     { enabled: !!adAccountId }
   )
 
-  // Debug: log pages data
-  useEffect(() => {
-    if (facebookPages) {
-      console.log('📄 Facebook Pages:', facebookPages)
-    }
-  }, [facebookPages])
+  // Fetch Lead Forms from the selected Facebook Page
+  const { data: leadForms, isLoading: isLoadingLeadForms } = trpc.facebookCampaigns.getLeadForms.useQuery(
+    { adAccountId: adAccountId!, pageId: facebookPageId! },
+    { enabled: !!adAccountId && !!facebookPageId && campaign.redirectionType === 'LEAD_FORM' }
+  )
 
   // Auto-detect Instagram account from selected Facebook Page
   const selectedPage = facebookPages?.find((page: any) => page.id === facebookPageId)
@@ -76,7 +76,6 @@ export function CampaignConfigStep() {
       redirectionType: type,
       redirectionUrl: type === 'LANDING_PAGE' ? campaign.redirectionUrl : undefined,
       redirectionFormId: type === 'LEAD_FORM' ? campaign.redirectionFormId : undefined,
-      redirectionDeeplink: type === 'DEEPLINK' ? campaign.redirectionDeeplink : undefined,
     })
   }
 
@@ -273,134 +272,132 @@ export function CampaignConfigStep() {
         </div>
       </div>
 
-      {/* Campaign Name */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">Campaign Name *</label>
-        <input
-          type="text"
-          value={campaign.name || ''}
-          onChange={(e) => updateCampaign({ name: e.target.value })}
-          placeholder="Black Friday 2025"
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-        />
-      </div>
+      {/* Campaign Strategy */}
+      <div className="rounded-lg border border-border bg-card p-6 space-y-6">
+        <h3 className="text-base font-semibold text-foreground">Campaign Strategy</h3>
 
-      {/* Campaign Type & Country */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Campaign Type *</label>
-          <select
-            value={campaign.type}
-            onChange={(e) => updateCampaign({ type: e.target.value as CampaignType })}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            {CAMPAIGN_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+        {/* Campaign Type & Redirection - 2 Columns */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Campaign Type */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Campaign Type *</label>
+            <Select
+              value={campaign.type}
+              onValueChange={(value) => updateCampaign({ type: value as CampaignType })}
+              options={CAMPAIGN_TYPES}
+              placeholder="Select campaign type"
+              className="h-12 text-base"
+            />
+          </div>
+
+          {/* Redirection Type */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Destination Type {campaign.type !== 'Awareness' && '*'}</label>
+            <div className={`grid ${campaign.type === 'Awareness' ? 'grid-cols-2' : 'grid-cols-2'} gap-2`}>
+              {campaign.type === 'Awareness' && (
+                <button
+                  type="button"
+                  onClick={() => updateCampaign({ redirectionType: undefined as any, redirectionUrl: undefined, redirectionFormId: undefined })}
+                  className={`px-3 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                    !campaign.redirectionType
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:border-border/60'
+                  }`}
+                >
+                  None
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleRedirectionTypeChange('LANDING_PAGE')}
+                className={`px-3 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                  campaign.redirectionType === 'LANDING_PAGE'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border bg-background text-muted-foreground hover:border-border/60'
+                }`}
+              >
+                Website URL
+              </button>
+              {campaign.type === 'Leads' && (
+                <button
+                  type="button"
+                  onClick={() => handleRedirectionTypeChange('LEAD_FORM')}
+                  className={`px-3 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                    campaign.redirectionType === 'LEAD_FORM'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:border-border/60'
+                  }`}
+                >
+                  Lead Form
+                </button>
+              )}
+            </div>
+            {campaign.type === 'Awareness' && (
+              <p className="text-xs text-muted-foreground">Destination is optional for Awareness campaigns</p>
+            )}
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Country</label>
-          <select
-            value={campaign.country || ''}
-            onChange={(e) => updateCampaign({ country: e.target.value })}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            <option value="">Select country</option>
-            {COUNTRIES.map((country) => (
-              <option key={country} value={country}>
-                {country}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Redirection */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
-        <h4 className="text-sm font-semibold text-foreground">Redirection</h4>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleRedirectionTypeChange('LANDING_PAGE')}
-            className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-              campaign.redirectionType === 'LANDING_PAGE'
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
-            }`}
-          >
-            Landing Page
-          </button>
-          <button
-            onClick={() => handleRedirectionTypeChange('LEAD_FORM')}
-            className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-              campaign.redirectionType === 'LEAD_FORM'
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
-            }`}
-          >
-            Lead Form
-          </button>
-          <button
-            onClick={() => handleRedirectionTypeChange('DEEPLINK')}
-            className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-              campaign.redirectionType === 'DEEPLINK'
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
-            }`}
-          >
-            Deeplink
-          </button>
-        </div>
-
+        {/* Redirection URL/Form */}
         {campaign.redirectionType === 'LANDING_PAGE' && (
-          <input
-            type="url"
-            value={campaign.redirectionUrl || ''}
-            onChange={(e) => updateCampaign({ redirectionUrl: e.target.value })}
-            onBlur={(e) => handleUrlBlur(e.target.value)}
-            placeholder="example.com (https:// will be added automatically)"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Website URL *</label>
+            <input
+              type="url"
+              value={campaign.redirectionUrl || ''}
+              onChange={(e) => updateCampaign({ redirectionUrl: e.target.value })}
+              onBlur={(e) => handleUrlBlur(e.target.value)}
+              placeholder="example.com (https:// will be added automatically)"
+              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
         )}
 
         {campaign.redirectionType === 'LEAD_FORM' && (
-          <input
-            type="text"
-            value={campaign.redirectionFormId || ''}
-            onChange={(e) => updateCampaign({ redirectionFormId: e.target.value })}
-            placeholder="Form ID"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Lead Form *</label>
+            {isLoadingLeadForms ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : leadForms && leadForms.length > 0 ? (
+              <Select
+                value={campaign.redirectionFormId || ''}
+                onValueChange={(value) => updateCampaign({ redirectionFormId: value })}
+                options={leadForms.map((form: any) => ({
+                  value: form.id,
+                  label: form.name,
+                }))}
+                placeholder="Select a lead form"
+                className="h-12 text-base"
+              />
+            ) : (
+              <input
+                type="text"
+                value={campaign.redirectionFormId || ''}
+                onChange={(e) => updateCampaign({ redirectionFormId: e.target.value })}
+                placeholder="Form ID (no forms found on page)"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            )}
+          </div>
         )}
 
-        {campaign.redirectionType === 'DEEPLINK' && (
-          <input
-            type="text"
-            value={campaign.redirectionDeeplink || ''}
-            onChange={(e) => updateCampaign({ redirectionDeeplink: e.target.value })}
-            placeholder="myapp://product/123"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        )}
       </div>
 
       {/* URL Parameters */}
       {campaign.redirectionType === 'LANDING_PAGE' && (
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-semibold text-foreground">URL Tracking Parameters</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h3 className="text-base font-semibold text-foreground">URL Tracking Parameters</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 Add UTM and custom tracking parameters
               </p>
             </div>
             <button
               onClick={() => setShowUrlParamsModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
               type="button"
             >
               <Settings className="h-4 w-4" />
@@ -409,13 +406,14 @@ export function CampaignConfigStep() {
           </div>
 
           {campaign.urlParamsOverride && (
-            <div className="p-3 rounded-lg bg-muted/30 border border-border">
-              <p className="text-xs font-mono text-muted-foreground truncate">
-                {campaign.urlParamsOverride.length > 100
-                  ? `${campaign.urlParamsOverride.substring(0, 100)}...`
+            <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
+              <p className="text-xs text-muted-foreground">Preview:</p>
+              <p className="text-xs font-mono text-foreground break-all">
+                {campaign.urlParamsOverride.length > 150
+                  ? `${campaign.urlParamsOverride.substring(0, 150)}...`
                   : campaign.urlParamsOverride}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {campaign.urlParamsOverride.split('&').length} parameter(s) configured
               </p>
             </div>
@@ -423,91 +421,238 @@ export function CampaignConfigStep() {
         </div>
       )}
 
-      {/* Budget */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
-        <h4 className="text-sm font-semibold text-foreground">Budget</h4>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted-foreground mb-2">Budget Mode</label>
-            <select
-              value={campaign.budgetMode}
-              onChange={(e) => updateCampaign({ budgetMode: e.target.value as BudgetMode })}
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            >
-              <option value="CBO">CBO (Campaign Budget)</option>
-              <option value="ABO">ABO (Ad Set Budget)</option>
-            </select>
+      {/* Budget & Schedule - 2 Columns */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Budget Column */}
+        <div className="rounded-lg border border-border bg-card p-6 space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">€</span>
+            <h4 className="text-sm font-semibold text-foreground">Budget</h4>
           </div>
 
-          <div>
-            <label className="block text-xs text-muted-foreground mb-2">Budget Type</label>
-            <select
-              value={campaign.budgetType}
-              onChange={(e) => updateCampaign({ budgetType: e.target.value as 'daily' | 'lifetime' })}
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            >
-              <option value="daily">Daily</option>
-              <option value="lifetime">Lifetime</option>
-            </select>
+          {/* CBO / ABO Selection */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Budget Mode</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => updateCampaign({ budgetMode: 'CBO' })}
+                className={`px-4 py-3.5 rounded-lg border-2 transition-all text-left ${
+                  campaign.budgetMode === 'CBO'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background hover:border-border/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className={`text-sm font-semibold ${campaign.budgetMode === 'CBO' ? 'text-primary' : 'text-foreground'}`}>
+                      Campaign Budget
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Budget au niveau campagne</div>
+                  </div>
+                  {campaign.budgetMode === 'CBO' && (
+                    <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+                  )}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateCampaign({ budgetMode: 'ABO' })}
+                className={`px-4 py-3.5 rounded-lg border-2 transition-all text-left ${
+                  campaign.budgetMode === 'ABO'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background hover:border-border/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className={`text-sm font-semibold ${campaign.budgetMode === 'ABO' ? 'text-primary' : 'text-foreground'}`}>
+                      Ad Set Budget
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Budget par Ad Set</div>
+                  </div>
+                  {campaign.budgetMode === 'ABO' && (
+                    <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+                  )}
+                </div>
+              </button>
+            </div>
           </div>
+
+          {campaign.budgetMode === 'CBO' && (
+            <>
+              {/* Budget Input with Daily/Lifetime Toggle */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">Budget Amount (€)</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateCampaign({ budgetType: 'daily' })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      campaign.budgetType === 'daily'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    Daily
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateCampaign({ budgetType: 'lifetime' })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      campaign.budgetType === 'lifetime'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    Lifetime
+                  </button>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                  <input
+                    type="number"
+                    value={campaign.budget || ''}
+                    onChange={(e) => updateCampaign({ budget: parseFloat(e.target.value) || undefined })}
+                    placeholder={campaign.budgetType === 'daily' ? '50' : '1500'}
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ABO Budget Display */}
+          {campaign.budgetMode === 'ABO' && (
+            <div className="rounded-lg bg-muted/30 border border-border p-4">
+              <p className="text-xs text-muted-foreground mb-2">Le budget sera défini au niveau de chaque Ad Set</p>
+              {stats.adSets > 0 && (
+                <p className="text-sm font-medium">
+                  {stats.adSets} Ad Sets × €{bulkAudiences.budgetPerAdSet || 0} = €{aboTotalBudget} total
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        {campaign.budgetMode === 'CBO' && (
-          <div>
-            <label className="block text-xs text-muted-foreground mb-2">Campaign Budget ($)</label>
-            <input
-              type="number"
-              value={campaign.budget || ''}
-              onChange={(e) => updateCampaign({ budget: parseFloat(e.target.value) || undefined })}
-              placeholder="1000"
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
+        {/* Schedule Column */}
+        <div className="rounded-lg border border-border bg-card p-6 space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📅</span>
+            <h4 className="text-sm font-semibold text-foreground">Schedule</h4>
           </div>
-        )}
 
-        {campaign.budgetMode === 'ABO' && stats.adSets > 0 && (
-          <div className={`rounded-lg p-3 ${showAboWarning ? 'bg-yellow-50 border border-yellow-200' : 'bg-muted/30'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Total ABO Budget ({campaign.budgetType})</p>
-                <p className="text-sm font-semibold text-foreground">
-                  {stats.adSets} Ad Sets × ${bulkAudiences.budgetPerAdSet || 0} = ${aboTotalBudget}
-                </p>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Start Date *</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateCampaign({ startDate: 'NOW', startTime: undefined })}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    campaign.startDate === 'NOW'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (campaign.startDate === 'NOW') {
+                      updateCampaign({ startDate: new Date().toISOString().split('T')[0], startTime: '12:00' })
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    campaign.startDate !== 'NOW'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Schedule
+                </button>
               </div>
-              {showAboWarning && (
-                <div className="text-xs text-yellow-700 font-medium">
-                  ⚠️ Exceeds campaign budget (${campaign.budget})
+              {campaign.startDate !== 'NOW' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={campaign.startDate}
+                      onChange={(e) => updateCampaign({ startDate: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="flex-1 px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                    <input
+                      type="time"
+                      value={campaign.startTime || '12:00'}
+                      onChange={(e) => updateCampaign({ startTime: e.target.value })}
+                      className="w-28 px-3 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
                 </div>
               )}
             </div>
-            {campaign.budget && !showAboWarning && (
-              <p className="text-xs text-green-600 mt-1">✓ Within campaign budget limit (${campaign.budget})</p>
-            )}
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">End Date</label>
+                {campaign.endDate && (
+                  <button
+                    type="button"
+                    onClick={() => updateCampaign({ endDate: undefined, endTime: undefined })}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={campaign.endDate || ''}
+                  onChange={(e) => updateCampaign({ endDate: e.target.value })}
+                  min={campaign.startDate !== 'NOW' ? campaign.startDate : new Date().toISOString().split('T')[0]}
+                  placeholder="Optional"
+                  className="flex-1 px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                {campaign.endDate && (
+                  <input
+                    type="time"
+                    value={campaign.endTime || '12:00'}
+                    onChange={(e) => updateCampaign({ endTime: e.target.value })}
+                    className="w-28 px-3 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Calculation Display */}
+            {campaign.budgetMode === 'CBO' && campaign.budget && campaign.startDate && campaign.endDate && (() => {
+              const start = new Date(campaign.startDate)
+              const end = new Date(campaign.endDate)
+              const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+
+              if (days <= 0) return null
+
+              const dailyEstimate = campaign.budgetType === 'lifetime' ? (campaign.budget / days).toFixed(2) : null
+              const lifetimeEstimate = campaign.budgetType === 'daily' ? (campaign.budget * days).toFixed(2) : null
+
+              return (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground font-medium">{days} jour{days > 1 ? 's' : ''}</span>
+                    {campaign.budgetType === 'lifetime' && dailyEstimate && (
+                      <span className="font-semibold text-primary">≈ €{dailyEstimate}/jour</span>
+                    )}
+                    {campaign.budgetType === 'daily' && lifetimeEstimate && (
+                      <span className="font-semibold text-primary">≈ €{lifetimeEstimate} total</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
-        )}
-      </div>
-
-      {/* Schedule */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Start Date *</label>
-          <input
-            type="date"
-            value={campaign.startDate}
-            onChange={(e) => updateCampaign({ startDate: e.target.value })}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">End Date (optional)</label>
-          <input
-            type="date"
-            value={campaign.endDate || ''}
-            onChange={(e) => updateCampaign({ endDate: e.target.value })}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
         </div>
       </div>
 

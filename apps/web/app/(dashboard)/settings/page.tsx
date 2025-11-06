@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Settings as SettingsIcon, Users, Plug } from 'lucide-react'
+import { Settings as SettingsIcon, Users, Plug, FileText } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
 import dynamic from 'next/dynamic'
 
 // Lazy load sub-pages
 const ClientsSettings = dynamic(() => import('@/components/settings/clients-settings').then(m => ({ default: m.ClientsSettings })), { ssr: false })
 const IntegrationsSettings = dynamic(() => import('@/components/settings/integrations-settings').then(m => ({ default: m.IntegrationsSettings })), { ssr: false })
+const NamingSettings = dynamic(() => import('@/components/settings/naming-settings').then(m => ({ default: m.NamingSettings })), { ssr: false })
 
-type TabId = 'clients' | 'integrations'
+type TabId = 'clients' | 'integrations' | 'naming'
 
 interface Tab {
   id: TabId
@@ -21,6 +22,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'integrations', label: 'Integrations', icon: Plug },
+  { id: 'naming', label: 'Naming Conventions', icon: FileText },
 ]
 
 export default function SettingsPage() {
@@ -30,7 +32,7 @@ export default function SettingsPage() {
 
   // Sync with URL parameter
   useEffect(() => {
-    if (tabParam && (tabParam === 'clients' || tabParam === 'integrations')) {
+    if (tabParam && (tabParam === 'clients' || tabParam === 'integrations' || tabParam === 'naming')) {
       setActiveTab(tabParam)
     }
   }, [tabParam])
@@ -45,7 +47,7 @@ export default function SettingsPage() {
             <div>
               <h1 className="text-2xl font-semibold">Settings</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Manage your clients and integrations
+                Manage your clients, integrations and naming conventions
               </p>
             </div>
           </div>
@@ -85,6 +87,7 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'clients' && <ClientsSettings />}
         {activeTab === 'integrations' && <IntegrationsSettings />}
+        {activeTab === 'naming' && <NamingSettings />}
       </div>
     </div>
   )

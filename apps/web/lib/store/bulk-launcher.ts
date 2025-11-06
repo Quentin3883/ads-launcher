@@ -16,6 +16,7 @@ import {
   generateAdSetsFromMatrix,
   calculateMatrixStats,
   getDefaultRedirectionType,
+  autoCompleteCampaignConfig,
 } from '@launcher-ads/sdk'
 
 interface HistoryState {
@@ -199,13 +200,13 @@ const initialCampaign: Partial<CampaignConfig> = {
   name: 'Test Campaign',
   type: 'Traffic',
   objective: '',
-  country: 'United States',
   redirectionType: 'LANDING_PAGE',
   redirectionUrl: 'https://test.io',
   budgetMode: 'CBO',
   budgetType: 'daily',
   budget: 1000,
-  startDate: new Date().toISOString().split('T')[0],
+  startDate: 'NOW',
+  startTime: undefined,
   urlParamsOverride: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}',
 }
 
@@ -382,7 +383,7 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   campaign: initialCampaign,
   updateCampaign: (data) =>
     set((state) => {
-      const newCampaign = { ...state.campaign, ...data }
+      let newCampaign = { ...state.campaign, ...data }
 
       // Auto-update redirection type when campaign type changes
       if (data.type && data.type !== state.campaign.type) {
@@ -390,6 +391,9 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
         newCampaign.redirectionUrl = ''
         newCampaign.redirectionFormId = ''
         newCampaign.redirectionDeeplink = ''
+
+        // Auto-complete Facebook API v24 fields (optimization goal, billing event, etc.)
+        newCampaign = autoCompleteCampaignConfig(newCampaign) as Partial<CampaignConfig>
       }
 
       return { campaign: newCampaign }

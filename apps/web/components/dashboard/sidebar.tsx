@@ -16,6 +16,7 @@ import {
   Terminal,
   Users,
   Plug,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
 import { useClientsStore } from '@/lib/store/clients'
@@ -31,6 +32,7 @@ const mainNavigation = [
     submenu: [
       { name: 'Clients', href: '/settings?tab=clients', icon: Users },
       { name: 'Integrations', href: '/settings?tab=integrations', icon: Plug },
+      { name: 'Naming', href: '/settings?tab=naming', icon: FileText },
     ]
   },
 ]

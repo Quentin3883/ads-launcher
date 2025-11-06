@@ -106,20 +106,23 @@ model User {
 }
 
 model Client {
-  id        String   @id @default(uuid())
-  name      String // Company name
-  industry  String?
-  website   String?
-  logoUrl   String? // URL to logo image
-  notes     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String // Company name
+  industry            String?
+  website             String?
+  logoUrl             String? // URL to logo image
+  notes               String?
+  isActive            Boolean  @default(true)
+  namingConventionId  String? // Convention de naming attribuée
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  contacts     ClientContact[]
-  adAccounts   FacebookAdAccount[]
-  bulkLaunches BulkLaunch[]
+  contacts          ClientContact[]
+  adAccounts        FacebookAdAccount[]
+  bulkLaunches      BulkLaunch[]
+  namingConvention  NamingConvention? @relation(fields: [namingConventionId], references: [id], onDelete: SetNull)
 
+  @@index([namingConventionId])
   @@map("clients")
 }
 
@@ -371,6 +374,35 @@ enum BulkLaunchStatus {
   paused      // Campaign paused
   completed   // Campaign ended
   failed      // Creation failed
+}
+
+// ============================================
+// Naming Convention Models
+// ============================================
+
+model NamingConvention {
+  id          String   @id @default(uuid())
+  name        String // Ex: "Convention Standard", "Convention E-commerce"
+  description String?
+
+  // Template avec variables
+  // Ex: "{{clientName}} | d:{{date}} - sub:{{subject}} - loc:{{location}} - obj:{{objective}} - redir:{{redirectionType}}"
+  template    String
+
+  // Configuration des variables disponibles
+  variables   Json // { date: { format: "MMYYYY" }, location: { strategy: "country" | "city" | "auto" }, ... }
+
+  // Flags
+  isDefault   Boolean  @default(false) // Convention par défaut
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clients     Client[]
+
+  @@map("naming_conventions")
 }
 
 model BulkLaunch {
