@@ -24,6 +24,50 @@ interface HistoryState {
   copyVariants: CopyVariant[]
 }
 
+// Edit Mode Types
+export interface FacebookCampaign {
+  id: string
+  name: string
+  objective: string
+  status: string
+  budget?: number
+  [key: string]: any
+}
+
+export interface FacebookAdSet {
+  id: string
+  name: string
+  campaignId: string
+  status: string
+  targeting: any
+  budget?: number
+  [key: string]: any
+}
+
+export interface FacebookAd {
+  id: string
+  name: string
+  adSetId: string
+  creative: any
+  [key: string]: any
+}
+
+export interface EditContext {
+  campaignId?: string
+  adSetIds?: string[]
+  sourceData?: {
+    campaign?: FacebookCampaign
+    adSets?: FacebookAdSet[]
+    ads?: FacebookAd[]
+  }
+}
+
+export interface EditStrategy {
+  keepExistingCreatives: boolean
+  keepExistingAudiences: boolean
+  duplicateMode: 'reference' | 'copy'
+}
+
 export interface ProgressStep {
   id: string
   label: string
@@ -46,6 +90,14 @@ export interface BulkLauncherState {
   // Launch mode
   launchMode: 'express' | 'pro' | 'custom' | null
   setLaunchMode: (mode: 'express' | 'pro' | 'custom' | null) => void
+
+  // Edit Mode
+  mode: 'create' | 'edit' | null
+  setMode: (mode: 'create' | 'edit' | null) => void
+  editContext: EditContext | null
+  setEditContext: (context: EditContext | null) => void
+  editStrategy: EditStrategy
+  setEditStrategy: (strategy: Partial<EditStrategy>) => void
 
   // Current step
   currentStep: number
@@ -202,6 +254,12 @@ const initialMatrixConfig: MatrixConfig = {
 
 const MAX_HISTORY_SIZE = 50
 
+const initialEditStrategy: EditStrategy = {
+  keepExistingCreatives: false,
+  keepExistingAudiences: false,
+  duplicateMode: 'reference',
+}
+
 // Helper to save current state to history
 const saveToHistory = (state: BulkLauncherState): HistoryState => ({
   audiences: [...state.bulkAudiences.audiences],
@@ -228,6 +286,17 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   // Launch Mode
   launchMode: null,
   setLaunchMode: (mode) => set({ launchMode: mode }),
+
+  // Edit Mode
+  mode: null,
+  setMode: (mode) => set({ mode }),
+  editContext: null,
+  setEditContext: (context) => set({ editContext: context }),
+  editStrategy: initialEditStrategy,
+  setEditStrategy: (strategy) =>
+    set((state) => ({
+      editStrategy: { ...state.editStrategy, ...strategy },
+    })),
 
   currentStep: 0, // Start at mode selection
   setCurrentStep: (step) => set({ currentStep: step }),
@@ -583,6 +652,9 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
     set({
       currentStep: 1,
       clientId: null,
+      mode: null,
+      editContext: null,
+      editStrategy: initialEditStrategy,
       campaign: initialCampaign,
       bulkAudiences: initialBulkAudiences,
       bulkCreatives: initialBulkCreatives,
