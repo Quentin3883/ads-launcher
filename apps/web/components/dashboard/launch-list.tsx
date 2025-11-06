@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Play, Pause, Trash2, Eye } from 'lucide-react'
+import { Play, Pause, Trash2, Eye, Edit2 } from 'lucide-react'
 import { useLaunchesStore, type Launch, type LaunchStatus } from '@/lib/store/launches'
 import { cn } from '@launcher-ads/ui'
 
@@ -38,7 +38,7 @@ function ProgressBar({ progress }: { progress: number }) {
   )
 }
 
-function LaunchRow({ launch }: { launch: Launch }) {
+function LaunchRow({ launch, onEdit }: { launch: Launch; onEdit?: (launch: Launch) => void }) {
   const updateLaunch = useLaunchesStore((state) => state.updateLaunch)
   const deleteLaunch = useLaunchesStore((state) => state.deleteLaunch)
 
@@ -78,6 +78,15 @@ function LaunchRow({ launch }: { launch: Launch }) {
           <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
             <Eye className="h-4 w-4" />
           </button>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(launch)}
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              title="Edit campaign"
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={() =>
               updateLaunch(launch.id, {
@@ -117,7 +126,7 @@ function LaunchRow({ launch }: { launch: Launch }) {
   )
 }
 
-export function LaunchList({ searchQuery }: { searchQuery: string }) {
+export function LaunchList({ searchQuery, onEdit }: { searchQuery: string; onEdit?: (launch: Launch) => void }) {
   const launches = useLaunchesStore((state) => state.launches)
 
   const filteredLaunches = useMemo(() => {
@@ -147,7 +156,7 @@ export function LaunchList({ searchQuery }: { searchQuery: string }) {
   return (
     <div className="space-y-4">
       {filteredLaunches.map((launch) => (
-        <LaunchRow key={launch.id} launch={launch} />
+        <LaunchRow key={launch.id} launch={launch} onEdit={onEdit} />
       ))}
     </div>
   )

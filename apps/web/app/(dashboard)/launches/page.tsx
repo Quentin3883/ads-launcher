@@ -23,6 +23,19 @@ const BulkLauncherModal = dynamic(
 export default function LaunchesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isCampaignBuilderOpen, setIsCampaignBuilderOpen] = useState(false)
+  const [editLaunchId, setEditLaunchId] = useState<string | null>(null)
+
+  const handleEditLaunch = (launch: any) => {
+    setEditLaunchId(launch.id)
+    setIsCampaignBuilderOpen(true)
+  }
+
+  const handleModalClose = (open: boolean) => {
+    setIsCampaignBuilderOpen(open)
+    if (!open) {
+      setEditLaunchId(null)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -71,7 +84,7 @@ export default function LaunchesPage() {
           {/* Launches List */}
           <section>
             <h2 className="mb-4 text-base font-semibold">Your Launches</h2>
-            <LaunchList searchQuery={searchQuery} />
+            <LaunchList searchQuery={searchQuery} onEdit={handleEditLaunch} />
           </section>
         </div>
       </div>
@@ -79,7 +92,8 @@ export default function LaunchesPage() {
       {/* Bulk Launcher Modal */}
       <BulkLauncherModal
         open={isCampaignBuilderOpen}
-        onOpenChange={setIsCampaignBuilderOpen}
+        onOpenChange={handleModalClose}
+        editLaunchId={editLaunchId}
       />
     </div>
   )

@@ -18,6 +18,7 @@ import { UndoRedoControls } from '../bulk-launcher/controls/undo-redo-controls'
 interface BulkLauncherModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  editLaunchId?: string | null
 }
 
 // Define steps for Express Mode (2 screens)
@@ -49,11 +50,21 @@ const proSteps = [
  *   Step 3+: Mode-specific steps (Express: 2 steps, Pro: 4 steps)
  */
 
-export function BulkLauncherModal({ open, onOpenChange }: BulkLauncherModalProps) {
-  const { currentStep, setCurrentStep, reset, clientId, setClientId, launchMode, launchCallback } = useBulkLauncher()
+export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLauncherModalProps) {
+  const { currentStep, setCurrentStep, reset, clientId, setClientId, launchMode, launchCallback, mode, setMode } = useBulkLauncher()
   const { selectedClientId } = useClientsStore()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isLaunching, setIsLaunching] = useState(false)
+
+  // Set edit mode when editing
+  useEffect(() => {
+    if (open && editLaunchId) {
+      setMode('edit')
+      // TODO: Fetch campaign data and pre-fill store
+    } else if (open && !editLaunchId) {
+      setMode('create')
+    }
+  }, [open, editLaunchId, setMode])
 
   // Check if client is already selected
   const hasPreselectedClient = !!selectedClientId
@@ -214,13 +225,22 @@ export function BulkLauncherModal({ open, onOpenChange }: BulkLauncherModalProps
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">
-              {launchMode === 'express' ? 'Mode Express' : launchMode === 'pro' ? 'Mode Pro' : 'Bulk Campaign Launcher'}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {getHeaderDescription()}
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-foreground">
+                  {launchMode === 'express' ? 'Mode Express' : launchMode === 'pro' ? 'Mode Pro' : 'Bulk Campaign Launcher'}
+                </h2>
+                {mode === 'edit' && (
+                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                    Edit Mode
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {getHeaderDescription()}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {launchMode && currentStep >= STEP_FIRST_MODE && <UndoRedoControls />}
