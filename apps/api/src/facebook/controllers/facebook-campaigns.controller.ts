@@ -39,6 +39,29 @@ export class FacebookCampaignsController {
   }
 
   /**
+   * Get full campaign data including all ad sets and ads
+   * Used for Edit Mode to pre-fill launcher with existing campaign structure
+   */
+  @Get(':userId/campaign/:campaignId/full')
+  async getCampaignFull(
+    @Param('userId') userId: string,
+    @Param('campaignId') campaignId: string,
+  ) {
+    const token = await this.facebookService.getToken(userId)
+
+    if (!token) {
+      throw new BadRequestException('No Facebook account connected')
+    }
+
+    const fullData = await this.facebookService.fetchCampaignFull(
+      token.accessToken,
+      campaignId,
+    )
+
+    return fullData
+  }
+
+  /**
    * Sync campaigns from Facebook to database
    * Note: Endpoint disabled - use GET to fetch campaigns directly
    */

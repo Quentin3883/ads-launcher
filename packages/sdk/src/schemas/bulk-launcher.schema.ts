@@ -94,6 +94,8 @@ export const creativeSchema = z.object({
   primaryText: z.string().max(2000).optional(),
   description: z.string().max(255).optional(),
   cta: z.string().max(50).optional(),
+  // Reference to existing Facebook creative (for Edit Mode / duplication)
+  existingCreativeId: z.string().optional(),
 })
 
 export const copyVariantSchema = z.object({

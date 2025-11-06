@@ -170,6 +170,70 @@ export class FacebookService {
   }
 
   /**
+   * Fetch full campaign data including all ad sets and ads
+   * Used for Edit Mode to populate launcher with existing campaign structure
+   */
+  async fetchCampaignFull(accessToken: string, campaignId: string) {
+    // Fetch campaign details
+    const campaignResponse = await this.apiClient.get<any>(
+      campaignId,
+      accessToken,
+      {
+        fields:
+          'id,name,status,objective,daily_budget,lifetime_budget,budget_remaining,bid_strategy,start_time,stop_time,created_time,updated_time',
+      },
+      'Fetch campaign details',
+    )
+
+    // Fetch all ad sets for this campaign
+    const adSetsResponse = await this.apiClient.get<{ data: any[] }>(
+      `${campaignId}/adsets`,
+      accessToken,
+      {
+        fields:
+          'id,name,status,campaign_id,daily_budget,lifetime_budget,optimization_goal,billing_event,bid_amount,targeting,start_time,end_time,created_time,updated_time',
+        limit: 500,
+      },
+      'Fetch campaign ad sets',
+    )
+
+    // Fetch all ads for each ad set
+    const adsPromises = adSetsResponse.data.map(async (adSet: any) => {
+      const adsResponse = await this.apiClient.get<{ data: any[] }>(
+        `${adSet.id}/ads`,
+        accessToken,
+        {
+          fields:
+            'id,name,status,adset_id,creative{id,name,object_story_spec,asset_feed_spec,image_url,video_id,thumbnail_url,effective_object_story_id},created_time,updated_time',
+          limit: 500,
+        },
+        'Fetch ad set ads',
+      )
+      return {
+        adSetId: adSet.id,
+        ads: adsResponse.data,
+      }
+    })
+
+    const adsResults = await Promise.all(adsPromises)
+
+    // Build ads map by ad set ID
+    const adsByAdSet = adsResults.reduce(
+      (acc, result) => {
+        acc[result.adSetId] = result.ads
+        return acc
+      },
+      {} as Record<string, any[]>,
+    )
+
+    return {
+      campaign: campaignResponse,
+      adSets: adSetsResponse.data,
+      ads: adsByAdSet,
+    }
+  }
+
+  /**
    * Update campaign status (ACTIVE, PAUSED)
    */
   async updateCampaignStatus(
