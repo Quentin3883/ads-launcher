@@ -111,11 +111,8 @@ function transformAdSetsToAudiences(adSets: FacebookAdSet[]): {
       audiences.push({
         id: `interest-${adSet.id}`,
         name: `Interests from ${adSet.name}`,
-        type: 'interests',
-        interests: interests.map((i: any) => ({
-          id: i.id,
-          name: i.name,
-        })),
+        type: 'INTEREST',
+        interests: interests.map((i: any) => i.id),
       })
     }
 
@@ -129,7 +126,7 @@ function transformAdSetsToAudiences(adSets: FacebookAdSet[]): {
       audiences.push({
         id: `broad-${adSet.id}`,
         name: `Broad from ${adSet.name}`,
-        type: 'broad',
+        type: 'BROAD',
       })
     }
 
@@ -238,7 +235,7 @@ export function transformLauncherToFacebook(
     bulkAudiences: BulkAudiencesConfig
     bulkCreatives: BulkCreativesConfig
   },
-  editContext: {
+  _editContext: {
     campaignId: string
     existingAdSets?: FacebookAdSet[]
   },
