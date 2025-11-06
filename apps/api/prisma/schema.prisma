@@ -116,8 +116,9 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contacts   ClientContact[]
-  adAccounts FacebookAdAccount[]
+  contacts     ClientContact[]
+  adAccounts   FacebookAdAccount[]
+  bulkLaunches BulkLaunch[]
 
   @@map("clients")
 }
@@ -172,9 +173,10 @@ model FacebookAdAccount {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  token     FacebookToken      @relation(fields: [tokenId], references: [id], onDelete: Cascade)
-  client    Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  campaigns FacebookCampaign[]
+  token        FacebookToken      @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  client       Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  campaigns    FacebookCampaign[]
+  bulkLaunches BulkLaunch[]
 
   @@index([tokenId])
   @@index([facebookId])
@@ -356,4 +358,60 @@ model FacebookAdInsight {
   @@index([adId])
   @@index([dateStart])
   @@map("facebook_ad_insights")
+}
+
+// ============================================
+// Bulk Launcher Models
+// ============================================
+
+enum BulkLaunchStatus {
+  draft       // Saved but not launched
+  launching   // Currently being created on Facebook
+  active      // Successfully created and running
+  paused      // Campaign paused
+  completed   // Campaign ended
+  failed      // Creation failed
+}
+
+model BulkLaunch {
+  id          String            @id @default(uuid())
+  userId      String // User who created the launch
+  clientId    String? // Optional link to client
+  adAccountId String // Facebook ad account used
+
+  // Launch metadata
+  name        String
+  mode        String            @default("create") // 'create' or 'edit'
+  launchMode  String? // 'express', 'pro', 'custom'
+  status      BulkLaunchStatus  @default(draft)
+
+  // Configuration (stored as JSON from bulk-launcher store)
+  campaign      Json // CampaignConfig
+  bulkAudiences Json // BulkAudiencesConfig
+  bulkCreatives Json // BulkCreativesConfig
+  matrixConfig  Json // MatrixConfig
+
+  // Generated structure
+  totalAdSets Int      @default(0)
+  totalAds    Int      @default(0)
+
+  // Facebook references
+  facebookCampaignId String? // Main campaign ID created
+  facebookData       Json? // Full response from Facebook API
+
+  // Timestamps
+  launchedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  client   Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  adAccount FacebookAdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([adAccountId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bulk_launches")
 }
