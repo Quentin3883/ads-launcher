@@ -6,12 +6,9 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Rocket,
-  FileText,
   Settings,
   Search,
   ChevronRight,
-  BookOpen,
-  MessageCircle,
   Building2,
   Check,
   Target,
@@ -29,9 +26,6 @@ const mainNavigation = [
 
 const otherNavigation = [
   { name: 'Debug Console', href: '/debug', icon: Terminal },
-  { name: 'Documentation', href: '/docs', icon: BookOpen, disabled: true },
-  { name: 'Templates', href: '/templates', icon: FileText, disabled: true },
-  { name: 'Support', href: '/support', icon: MessageCircle, disabled: true },
 ]
 
 export function Sidebar() {
