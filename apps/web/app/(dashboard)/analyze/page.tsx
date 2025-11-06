@@ -17,39 +17,7 @@ interface VideoAd {
 }
 
 export default function AnalyzePage() {
-  // Ta vraie vidéo Facebook
-  const facebookVideoUrl = 'https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2F764827506464871%2Fvideos%2F717110027706241%2F&show_text=false&width=267&t=0'
-
-  const [ads] = useState<VideoAd[]>([
-    {
-      id: 1,
-      name: 'Veesion Security Ad',
-      videoUrl: facebookVideoUrl,
-      posterUrl: '',
-      stats: { impressions: '12.5K', clicks: 487, ctr: '3.89%', spend: '$156' }
-    },
-    {
-      id: 2,
-      name: 'Veesion Security Ad - Variant 2',
-      videoUrl: facebookVideoUrl,
-      posterUrl: '',
-      stats: { impressions: '15.2K', clicks: 623, ctr: '4.10%', spend: '$189' }
-    },
-    {
-      id: 3,
-      name: 'Veesion Security Ad - Variant 3',
-      videoUrl: facebookVideoUrl,
-      posterUrl: '',
-      stats: { impressions: '9.8K', clicks: 312, ctr: '3.18%', spend: '$127' }
-    },
-    {
-      id: 4,
-      name: 'Veesion Security Ad - Variant 4',
-      videoUrl: facebookVideoUrl,
-      posterUrl: '',
-      stats: { impressions: '18.7K', clicks: 891, ctr: '4.76%', spend: '$234' }
-    },
-  ])
+  const [ads] = useState<VideoAd[]>([])
 
   return (
     <div className="p-6 space-y-6">
@@ -69,24 +37,18 @@ export default function AnalyzePage() {
           Ad Analysis - Video Creatives
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {ads.map((ad) => (
-            <VideoAdCard key={ad.id} ad={ad} />
-          ))}
-        </div>
-
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">
-            ✨ Inspiré de Facebook Ads Library
-          </h3>
-          <ul className="text-xs text-blue-800 space-y-1">
-            <li>✅ <strong>Ta vraie vidéo Facebook</strong> - Veesion Security (764827506464871/videos/717110027706241)</li>
-            <li>✅ <strong>4 cards identiques</strong> - Pour simuler l'analyse de variantes</li>
-            <li>✅ <strong>Iframe Facebook embed</strong> - Dimensions optimisées 267×476px</li>
-            <li>✅ <strong>Stats mockées</strong> - Impressions, Clicks, CTR, Spend par variante</li>
-            <li>✅ <strong>Layout style Facebook Ads Library</strong> - Header + Video + Stats + CTA</li>
-          </ul>
-        </div>
+        {ads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm text-gray-500">No ads to analyze yet</p>
+            <p className="text-xs text-gray-400 mt-1">Launch campaigns to see performance data here</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {ads.map((ad) => (
+              <VideoAdCard key={ad.id} ad={ad} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -24,64 +24,8 @@ interface LaunchesState {
   getFilteredLaunches: (clientId?: string | null) => Launch[]
 }
 
-// Mock data
-const mockLaunches: Launch[] = [
-  {
-    id: '1',
-    name: 'Black Friday Campaign',
-    type: 'Lead Form',
-    status: 'active',
-    country: 'United States',
-    objective: 'Conversions',
-    formats: ['Feed', 'Story'],
-    progress: 75,
-    createdAt: new Date('2025-10-20'),
-    budget: 5000,
-    clientId: '1', // Nike
-  },
-  {
-    id: '2',
-    name: 'Product Launch Q4',
-    type: 'Landing Page',
-    status: 'active',
-    country: 'France',
-    objective: 'Traffic',
-    formats: ['Feed', 'Reel'],
-    progress: 45,
-    createdAt: new Date('2025-10-18'),
-    budget: 3000,
-    clientId: '2', // Adidas
-  },
-  {
-    id: '3',
-    name: 'Holiday Promo',
-    type: 'Redirect',
-    status: 'paused',
-    country: 'Canada',
-    objective: 'Awareness',
-    formats: ['Story'],
-    progress: 20,
-    createdAt: new Date('2025-10-15'),
-    budget: 2000,
-    clientId: '1', // Nike
-  },
-  {
-    id: '4',
-    name: 'Customer Survey',
-    type: 'Survey',
-    status: 'draft',
-    country: 'United Kingdom',
-    objective: 'Engagement',
-    formats: ['Feed'],
-    progress: 10,
-    createdAt: new Date('2025-10-22'),
-    budget: 1000,
-    clientId: '3', // Puma
-  },
-]
-
 export const useLaunchesStore = create<LaunchesState>((set, get) => ({
-  launches: mockLaunches,
+  launches: [],
 
   addLaunch: (launch) =>
     set((state) => ({
