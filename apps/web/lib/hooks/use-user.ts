@@ -23,7 +23,7 @@ export function useUser(): User | null {
 
     // Hardcoded user data for development
     if (userId === DEFAULT_USER_ID) {
-      const firstName = DEFAULT_USER.name.split(' ')[0]
+      const firstName = DEFAULT_USER.name.split(' ')[0] || 'User'
 
       return {
         ...DEFAULT_USER,
