@@ -5,12 +5,18 @@ import { Rocket, TrendingUp, Users, DollarSign, ArrowRight } from 'lucide-react'
 import { useClientsStore } from '@/lib/store/clients'
 import { useLaunchesStore } from '@/lib/store/launches'
 import { useUser } from '@/lib/hooks/use-user'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 export default function DashboardPage() {
   const { selectedClientId, getSelectedClient } = useClientsStore()
   const { getFilteredLaunches } = useLaunchesStore()
   const user = useUser()
+  const [mounted, setMounted] = useState(false)
+
+  // Avoid hydration mismatch by only showing user name after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredLaunches = useMemo(
     () => getFilteredLaunches(selectedClientId),
@@ -37,7 +43,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {selectedClient ? `${selectedClient.name} Dashboard` : `Hi ${user?.firstName || 'there'}`}
+              {selectedClient ? `${selectedClient.name} Dashboard` : `Hi ${mounted && user?.firstName ? user.firstName : 'there'}`}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {selectedClient
