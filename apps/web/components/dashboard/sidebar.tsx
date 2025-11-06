@@ -9,16 +9,12 @@ import {
   FileText,
   Settings,
   Search,
-  Bell,
   ChevronRight,
   BookOpen,
   MessageCircle,
   Building2,
   Check,
   Target,
-  Plug,
-  BarChart3,
-  Users,
   Terminal,
 } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
@@ -26,13 +22,8 @@ import { useClientsStore } from '@/lib/store/clients'
 
 const mainNavigation = [
   { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Analyze', href: '/analyze', icon: Search },
-  { name: 'Clients', href: '/clients', icon: Users },
-  { name: 'Strategies', href: '/strategies', icon: Target },
-  { name: 'Integrations', href: '/integrations', icon: Plug },
-  { name: 'Notifications', href: '/notifications', icon: Bell, disabled: true },
   { name: 'Launches', href: '/launches', icon: Rocket },
+  { name: 'Strategies', href: '/strategies', icon: Target },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
