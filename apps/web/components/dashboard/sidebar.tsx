@@ -9,10 +9,13 @@ import {
   Settings,
   Search,
   ChevronRight,
+  ChevronDown,
   Building2,
   Check,
   Target,
   Terminal,
+  Users,
+  Plug,
 } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
 import { useClientsStore } from '@/lib/store/clients'
@@ -21,7 +24,15 @@ const mainNavigation = [
   { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Launches', href: '/launches', icon: Rocket },
   { name: 'Strategies', href: '/strategies', icon: Target },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    submenu: [
+      { name: 'Clients', href: '/settings?tab=clients', icon: Users },
+      { name: 'Integrations', href: '/settings?tab=integrations', icon: Plug },
+    ]
+  },
 ]
 
 const otherNavigation = [
@@ -32,12 +43,20 @@ export function Sidebar() {
   const pathname = usePathname()
   const { clients, selectedClientId, setSelectedClient, getSelectedClient, fetchClients } = useClientsStore()
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(pathname.startsWith('/settings'))
 
   const selectedClient = getSelectedClient()
 
   useEffect(() => {
     fetchClients()
   }, [])
+
+  // Auto-open Settings submenu if on settings page
+  useEffect(() => {
+    if (pathname.startsWith('/settings')) {
+      setIsSettingsOpen(true)
+    }
+  }, [pathname])
 
   return (
     <aside className="relative w-[280px] bg-[#151515] border-r border-white/10"
@@ -75,26 +94,81 @@ export function Sidebar() {
           <ul className="space-y-0.5">
             {mainNavigation.map((item) => {
               const isActive = pathname === item.href
+              const hasSubmenu = item.submenu && item.submenu.length > 0
               const Icon = item.icon
 
               return (
                 <li key={item.name}>
-                  <Link
-                    href={item.disabled ? '#' : item.href}
-                    className={cn(
-                      'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                      isActive
-                        ? 'bg-white text-[#151515] shadow-sm'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white',
-                      item.disabled && 'cursor-not-allowed opacity-40'
-                    )}
-                    onClick={(e) => item.disabled && e.preventDefault()}
-                  >
-                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    <span className="whitespace-nowrap">
-                      {item.name}
-                    </span>
-                  </Link>
+                  {hasSubmenu ? (
+                    <>
+                      {/* Parent with submenu */}
+                      <button
+                        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                        className={cn(
+                          'w-full group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                          pathname.startsWith(item.href)
+                            ? 'bg-white text-[#151515] shadow-sm'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        )}
+                      >
+                        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        <span className="whitespace-nowrap flex-1 text-left">
+                          {item.name}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            'h-4 w-4 transition-transform',
+                            isSettingsOpen && 'rotate-180'
+                          )}
+                        />
+                      </button>
+
+                      {/* Submenu */}
+                      {isSettingsOpen && (
+                        <ul className="mt-1 ml-6 space-y-0.5 border-l border-white/10 pl-3">
+                          {item.submenu.map((subitem) => {
+                            const SubIcon = subitem.icon
+                            const isSubActive = pathname.includes(subitem.href)
+
+                            return (
+                              <li key={subitem.name}>
+                                <Link
+                                  href={subitem.href}
+                                  className={cn(
+                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                                    isSubActive
+                                      ? 'bg-white/10 text-white'
+                                      : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                                  )}
+                                >
+                                  <SubIcon className="h-4 w-4 flex-shrink-0" />
+                                  <span className="whitespace-nowrap">{subitem.name}</span>
+                                </Link>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    /* Regular item without submenu */
+                    <Link
+                      href={item.disabled ? '#' : item.href}
+                      className={cn(
+                        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                        isActive
+                          ? 'bg-white text-[#151515] shadow-sm'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white',
+                        item.disabled && 'cursor-not-allowed opacity-40'
+                      )}
+                      onClick={(e) => item.disabled && e.preventDefault()}
+                    >
+                      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                      <span className="whitespace-nowrap">
+                        {item.name}
+                      </span>
+                    </Link>
+                  )}
                 </li>
               )
             })}

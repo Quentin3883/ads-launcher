@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Settings as SettingsIcon, Users, Plug } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
 import dynamic from 'next/dynamic'
@@ -23,7 +24,16 @@ const tabs: Tab[] = [
 ]
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('clients')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as TabId | null
+  const [activeTab, setActiveTab] = useState<TabId>(tabParam || 'clients')
+
+  // Sync with URL parameter
+  useEffect(() => {
+    if (tabParam && (tabParam === 'clients' || tabParam === 'integrations')) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
 
   return (
     <div className="flex h-full flex-col">
