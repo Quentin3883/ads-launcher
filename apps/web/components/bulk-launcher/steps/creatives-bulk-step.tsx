@@ -536,13 +536,13 @@ export function CreativesBulkStep() {
                           maxLength={255}
                           value={creative.headline || ''}
                           onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
-                          placeholder={bulkCreatives.globalHeadline || "Optional headline..."}
+                          placeholder="Override headline for this creative..."
                           className="text-xs"
                         />
-                        {(creative.headline || bulkCreatives.globalHeadline) && hasDynamicParams(creative.headline || bulkCreatives.globalHeadline || '') && (
+                        {creative.headline && hasDynamicParams(creative.headline) && (
                           <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
                             <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline || bulkCreatives.globalHeadline || '')}</p>
+                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline)}</p>
                           </div>
                         )}
                       </div>
@@ -551,7 +551,7 @@ export function CreativesBulkStep() {
                         value={creative.cta || ''}
                         onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
                         options={[
-                          { value: '', label: bulkCreatives.globalCTA ? `(Global: ${bulkCreatives.globalCTA})` : '(Use global)' },
+                          { value: '', label: '(Clear - use global)' },
                           ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
                         ]}
                         className="text-xs"
@@ -563,15 +563,15 @@ export function CreativesBulkStep() {
                         maxLength={2000}
                         value={creative.primaryText || ''}
                         onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
-                        placeholder={bulkCreatives.globalPrimaryText || "Optional primary text..."}
+                        placeholder="Override primary text for this creative..."
                         multiline
                         rows={2}
                         className="text-xs"
                       />
-                      {(creative.primaryText || bulkCreatives.globalPrimaryText) && hasDynamicParams(creative.primaryText || bulkCreatives.globalPrimaryText || '') && (
+                      {creative.primaryText && hasDynamicParams(creative.primaryText) && (
                         <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
                           <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText || bulkCreatives.globalPrimaryText || '')}</p>
+                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText)}</p>
                         </div>
                       )}
                     </div>
@@ -620,7 +620,19 @@ export function CreativesBulkStep() {
                 label="Headline"
                 maxLength={40}
                 value={bulkCreatives.globalHeadline || ''}
-                onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
+                onChange={(val) => {
+                  const previousValue = bulkCreatives.globalHeadline
+                  updateBulkCreatives({ globalHeadline: val })
+
+                  // Auto-apply to creatives that either:
+                  // 1. Have no headline (empty)
+                  // 2. Have the previous global headline (were synced before)
+                  bulkCreatives.creatives.forEach((creative) => {
+                    if (!creative.headline || creative.headline === previousValue) {
+                      updateCreative(creative.id, { headline: val })
+                    }
+                  })
+                }}
                 placeholder="Your headline"
               />
               {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
@@ -635,7 +647,19 @@ export function CreativesBulkStep() {
                 label="Primary Text"
                 maxLength={125}
                 value={bulkCreatives.globalPrimaryText || ''}
-                onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
+                onChange={(val) => {
+                  const previousValue = bulkCreatives.globalPrimaryText
+                  updateBulkCreatives({ globalPrimaryText: val })
+
+                  // Auto-apply to creatives that either:
+                  // 1. Have no primaryText (empty)
+                  // 2. Have the previous global primaryText (were synced before)
+                  bulkCreatives.creatives.forEach((creative) => {
+                    if (!creative.primaryText || creative.primaryText === previousValue) {
+                      updateCreative(creative.id, { primaryText: val })
+                    }
+                  })
+                }}
                 placeholder="Your message"
               />
               {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
@@ -648,7 +672,19 @@ export function CreativesBulkStep() {
             <FormSelect
               label="CTA"
               value={bulkCreatives.globalCTA || 'Learn More'}
-              onChange={(val) => updateBulkCreatives({ globalCTA: val })}
+              onChange={(val) => {
+                const previousValue = bulkCreatives.globalCTA
+                updateBulkCreatives({ globalCTA: val })
+
+                // Auto-apply to creatives that either:
+                // 1. Have no CTA (empty)
+                // 2. Have the previous global CTA (were synced before)
+                bulkCreatives.creatives.forEach((creative) => {
+                  if (!creative.cta || creative.cta === previousValue) {
+                    updateCreative(creative.id, { cta: val })
+                  }
+                })
+              }}
               options={CTA_OPTIONS}
             />
           </div>
