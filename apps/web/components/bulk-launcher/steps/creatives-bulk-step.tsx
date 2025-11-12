@@ -228,7 +228,7 @@ export function CreativesBulkStep() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-foreground">Creatives & Copies</h3>
-          <p className="text-xs text-muted-foreground">Upload files • Auto-groups: "BR - SMS - Feed.png" + "BR - SMS - Story.png"</p>
+          <p className="text-xs text-muted-foreground">Upload files • Auto-groups: "Name - Feed.png" + "Name - Story.png"</p>
         </div>
         <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5">
           <div className="text-[10px] text-muted-foreground">Creatives</div>
