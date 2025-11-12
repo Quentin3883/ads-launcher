@@ -613,50 +613,64 @@ export function CreativesBulkStep() {
         }
         className="p-3"
       >
-        {bulkCreatives.sameCopyForAll ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <FormField
-                  label="Headline"
-                  maxLength={40}
-                  value={bulkCreatives.globalHeadline || ''}
-                  onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
-                  placeholder="Your headline"
-                />
-                {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
-                  <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                    <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                    <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalHeadline)}</p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <FormField
-                  label="Primary Text"
-                  maxLength={125}
-                  value={bulkCreatives.globalPrimaryText || ''}
-                  onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
-                  placeholder="Your message"
-                />
-                {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
-                  <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                    <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                    <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
-                  </div>
-                )}
-              </div>
-              <FormSelect
-                label="CTA"
-                value={bulkCreatives.globalCTA || 'Learn More'}
-                onChange={(val) => updateBulkCreatives({ globalCTA: val })}
-                options={CTA_OPTIONS}
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <FormField
+                label="Headline"
+                maxLength={40}
+                value={bulkCreatives.globalHeadline || ''}
+                onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
+                placeholder="Your headline"
               />
+              {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
+                <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                  <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                  <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalHeadline)}</p>
+                </div>
+              )}
             </div>
+            <div>
+              <FormField
+                label="Primary Text"
+                maxLength={125}
+                value={bulkCreatives.globalPrimaryText || ''}
+                onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
+                placeholder="Your message"
+              />
+              {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
+                <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                  <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                  <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
+                </div>
+              )}
+            </div>
+            <FormSelect
+              label="CTA"
+              value={bulkCreatives.globalCTA || 'Learn More'}
+              onChange={(val) => updateBulkCreatives({ globalCTA: val })}
+              options={CTA_OPTIONS}
+            />
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">Individual copy editing per creative coming soon...</p>
-        )}
+          {!bulkCreatives.sameCopyForAll && (
+            <button
+              type="button"
+              onClick={() => {
+                // Apply global copy to all creatives (override any existing specific wording)
+                bulkCreatives.creatives.forEach((creative) => {
+                  updateCreative(creative.id, {
+                    headline: bulkCreatives.globalHeadline,
+                    primaryText: bulkCreatives.globalPrimaryText,
+                    cta: bulkCreatives.globalCTA,
+                  })
+                })
+              }}
+              className="w-full px-4 py-2 rounded-lg border-2 border-primary bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
+            >
+              Apply to All Creatives
+            </button>
+          )}
+        </div>
       </SectionCard>
 
       {/* Copy Variants */}

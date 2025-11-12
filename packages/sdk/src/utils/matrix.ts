@@ -102,28 +102,22 @@ export function generateAdSetsFromMatrix(
               // For now, we'll leave them undefined
             }
 
-            // Get copy for this creative
-            const copy = creatives.sameCopyForAll
-              ? {
-                  headline: creatives.globalHeadline || '',
-                  primaryText: creatives.globalPrimaryText || '',
-                  cta: creatives.globalCTA || 'Learn More',
-                }
-              : creatives.creativeCopies?.[creative.id] || {
-                  headline: '',
-                  primaryText: '',
-                  cta: 'Learn More',
-                }
+            // Always use global copy as base/fallback
+            const globalCopy = {
+              headline: creatives.globalHeadline || '',
+              primaryText: creatives.globalPrimaryText || '',
+              cta: creatives.globalCTA || 'Learn More',
+            }
 
-            // Check if creative has its own copy (per-creative wording)
+            // Check if creative has its own specific copy
             const hasPerCreativeCopy = creative.headline || creative.primaryText || creative.cta
 
             if (hasPerCreativeCopy) {
-              // Use per-creative copy (overrides copy variants)
+              // Use per-creative copy, with global copy as fallback for empty fields
               const creativeCopy = {
-                headline: creative.headline || copy.headline,
-                primaryText: creative.primaryText || copy.primaryText,
-                cta: creative.cta || copy.cta,
+                headline: creative.headline || globalCopy.headline,
+                primaryText: creative.primaryText || globalCopy.primaryText,
+                cta: creative.cta || globalCopy.cta,
               }
               const ad = createAd(
                 adSetId,
@@ -136,7 +130,7 @@ export function generateAdSetsFromMatrix(
               )
               ads.push(ad)
             } else if (activeCopyVariants.length > 0) {
-              // Use copy variants (standard behavior)
+              // Use copy variants (standard A/B testing behavior)
               for (const variant of activeCopyVariants) {
                 const ad = createAd(
                   adSetId,
@@ -150,13 +144,13 @@ export function generateAdSetsFromMatrix(
                 ads.push(ad)
               }
             } else {
-              // Single ad with default copy
+              // No specific copy and no variants: use global copy
               const ad = createAd(
                 adSetId,
                 creative,
                 feedUrl,
                 storyUrl,
-                copy,
+                globalCopy,
                 campaign,
                 dynamicParams
               )
