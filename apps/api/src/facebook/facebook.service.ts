@@ -1048,6 +1048,7 @@ export class FacebookService {
           }
         }
       }
+      url_tags?: string
     },
   ) {
     return await this.apiClient.post(
@@ -1065,6 +1066,9 @@ export class FacebookService {
           degrees_of_freedom_spec: JSON.stringify(
             creativeData.degrees_of_freedom_spec,
           ),
+        }),
+        ...(creativeData.url_tags && {
+          url_tags: creativeData.url_tags,
         }),
       },
       'Create ad creative',
