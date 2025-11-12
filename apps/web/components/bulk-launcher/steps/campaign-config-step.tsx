@@ -405,20 +405,6 @@ export function CampaignConfigStep() {
             </button>
           </div>
 
-          {campaign.urlParamsOverride && (
-            <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
-              <p className="text-xs text-muted-foreground">Preview:</p>
-              <p className="text-xs font-mono text-foreground break-all">
-                {campaign.urlParamsOverride.length > 150
-                  ? `${campaign.urlParamsOverride.substring(0, 150)}...`
-                  : campaign.urlParamsOverride}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {campaign.urlParamsOverride.split('&').length} parameter(s) configured
-              </p>
-            </div>
-          )}
-
           {/* Facebook url_tags (UTM parameters) */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-foreground">Facebook UTM Parameters (url_tags)</label>
@@ -430,7 +416,7 @@ export function CampaignConfigStep() {
               className="w-full px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              UTM parameters for Facebook ad creatives (separate from dynamic URL params above)
+              UTM parameters for Facebook ad creatives (will be added to all ads)
             </p>
           </div>
         </div>

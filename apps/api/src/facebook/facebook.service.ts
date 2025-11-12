@@ -1051,26 +1051,28 @@ export class FacebookService {
       url_tags?: string
     },
   ) {
+    const payload = {
+      name: creativeData.name,
+      ...(creativeData.object_story_spec && {
+        object_story_spec: JSON.stringify(creativeData.object_story_spec),
+      }),
+      ...(creativeData.asset_feed_spec && {
+        asset_feed_spec: JSON.stringify(creativeData.asset_feed_spec),
+      }),
+      ...(creativeData.degrees_of_freedom_spec && {
+        degrees_of_freedom_spec: JSON.stringify(
+          creativeData.degrees_of_freedom_spec,
+        ),
+      }),
+      ...(creativeData.url_tags && {
+        url_tags: creativeData.url_tags,
+      }),
+    }
+
     return await this.apiClient.post(
       `${adAccountId}/adcreatives`,
       accessToken,
-      {
-        name: creativeData.name,
-        ...(creativeData.object_story_spec && {
-          object_story_spec: JSON.stringify(creativeData.object_story_spec),
-        }),
-        ...(creativeData.asset_feed_spec && {
-          asset_feed_spec: JSON.stringify(creativeData.asset_feed_spec),
-        }),
-        ...(creativeData.degrees_of_freedom_spec && {
-          degrees_of_freedom_spec: JSON.stringify(
-            creativeData.degrees_of_freedom_spec,
-          ),
-        }),
-        ...(creativeData.url_tags && {
-          url_tags: creativeData.url_tags,
-        }),
-      },
+      payload,
       'Create ad creative',
     )
   }

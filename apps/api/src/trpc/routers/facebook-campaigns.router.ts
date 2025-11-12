@@ -33,6 +33,7 @@ export const facebookCampaignsRouter = (
             budget: z.number().optional(),
             startDate: z.string(),
             endDate: z.string().optional(),
+            urlTags: z.string().optional(), // Facebook url_tags for UTM tracking
           }),
           adSets: z.array(
             z.object({

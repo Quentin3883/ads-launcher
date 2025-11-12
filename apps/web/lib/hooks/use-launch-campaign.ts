@@ -344,6 +344,7 @@ export function useLaunchCampaign() {
         budget: campaign.budget,
         startDate: campaign.startDate || new Date().toISOString(),
         endDate: campaign.endDate,
+        urlTags: campaign.urlTags, // Include Facebook url_tags for UTM tracking
       },
       adSets: processedAdSets.map((adSet) => ({
         name: adSet.name,

@@ -208,6 +208,7 @@ const initialCampaign: Partial<CampaignConfig> = {
   startDate: 'NOW',
   startTime: undefined,
   urlParamsOverride: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}',
+  urlTags: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}', // Facebook url_tags for UTM tracking at creative level
 }
 
 const initialBulkAudiences: BulkAudiencesConfig = {
