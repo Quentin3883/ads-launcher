@@ -595,10 +595,10 @@ export function CreativesBulkStep() {
       <SectionCard
         title="Ad Copy"
         subtitle={
-          <div className="flex items-center gap-1 text-blue-600">
+          <span className="flex items-center gap-1 text-blue-600">
             <Sparkles className="h-3 w-3" />
             <span className="text-xs">Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
-          </div>
+          </span>
         }
         headerAction={
           <label className="flex items-center gap-2 cursor-pointer">
