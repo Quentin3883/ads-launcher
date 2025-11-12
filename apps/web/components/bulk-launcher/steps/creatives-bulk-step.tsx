@@ -536,13 +536,13 @@ export function CreativesBulkStep() {
                           maxLength={255}
                           value={creative.headline || ''}
                           onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
-                          placeholder="Optional headline..."
+                          placeholder={bulkCreatives.globalHeadline || "Optional headline..."}
                           className="text-xs"
                         />
-                        {creative.headline && hasDynamicParams(creative.headline) && (
+                        {(creative.headline || bulkCreatives.globalHeadline) && hasDynamicParams(creative.headline || bulkCreatives.globalHeadline || '') && (
                           <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
                             <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline)}</p>
+                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline || bulkCreatives.globalHeadline || '')}</p>
                           </div>
                         )}
                       </div>
@@ -551,7 +551,7 @@ export function CreativesBulkStep() {
                         value={creative.cta || ''}
                         onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
                         options={[
-                          { value: '', label: '(Use copy variant)' },
+                          { value: '', label: bulkCreatives.globalCTA ? `(Global: ${bulkCreatives.globalCTA})` : '(Use global)' },
                           ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
                         ]}
                         className="text-xs"
@@ -563,15 +563,15 @@ export function CreativesBulkStep() {
                         maxLength={2000}
                         value={creative.primaryText || ''}
                         onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
-                        placeholder="Optional primary text..."
+                        placeholder={bulkCreatives.globalPrimaryText || "Optional primary text..."}
                         multiline
                         rows={2}
                         className="text-xs"
                       />
-                      {creative.primaryText && hasDynamicParams(creative.primaryText) && (
+                      {(creative.primaryText || bulkCreatives.globalPrimaryText) && hasDynamicParams(creative.primaryText || bulkCreatives.globalPrimaryText || '') && (
                         <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
                           <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText)}</p>
+                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText || bulkCreatives.globalPrimaryText || '')}</p>
                         </div>
                       )}
                     </div>
