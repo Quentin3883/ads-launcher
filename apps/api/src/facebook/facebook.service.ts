@@ -2245,7 +2245,6 @@ export class FacebookService {
                     link_urls: [
                       {
                         website_url: adConfig.destination.url || '',
-                        ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
@@ -2309,6 +2308,7 @@ export class FacebookService {
                       name: `${adConfig.name} - Creative`,
                       object_story_spec: objectStorySpecPAC,
                       asset_feed_spec: assetFeedSpec,
+                      ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                     }
                   )
                 } else {
@@ -2324,10 +2324,6 @@ export class FacebookService {
                     video_id: videoId,
                     message: adConfig.primaryText,
                     call_to_action: callToAction,
-                    ...(adConfig.destination.url && launchData.campaign.urlTags && {
-                      link_url: adConfig.destination.url,
-                      url_tags: launchData.campaign.urlTags,
-                    }),
                   }
 
                   // Add thumbnail (required by Facebook API)
@@ -2345,6 +2341,7 @@ export class FacebookService {
                     {
                       name: `${adConfig.name} - Creative`,
                       object_story_spec: objectStorySpec,
+                      ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                     },
                   )
                 }
@@ -2385,7 +2382,6 @@ export class FacebookService {
                     link_urls: [
                       {
                         website_url: adConfig.destination.url || '',
-                        ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                         adlabels: [{ name: 'LBL_COMMON' }],
                       },
                     ],
@@ -2449,6 +2445,7 @@ export class FacebookService {
                       name: `${adConfig.name} - Creative`,
                       object_story_spec: objectStorySpecPAC,
                       asset_feed_spec: assetFeedSpec,
+                      ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                     },
                   )
                 } else {
@@ -2465,7 +2462,6 @@ export class FacebookService {
                     name: adConfig.headline,
                     call_to_action: callToAction,
                     image_hash: imageHash,
-                    ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                   }
 
                   this.logger.log(`Creating single image ad (${imageHashFeed ? 'Feed' : 'Story'} format for all placements)`)
@@ -2476,6 +2472,7 @@ export class FacebookService {
                     {
                       name: `${adConfig.name} - Creative`,
                       object_story_spec: objectStorySpec,
+                      ...(launchData.campaign.urlTags && { url_tags: launchData.campaign.urlTags }),
                     },
                   )
                 }
