@@ -552,7 +552,7 @@ export function CreativesBulkStep() {
                         onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
                         options={[
                           { value: '', label: '(Use copy variant)' },
-                          ...CTA_OPTIONS.map((cta) => ({ value: cta.value, label: cta.label }))
+                          ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
                         ]}
                         className="text-xs"
                       />
