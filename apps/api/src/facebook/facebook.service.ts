@@ -1666,6 +1666,7 @@ export class FacebookService {
         startTime?: string
         endDate?: string
         endTime?: string
+        urlTags?: string
       }
       adSets: Array<{
         name: string
