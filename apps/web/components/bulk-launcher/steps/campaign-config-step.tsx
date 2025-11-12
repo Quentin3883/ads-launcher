@@ -418,6 +418,21 @@ export function CampaignConfigStep() {
               </p>
             </div>
           )}
+
+          {/* Facebook url_tags (UTM parameters) */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Facebook UTM Parameters (url_tags)</label>
+            <input
+              type="text"
+              value={campaign.urlTags || ''}
+              onChange={(e) => updateCampaign({ urlTags: e.target.value })}
+              placeholder="utm_source=facebook&utm_medium=cpc&utm_campaign=summer"
+              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              UTM parameters for Facebook ad creatives (separate from dynamic URL params above)
+            </p>
+          </div>
         </div>
       )}
 

@@ -131,6 +131,7 @@ export const campaignConfigSchema = z.object({
   endDate: z.string().optional(),
   endTime: z.string().optional(), // HH:MM format (only used when endDate is set)
   urlParamsOverride: z.string().optional(),
+  urlTags: z.string().optional(), // UTM parameters for Facebook ad creative (url_tags field)
 
   // Facebook API v24 Advanced Fields
   optimizationGoal: z.string().optional(), // Ex: 'LINK_CLICKS', 'REACH', 'OFFSITE_CONVERSIONS'
