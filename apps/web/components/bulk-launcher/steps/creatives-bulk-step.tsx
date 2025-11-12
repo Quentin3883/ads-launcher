@@ -526,7 +526,7 @@ export function CreativesBulkStep() {
                       <span>Optional Copy (overrides copy variants)</span>
                       <div className="flex items-center gap-1 text-blue-600">
                         <Sparkles className="h-3 w-3" />
-                        <span>Supports {{`{{city}}`}}, {{`{{label}}`}}, {{`{{country}}`}}</span>
+                        <span>Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -597,7 +597,7 @@ export function CreativesBulkStep() {
         subtitle={
           <div className="flex items-center gap-1 text-blue-600">
             <Sparkles className="h-3 w-3" />
-            <span className="text-xs">Supports {{`{{city}}`}}, {{`{{label}}`}}, {{`{{country}}`}}</span>
+            <span className="text-xs">Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
           </div>
         }
         headerAction={
