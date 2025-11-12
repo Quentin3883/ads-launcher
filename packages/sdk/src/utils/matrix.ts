@@ -12,6 +12,8 @@ import type {
 } from '../schemas/bulk-launcher.schema'
 import { PLACEMENT_PRESETS } from '../schemas/bulk-launcher.schema'
 import { generateId } from '../schemas/bulk-launcher.schema'
+import { replaceDynamicParams } from './dynamic-params'
+import type { DynamicParams } from './dynamic-params'
 
 /**
  * Generate ad sets from matrix configuration
@@ -91,6 +93,15 @@ export function generateAdSetsFromMatrix(
             // Must have at least one URL (Feed or Story)
             if (!feedUrl && !storyUrl) continue
 
+            // Build dynamic params for this ad
+            const dynamicParams: DynamicParams = {
+              label: creative.label,
+              audience: audience.name,
+              placement: placementPreset,
+              // Note: city and country would need to come from geo_locations
+              // For now, we'll leave them undefined
+            }
+
             // Get copy for this creative
             const copy = creatives.sameCopyForAll
               ? {
@@ -120,7 +131,8 @@ export function generateAdSetsFromMatrix(
                 feedUrl,
                 storyUrl,
                 creativeCopy,
-                campaign
+                campaign,
+                dynamicParams
               )
               ads.push(ad)
             } else if (activeCopyVariants.length > 0) {
@@ -132,7 +144,8 @@ export function generateAdSetsFromMatrix(
                   feedUrl,
                   storyUrl,
                   variant,
-                  campaign
+                  campaign,
+                  dynamicParams
                 )
                 ads.push(ad)
               }
@@ -144,7 +157,8 @@ export function generateAdSetsFromMatrix(
                 feedUrl,
                 storyUrl,
                 copy,
-                campaign
+                campaign,
+                dynamicParams
               )
               ads.push(ad)
             }
@@ -190,9 +204,19 @@ function createAd(
   feedUrl: string,
   storyUrl: string,
   copy: { headline: string; primaryText: string; cta: string },
-  campaign: CampaignConfig
+  campaign: CampaignConfig,
+  dynamicParams?: DynamicParams
 ): GeneratedAd {
   const adId = generateId()
+
+  // Apply dynamic parameter replacement if params are provided
+  const finalHeadline = dynamicParams
+    ? replaceDynamicParams(copy.headline, dynamicParams)
+    : copy.headline
+
+  const finalPrimaryText = dynamicParams
+    ? replaceDynamicParams(copy.primaryText, dynamicParams)
+    : copy.primaryText
 
   // Build final URL with parameters
   const baseUrl = campaign.redirectionUrl || ''
@@ -202,13 +226,13 @@ function createAd(
   return {
     id: adId,
     adSetId,
-    name: `${creative.name} - ${copy.headline}`,
+    name: `${creative.name} - ${finalHeadline}`,
     format: creative.format,
     label: creative.label,
     creativeUrl: feedUrl || storyUrl, // Use Feed if available, otherwise Story
     creativeUrlStory: storyUrl || undefined,
-    headline: copy.headline,
-    primaryText: copy.primaryText,
+    headline: finalHeadline,
+    primaryText: finalPrimaryText,
     cta: copy.cta,
     destination: {
       type: campaign.redirectionType,

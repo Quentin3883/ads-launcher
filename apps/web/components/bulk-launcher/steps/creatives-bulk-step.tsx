@@ -2,9 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
-import { CTA_OPTIONS, generateId } from '@launcher-ads/sdk'
+import { CTA_OPTIONS, generateId, hasDynamicParams, getPreviewText } from '@launcher-ads/sdk'
 import type { Creative, CreativeVersion, CreativeLabel } from '@launcher-ads/sdk'
-import { Upload, Trash2, Plus, X, Monitor, Smartphone, Lock, Library, ChevronDown } from 'lucide-react'
+import { Upload, Trash2, Plus, X, Monitor, Smartphone, Lock, Library, ChevronDown, Sparkles } from 'lucide-react'
 import { FormField } from '@/components/ui/form-field'
 import { FormSelect } from '@/components/ui/form-select'
 import { SectionCard } from '@/components/ui/section-card'
@@ -522,18 +522,30 @@ export function CreativesBulkStep() {
                 {/* Expandable Copy Fields */}
                 {expandedCreativeId === creative.id && (
                   <div className="mt-2 pt-2 border-t border-border space-y-2">
-                    <div className="text-[10px] font-medium text-muted-foreground mb-1.5">
-                      Optional Copy (overrides copy variants)
+                    <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground mb-1.5">
+                      <span>Optional Copy (overrides copy variants)</span>
+                      <div className="flex items-center gap-1 text-blue-600">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Supports {{`{{city}}`}}, {{`{{label}}`}}, {{`{{country}}`}}</span>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        label="Headline"
-                        maxLength={255}
-                        value={creative.headline || ''}
-                        onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
-                        placeholder="Optional headline..."
-                        className="text-xs"
-                      />
+                      <div>
+                        <FormField
+                          label="Headline"
+                          maxLength={255}
+                          value={creative.headline || ''}
+                          onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
+                          placeholder="Optional headline..."
+                          className="text-xs"
+                        />
+                        {creative.headline && hasDynamicParams(creative.headline) && (
+                          <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                            <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline)}</p>
+                          </div>
+                        )}
+                      </div>
                       <FormSelect
                         label="CTA"
                         value={creative.cta || ''}
@@ -545,16 +557,24 @@ export function CreativesBulkStep() {
                         className="text-xs"
                       />
                     </div>
-                    <FormField
-                      label="Primary Text"
-                      maxLength={2000}
-                      value={creative.primaryText || ''}
-                      onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
-                      placeholder="Optional primary text..."
-                      multiline
-                      rows={2}
-                      className="text-xs"
-                    />
+                    <div>
+                      <FormField
+                        label="Primary Text"
+                        maxLength={2000}
+                        value={creative.primaryText || ''}
+                        onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
+                        placeholder="Optional primary text..."
+                        multiline
+                        rows={2}
+                        className="text-xs"
+                      />
+                      {creative.primaryText && hasDynamicParams(creative.primaryText) && (
+                        <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                          <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText)}</p>
+                        </div>
+                      )}
+                    </div>
                     <FormField
                       label="Description"
                       maxLength={255}
@@ -574,6 +594,12 @@ export function CreativesBulkStep() {
       {/* Copy Section */}
       <SectionCard
         title="Ad Copy"
+        subtitle={
+          <div className="flex items-center gap-1 text-blue-600">
+            <Sparkles className="h-3 w-3" />
+            <span className="text-xs">Supports {{`{{city}}`}}, {{`{{label}}`}}, {{`{{country}}`}}</span>
+          </div>
+        }
         headerAction={
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -588,27 +614,45 @@ export function CreativesBulkStep() {
         className="p-3"
       >
         {bulkCreatives.sameCopyForAll ? (
-          <div className="grid grid-cols-3 gap-3">
-            <FormField
-              label="Headline"
-              maxLength={40}
-              value={bulkCreatives.globalHeadline || ''}
-              onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
-              placeholder="Your headline"
-            />
-            <FormField
-              label="Primary Text"
-              maxLength={125}
-              value={bulkCreatives.globalPrimaryText || ''}
-              onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
-              placeholder="Your message"
-            />
-            <FormSelect
-              label="CTA"
-              value={bulkCreatives.globalCTA || 'Learn More'}
-              onChange={(val) => updateBulkCreatives({ globalCTA: val })}
-              options={CTA_OPTIONS}
-            />
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <FormField
+                  label="Headline"
+                  maxLength={40}
+                  value={bulkCreatives.globalHeadline || ''}
+                  onChange={(val) => updateBulkCreatives({ globalHeadline: val })}
+                  placeholder="Your headline"
+                />
+                {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
+                  <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                    <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                    <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalHeadline)}</p>
+                  </div>
+                )}
+              </div>
+              <div>
+                <FormField
+                  label="Primary Text"
+                  maxLength={125}
+                  value={bulkCreatives.globalPrimaryText || ''}
+                  onChange={(val) => updateBulkCreatives({ globalPrimaryText: val })}
+                  placeholder="Your message"
+                />
+                {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
+                  <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                    <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
+                    <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
+                  </div>
+                )}
+              </div>
+              <FormSelect
+                label="CTA"
+                value={bulkCreatives.globalCTA || 'Learn More'}
+                onChange={(val) => updateBulkCreatives({ globalCTA: val })}
+                options={CTA_OPTIONS}
+              />
+            </div>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Individual copy editing per creative coming soon...</p>
