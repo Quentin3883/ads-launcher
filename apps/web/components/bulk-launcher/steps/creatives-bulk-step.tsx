@@ -677,22 +677,24 @@ export function CreativesBulkStep() {
               options={CTA_OPTIONS}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              // Apply global copy to all creatives (override any existing specific wording)
-              bulkCreatives.creatives.forEach((creative) => {
-                updateCreative(creative.id, {
-                  headline: bulkCreatives.globalHeadline,
-                  primaryText: bulkCreatives.globalPrimaryText,
-                  cta: bulkCreatives.globalCTA,
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                // Apply global copy to all creatives (override any existing specific wording)
+                bulkCreatives.creatives.forEach((creative) => {
+                  updateCreative(creative.id, {
+                    headline: bulkCreatives.globalHeadline,
+                    primaryText: bulkCreatives.globalPrimaryText,
+                    cta: bulkCreatives.globalCTA,
+                  })
                 })
-              })
-            }}
-            className="w-full px-4 py-2 rounded-lg border-2 border-primary bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
-          >
-            Apply to All Creatives
-          </button>
+              }}
+              className="px-3 py-1.5 rounded-md bg-foreground text-background text-xs font-medium hover:bg-foreground/90 active:scale-95 transition-all shadow-sm"
+            >
+              Apply to All
+            </button>
+          </div>
         </div>
       </SectionCard>
 
