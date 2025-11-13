@@ -552,4 +552,33 @@ export const facebookCampaignsRouter = (
           adAccount.facebookId,
         )
       }),
+
+    /**
+     * Get Pixels for an Ad Account
+     * Retrieves all Facebook Pixels associated with an ad account
+     */
+    getAdAccountPixels: publicProcedure
+      .input(
+        z.object({
+          adAccountId: z.string().uuid(),
+        }),
+      )
+      .query(async ({ input }) => {
+        // Get ad account with token
+        const adAccount = await prisma.facebookAdAccount.findUnique({
+          where: { id: input.adAccountId },
+          include: {
+            token: true,
+          },
+        })
+
+        if (!adAccount) {
+          throw new Error('Ad account not found')
+        }
+
+        return await facebookService.getAdAccountPixels(
+          adAccount.token.accessToken,
+          adAccount.facebookId,
+        )
+      }),
   })

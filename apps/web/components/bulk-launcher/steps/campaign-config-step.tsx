@@ -36,6 +36,12 @@ export function CampaignConfigStep() {
     { enabled: !!adAccountId && !!facebookPageId && campaign.redirectionType === 'LEAD_FORM' }
   )
 
+  // Fetch Facebook Pixels for the ad account
+  const { data: facebookPixels, isLoading: isLoadingPixels } = trpc.facebookCampaigns.getAdAccountPixels.useQuery(
+    { adAccountId: adAccountId! },
+    { enabled: !!adAccountId && campaign.type !== 'Leads' }
+  )
+
   // Auto-detect Instagram account from selected Facebook Page
   const selectedPage = facebookPages?.find((page: any) => page.id === facebookPageId)
   const connectedInstagramId = selectedPage?.connected_instagram_account?.id
@@ -278,15 +284,31 @@ export function CampaignConfigStep() {
           <div className="flex items-start gap-3">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium text-foreground">Facebook Pixel (optionnel)</label>
-              <input
-                type="text"
-                value={facebookPixelId || ''}
-                onChange={(e) => setFacebookPixelId(e.target.value)}
-                placeholder="ID du pixel Facebook (ex: 1234567890123456)"
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
+              {isLoadingPixels ? (
+                <div className="w-full px-4 py-2.5 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Chargement des pixels...
+                </div>
+              ) : facebookPixels && facebookPixels.length > 0 ? (
+                <select
+                  value={facebookPixelId || ''}
+                  onChange={(e) => setFacebookPixelId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">Aucun pixel</option>
+                  {facebookPixels.map((pixel: any) => (
+                    <option key={pixel.id} value={pixel.id}>
+                      {pixel.name} (ID: {pixel.id})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full px-4 py-2.5 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground">
+                  Aucun pixel disponible pour ce compte
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Ajouter un pixel pour tracker les conversions et optimiser vos campagnes
+                Sélectionner un pixel pour tracker les conversions et optimiser vos campagnes
               </p>
             </div>
           </div>

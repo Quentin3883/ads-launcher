@@ -2894,4 +2894,26 @@ export class FacebookService {
       return []
     }
   }
+
+  /**
+   * Get Pixels for an Ad Account
+   * Returns list of Facebook Pixels associated with the ad account
+   */
+  async getAdAccountPixels(accessToken: string, adAccountId: string) {
+    try {
+      const response = await this.apiClient.get<{ data: any[] }>(
+        `${adAccountId}/adspixels`,
+        accessToken,
+        {
+          fields: 'id,name',
+        },
+        'Fetch ad account pixels',
+      )
+
+      return response.data || []
+    } catch (error) {
+      this.logger.error(`Failed to fetch ad account pixels: ${error.message}`)
+      return []
+    }
+  }
 }
