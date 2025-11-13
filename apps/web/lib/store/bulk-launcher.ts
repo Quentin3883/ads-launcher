@@ -120,6 +120,10 @@ export interface BulkLauncherState {
   instagramAccountId: string | null
   setInstagramAccountId: (instagramAccountId: string | null) => void
 
+  // Facebook Pixel selection
+  facebookPixelId: string | null
+  setFacebookPixelId: (pixelId: string | null) => void
+
   // Express Mode - Simple fields
   campaignObjective: string | null
   setCampaignObjective: (objective: string | null) => void
@@ -318,6 +322,10 @@ export const useBulkLauncher = create<BulkLauncherState>((set, get) => ({
   // Instagram Account
   instagramAccountId: null,
   setInstagramAccountId: (instagramAccountId) => set({ instagramAccountId }),
+
+  // Facebook Pixel
+  facebookPixelId: null,
+  setFacebookPixelId: (pixelId) => set({ facebookPixelId: pixelId }),
 
   // Express Mode
   campaignObjective: null,

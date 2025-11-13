@@ -13,7 +13,7 @@ import { CampaignProgressModal } from '../campaign-progress-modal'
 
 export function MatrixGenerationStep() {
   const store = useBulkLauncher()
-  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId, progressSteps, showProgress, setShowProgress, setLaunchCallback } = store
+  const { matrixConfig, toggleDimension, getMatrixStats, generateCampaign, generatedAdSets, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId, facebookPixelId, progressSteps, showProgress, setShowProgress, setLaunchCallback } = store
   const { selectedClientId, getSelectedClient } = useClientsStore()
   const { launchCampaign, isLaunching, error: launchError } = useLaunchCampaign()
   const [showDryRun, setShowDryRun] = useState(false)
@@ -45,8 +45,6 @@ export function MatrixGenerationStep() {
       setInstagramAccountId(connectedInstagramId)
     }
   }, [connectedInstagramId, instagramAccountId, setInstagramAccountId])
-
-  const [facebookPixelId] = useState('') // Optional
 
   const stats = useMemo(() => getMatrixStats(), [getMatrixStats])
   const isOverLimit = stats.totalAds > matrixConfig.softLimit

@@ -19,7 +19,7 @@ const CAMPAIGN_TYPES: SelectOption[] = [
 ]
 
 export function CampaignConfigStep() {
-  const { campaign, updateCampaign, bulkAudiences, getMatrixStats, adAccountId, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId } = useBulkLauncher()
+  const { campaign, updateCampaign, bulkAudiences, getMatrixStats, adAccountId, facebookPageId, setFacebookPageId, instagramAccountId, setInstagramAccountId, facebookPixelId, setFacebookPixelId } = useBulkLauncher()
   const stats = getMatrixStats()
   const [showUrlParamsModal, setShowUrlParamsModal] = useState(false)
   const [showPageDropdown, setShowPageDropdown] = useState(false)
@@ -271,6 +271,27 @@ export function CampaignConfigStep() {
           )}
         </div>
       </div>
+
+      {/* Facebook Pixel - Only for non-Lead campaigns */}
+      {campaign.type !== 'Leads' && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium text-foreground">Facebook Pixel (optionnel)</label>
+              <input
+                type="text"
+                value={facebookPixelId || ''}
+                onChange={(e) => setFacebookPixelId(e.target.value)}
+                placeholder="ID du pixel Facebook (ex: 1234567890123456)"
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ajouter un pixel pour tracker les conversions et optimiser vos campagnes
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Campaign Strategy */}
       <div className="rounded-lg border border-border bg-card p-6 space-y-6">
