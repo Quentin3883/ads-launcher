@@ -2867,8 +2867,8 @@ export class FacebookService {
 
       // Convert to array and sort
       return Array.from(eventNames).sort()
-    } catch (error) {
-      this.logger.error(`Failed to fetch pixel events: ${error.message}`)
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch pixel events: ${error?.message || error}`)
       return []
     }
   }
@@ -2889,8 +2889,8 @@ export class FacebookService {
       )
 
       return response.data || []
-    } catch (error) {
-      this.logger.error(`Failed to fetch custom conversions: ${error.message}`)
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch custom conversions: ${error?.message || error}`)
       return []
     }
   }
@@ -2911,8 +2911,8 @@ export class FacebookService {
       )
 
       return response.data || []
-    } catch (error) {
-      this.logger.error(`Failed to fetch ad account pixels: ${error.message}`)
+    } catch (error: any) {
+      this.logger.error(`Failed to fetch ad account pixels: ${error?.message || error}`)
       return []
     }
   }
