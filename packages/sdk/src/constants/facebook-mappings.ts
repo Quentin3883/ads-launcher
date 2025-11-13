@@ -47,3 +47,16 @@ export const OPTIMIZATION_GOAL_MAP: Record<string, string> = {
   OUTCOME_SALES: 'OFFSITE_CONVERSIONS',
   OUTCOME_APP_PROMOTION: 'APP_INSTALLS',
 } as const
+
+/**
+ * Optimization Events by Campaign Type
+ * Maps campaign types to their available optimization events
+ */
+export const CAMPAIGN_TYPE_OPTIMIZATION_EVENTS: Record<string, string[]> = {
+  Awareness: ['Reach', 'Impressions'],
+  Traffic: ['Link Clicks', 'Landing Page Views', 'Impressions'],
+  Engagement: ['Post Engagement', 'Video Views', 'ThruPlay'],
+  Leads: ['Leads', 'Conversions'],
+  AppPromotion: ['Conversions'],
+  Sales: ['Conversions', 'Link Clicks', 'Landing Page Views'],
+} as const

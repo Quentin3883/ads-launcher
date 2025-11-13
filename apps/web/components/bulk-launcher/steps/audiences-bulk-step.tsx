@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import {
   LANGUAGES,
   OPTIMIZATION_EVENTS,
   PLACEMENT_PRESETS,
+  CAMPAIGN_TYPE_OPTIMIZATION_EVENTS,
   generateId,
   type AudiencePreset,
   type AudiencePresetType,
@@ -61,6 +62,21 @@ export function AudiencesBulkStep() {
 
   const isABO = campaign.budgetMode === 'ABO'
   const stats = getMatrixStats()
+
+  // Filter optimization events based on campaign type
+  const availableOptimizationEvents = useMemo(() => {
+    const campaignType = campaign.type || 'Traffic'
+    return CAMPAIGN_TYPE_OPTIMIZATION_EVENTS[campaignType] || OPTIMIZATION_EVENTS
+  }, [campaign.type])
+
+  // Auto-reset optimization event if current selection is not available for the new campaign type
+  useEffect(() => {
+    const currentEvent = bulkAudiences.optimizationEvent
+    if (currentEvent && !availableOptimizationEvents.includes(currentEvent)) {
+      // Set to first available option for this campaign type
+      updateBulkAudiences({ optimizationEvent: availableOptimizationEvents[0] })
+    }
+  }, [campaign.type, availableOptimizationEvents, bulkAudiences.optimizationEvent, updateBulkAudiences])
 
   const handleAddAudience = useCallback(() => {
     let audience: AudiencePreset | null = null
@@ -636,7 +652,7 @@ export function AudiencesBulkStep() {
             label="Optimization Event *"
             value={bulkAudiences.optimizationEvent}
             onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
-            options={OPTIMIZATION_EVENTS.map((event) => ({
+            options={availableOptimizationEvents.map((event) => ({
               value: event,
               label: event.replace(/_/g, ' '),
             }))}

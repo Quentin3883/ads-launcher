@@ -114,9 +114,9 @@ function LaunchRow({ launch, onEdit }: { launch: Launch; onEdit?: (launch: Launc
       {/* Formats */}
       <div className="mt-4 flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Formats:</span>
-        {launch.formats.map((format) => (
+        {launch.formats.map((format, index) => (
           <span
-            key={format}
+            key={`${format}-${index}`}
             className="inline-flex items-center rounded-md bg-primary/5 px-2 py-1 text-xs font-medium text-primary"
           >
             {format}
