@@ -168,6 +168,10 @@ export const bulkAudiencesConfigSchema = z.object({
   optimizationEvent: z.string(),
   budgetPerAdSet: z.number().positive().optional(),
   budgetType: budgetTypeSchema.optional(),
+  // Facebook Pixel conversion tracking
+  customEventType: z.string().optional(), // 'LEAD', 'OTHER', etc.
+  customEventStr: z.string().optional(), // Custom event name (for type OTHER)
+  customConversionId: z.string().optional(), // ID of a custom conversion
 })
 
 export type BulkAudiencesConfig = z.infer<typeof bulkAudiencesConfigSchema>

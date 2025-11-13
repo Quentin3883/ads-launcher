@@ -490,4 +490,63 @@ export const facebookCampaignsRouter = (
 
       return convention
     }),
+
+    /**
+     * Get Pixel Events
+     * Retrieves all events tracked by a Facebook Pixel
+     */
+    getPixelEvents: publicProcedure
+      .input(
+        z.object({
+          adAccountId: z.string().uuid(),
+          pixelId: z.string(),
+        }),
+      )
+      .query(async ({ input }) => {
+        // Get ad account with token
+        const adAccount = await prisma.facebookAdAccount.findUnique({
+          where: { id: input.adAccountId },
+          include: {
+            token: true,
+          },
+        })
+
+        if (!adAccount) {
+          throw new Error('Ad account not found')
+        }
+
+        return await facebookService.getPixelEvents(
+          adAccount.token.accessToken,
+          input.pixelId,
+        )
+      }),
+
+    /**
+     * Get Custom Conversions
+     * Retrieves custom conversions for an ad account
+     */
+    getCustomConversions: publicProcedure
+      .input(
+        z.object({
+          adAccountId: z.string().uuid(),
+        }),
+      )
+      .query(async ({ input }) => {
+        // Get ad account with token
+        const adAccount = await prisma.facebookAdAccount.findUnique({
+          where: { id: input.adAccountId },
+          include: {
+            token: true,
+          },
+        })
+
+        if (!adAccount) {
+          throw new Error('Ad account not found')
+        }
+
+        return await facebookService.getCustomConversions(
+          adAccount.token.accessToken,
+          adAccount.facebookId,
+        )
+      }),
   })

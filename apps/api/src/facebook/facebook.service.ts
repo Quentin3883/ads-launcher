@@ -2811,4 +2811,70 @@ export class FacebookService {
 
     return response.data || []
   }
+
+  /**
+   * Get Pixel Events (standard and custom events tracked by a pixel)
+   * Returns aggregated event names from pixel stats
+   */
+  async getPixelEvents(accessToken: string, pixelId: string) {
+    try {
+      const response = await this.apiClient.get<{
+        stats: {
+          data: Array<{
+            start_time: string
+            aggregation: string
+            data: Array<{ value: string; count: number }>
+          }>
+        }
+      }>(
+        `${pixelId}`,
+        accessToken,
+        {
+          fields: 'stats',
+        },
+        'Fetch pixel events',
+      )
+
+      // Extract unique event names from stats
+      const eventNames = new Set<string>()
+
+      if (response.stats?.data) {
+        for (const timeSlot of response.stats.data) {
+          if (timeSlot.data) {
+            for (const event of timeSlot.data) {
+              eventNames.add(event.value)
+            }
+          }
+        }
+      }
+
+      // Convert to array and sort
+      return Array.from(eventNames).sort()
+    } catch (error) {
+      this.logger.error(`Failed to fetch pixel events: ${error.message}`)
+      return []
+    }
+  }
+
+  /**
+   * Get Custom Conversions for an Ad Account
+   * Returns list of custom conversions with their associated pixel
+   */
+  async getCustomConversions(accessToken: string, adAccountId: string) {
+    try {
+      const response = await this.apiClient.get<{ data: any[] }>(
+        `${adAccountId}/customconversions`,
+        accessToken,
+        {
+          fields: 'id,name,custom_event_type,pixel{id,name}',
+        },
+        'Fetch custom conversions',
+      )
+
+      return response.data || []
+    } catch (error) {
+      this.logger.error(`Failed to fetch custom conversions: ${error.message}`)
+      return []
+    }
+  }
 }
