@@ -47,7 +47,7 @@ export function useLaunchCampaign() {
 
   const launchCampaign = async (params: LaunchCampaignParams) => {
     const store = useBulkLauncher.getState()
-    const { campaign, adAccountId, setProgressSteps, updateProgressStep, setShowProgress } = store
+    const { campaign, bulkAudiences, adAccountId, setProgressSteps, updateProgressStep, setShowProgress } = store
 
     if (!adAccountId) {
       throw new Error('No ad account selected')
@@ -335,6 +335,9 @@ export function useLaunchCampaign() {
       facebookPageId: params.facebookPageId,
       facebookPixelId: params.facebookPixelId,
       instagramAccountId: params.instagramAccountId,
+      customEventType: bulkAudiences.customEventType,
+      customEventStr: bulkAudiences.customEventStr,
+      customConversionId: bulkAudiences.customConversionId,
       campaign: {
         name: campaign.name || 'Untitled Campaign',
         type: campaign.type || 'Traffic',

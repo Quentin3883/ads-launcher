@@ -1716,6 +1716,9 @@ export class FacebookService {
       facebookPageId: string
       facebookPixelId?: string
       instagramAccountId?: string
+      customEventType?: string
+      customEventStr?: string
+      customConversionId?: string
     },
   ) {
     try {
@@ -1928,7 +1931,21 @@ export class FacebookService {
           else if (launchData.facebookPixelId) {
             promotedObject = {
               pixel_id: launchData.facebookPixelId,
-              custom_event_type: adSetConfig.optimizationEvent,
+            }
+
+            // Add custom conversion if specified
+            if (launchData.customConversionId) {
+              promotedObject.custom_conversion_id = launchData.customConversionId
+            }
+
+            // Add custom event type and name
+            if (launchData.customEventType) {
+              promotedObject.custom_event_type = launchData.customEventType
+
+              // For OTHER type, we need the custom event string
+              if (launchData.customEventType === 'OTHER' && launchData.customEventStr) {
+                promotedObject.custom_event_str = launchData.customEventStr
+              }
             }
           }
 

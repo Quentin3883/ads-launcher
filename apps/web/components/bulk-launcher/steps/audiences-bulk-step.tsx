@@ -18,6 +18,7 @@ import { FormSelect } from '@/components/ui/form-select'
 import { SectionCard } from '@/components/ui/section-card'
 import { InterestAutocomplete } from '../components/interest-autocomplete'
 import { GeoLocationAutocomplete } from '../components/geo-location-autocomplete'
+import { trpc } from '@/lib/trpc'
 
 const AUDIENCE_PRESET_TYPES: { value: AudiencePresetType; label: string; description: string }[] = [
   { value: 'BROAD', label: 'Broad', description: 'Wide reach, no targeting' },
@@ -39,7 +40,7 @@ const PLACEMENT_PRESET_OPTIONS: { value: PlacementPreset; label: string; placeme
 const LAL_PERCENTAGES = [1, 2, 3, 5, 10]
 
 export function AudiencesBulkStep() {
-  const { campaign, bulkAudiences, updateBulkAudiences, addAudience, removeAudience, togglePlacementPreset, getMatrixStats } = useBulkLauncher()
+  const { campaign, bulkAudiences, updateBulkAudiences, addAudience, removeAudience, togglePlacementPreset, getMatrixStats, adAccountId, facebookPixelId } = useBulkLauncher()
   const [showBulkPaste, setShowBulkPaste] = useState(false)
   const [bulkPasteText, setBulkPasteText] = useState('')
   const [newAudienceType, setNewAudienceType] = useState<AudiencePresetType>('BROAD')
@@ -77,6 +78,17 @@ export function AudiencesBulkStep() {
       updateBulkAudiences({ optimizationEvent: availableOptimizationEvents[0] })
     }
   }, [campaign.type, availableOptimizationEvents, bulkAudiences.optimizationEvent, updateBulkAudiences])
+
+  // Fetch pixel events and custom conversions when pixel is configured
+  const { data: pixelEvents } = trpc.facebookCampaigns.getPixelEvents.useQuery(
+    { adAccountId: adAccountId!, pixelId: facebookPixelId! },
+    { enabled: !!adAccountId && !!facebookPixelId }
+  )
+
+  const { data: customConversions } = trpc.facebookCampaigns.getCustomConversions.useQuery(
+    { adAccountId: adAccountId! },
+    { enabled: !!adAccountId && !!facebookPixelId }
+  )
 
   const handleAddAudience = useCallback(() => {
     let audience: AudiencePreset | null = null
@@ -647,18 +659,19 @@ export function AudiencesBulkStep() {
 
       {/* Optimization & Budget */}
       <SectionCard title="Optimization & Budget">
-        <div className="grid grid-cols-2 gap-4">
-          <FormSelect
-            label="Optimization Event *"
-            value={bulkAudiences.optimizationEvent}
-            onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
-            options={availableOptimizationEvents.map((event) => ({
-              value: event,
-              label: event.replace(/_/g, ' '),
-            }))}
-          />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormSelect
+              label="Optimization Event *"
+              value={bulkAudiences.optimizationEvent}
+              onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
+              options={availableOptimizationEvents.map((event) => ({
+                value: event,
+                label: event.replace(/_/g, ' '),
+              }))}
+            />
 
-          {isABO && (
+            {isABO && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Budget per Ad Set (USD) *</label>
               <div className="flex gap-2">
@@ -683,12 +696,98 @@ export function AudiencesBulkStep() {
             </div>
           )}
 
-          {!isABO && (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
-              <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                Budget managed at campaign level (CBO)
-              </p>
+            {!isABO && (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Budget managed at campaign level (CBO)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Pixel Conversion Event - Only show when pixel is configured */}
+          {facebookPixelId && (pixelEvents || customConversions) && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Conversion Event (optionnel)
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Sélectionner un événement pixel ou une conversion personnalisée
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Pixel Events */}
+                {pixelEvents && pixelEvents.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      Événements Pixel
+                    </label>
+                    <select
+                      value={bulkAudiences.customEventStr || ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          updateBulkAudiences({
+                            customEventType: 'OTHER',
+                            customEventStr: e.target.value,
+                            customConversionId: undefined
+                          })
+                        } else {
+                          updateBulkAudiences({
+                            customEventType: undefined,
+                            customEventStr: undefined
+                          })
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Aucun</option>
+                      {pixelEvents.map((event) => (
+                        <option key={event} value={event}>
+                          {event}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Custom Conversions */}
+                {customConversions && customConversions.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      Custom Conversions
+                    </label>
+                    <select
+                      value={bulkAudiences.customConversionId || ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const conversion = customConversions.find((c: any) => c.id === e.target.value)
+                          updateBulkAudiences({
+                            customEventType: 'LEAD',
+                            customConversionId: e.target.value,
+                            customEventStr: conversion?.name
+                          })
+                        } else {
+                          updateBulkAudiences({
+                            customEventType: undefined,
+                            customConversionId: undefined
+                          })
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Aucune</option>
+                      {customConversions.map((conversion: any) => (
+                        <option key={conversion.id} value={conversion.id}>
+                          {conversion.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

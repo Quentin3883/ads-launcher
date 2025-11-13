@@ -24,6 +24,9 @@ export const facebookCampaignsRouter = (
           facebookPageId: z.string(),
           facebookPixelId: z.string().optional(),
           instagramAccountId: z.string().optional(),
+          customEventType: z.string().optional(), // 'LEAD', 'OTHER', etc.
+          customEventStr: z.string().optional(), // Custom event name
+          customConversionId: z.string().optional(), // Custom conversion ID
           campaign: z.object({
             name: z.string(),
             type: z.string(),
