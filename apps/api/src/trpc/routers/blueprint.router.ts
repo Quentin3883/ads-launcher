@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import { createBlueprintSchema, updateBlueprintSchema } from '@launcher-ads/sdk'
 import { PrismaService } from '../../prisma/prisma.service'
-import { _publicProcedure, _router } from '../trpc.router'
+import { publicProcedure, router } from '../trpc'
 
 export const blueprintRouter = (prisma: PrismaService) =>
-  _router({
-    list: _publicProcedure.query(async () => {
+  router({
+    list: publicProcedure.query(async () => {
       return await prisma.blueprint.findMany({
         orderBy: { createdAt: 'desc' },
       })
     }),
 
-    getById: _publicProcedure.input(z.string().uuid()).query(async ({ input }) => {
+    getById: publicProcedure.input(z.string().uuid()).query(async ({ input }) => {
       const blueprint = await prisma.blueprint.findUnique({
         where: { id: input },
         include: {
@@ -28,7 +28,7 @@ export const blueprintRouter = (prisma: PrismaService) =>
       return blueprint
     }),
 
-    create: _publicProcedure
+    create: publicProcedure
       .input(createBlueprintSchema)
       .mutation(async ({ input }) => {
         return await prisma.blueprint.create({
@@ -36,7 +36,7 @@ export const blueprintRouter = (prisma: PrismaService) =>
         })
       }),
 
-    update: _publicProcedure
+    update: publicProcedure
       .input(
         z.object({
           id: z.string().uuid(),
@@ -50,7 +50,7 @@ export const blueprintRouter = (prisma: PrismaService) =>
         })
       }),
 
-    delete: _publicProcedure
+    delete: publicProcedure
       .input(z.string().uuid())
       .mutation(async ({ input }) => {
         return await prisma.blueprint.delete({

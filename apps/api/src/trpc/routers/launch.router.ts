@@ -1,16 +1,16 @@
 import { z } from 'zod'
 import { PrismaService } from '../../prisma/prisma.service'
-import { _publicProcedure, _router } from '../trpc.router'
+import { publicProcedure, router } from '../trpc'
 import { ProviderFactory } from '../../providers'
 import { runLaunch } from '../../launches'
 import { Blueprint } from '@launcher-ads/sdk'
 
 export const launchRouter = (prisma: PrismaService) =>
-  _router({
+  router({
     /**
      * Lance un blueprint et crée les campagnes
      */
-    run: _publicProcedure
+    run: publicProcedure
       .input(
         z.object({
           blueprintId: z.string().uuid(),
@@ -65,7 +65,7 @@ export const launchRouter = (prisma: PrismaService) =>
     /**
      * Liste tous les launches
      */
-    list: _publicProcedure.query(async () => {
+    list: publicProcedure.query(async () => {
       return await prisma.launch.findMany({
         include: {
           blueprint: true,
@@ -77,7 +77,7 @@ export const launchRouter = (prisma: PrismaService) =>
     /**
      * Récupère un launch par ID
      */
-    getById: _publicProcedure
+    getById: publicProcedure
       .input(z.string().uuid())
       .query(async ({ input }) => {
         const launch = await prisma.launch.findUnique({

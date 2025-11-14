@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { PrismaService } from '../../prisma/prisma.service'
 import { FacebookService } from '../../facebook/facebook.service'
-import { _publicProcedure, _router } from '../trpc.router'
+import { publicProcedure, router } from '../trpc'
 
 /**
  * Facebook campaign launcher router
@@ -11,12 +11,12 @@ export const facebookCampaignsRouter = (
   prisma: PrismaService,
   facebookService: FacebookService,
 ) =>
-  _router({
+  router({
     /**
      * Launch a bulk campaign structure to Facebook
      * Takes data from the bulk launcher store and creates everything via Facebook API
      */
-    launchBulkCampaign: _publicProcedure
+    launchBulkCampaign: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -99,7 +99,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get launch history for a user
      */
-    getLaunchHistory: _publicProcedure
+    getLaunchHistory: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -165,7 +165,7 @@ export const facebookCampaignsRouter = (
     /**
      * Update campaign status (activate/pause)
      */
-    updateCampaignStatus: _publicProcedure
+    updateCampaignStatus: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -216,7 +216,7 @@ export const facebookCampaignsRouter = (
     /**
      * Search geo locations via Facebook Targeting API
      */
-    searchGeoLocations: _publicProcedure
+    searchGeoLocations: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -250,7 +250,7 @@ export const facebookCampaignsRouter = (
     /**
      * Search interests via Facebook Targeting API
      */
-    searchInterests: _publicProcedure
+    searchInterests: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -277,7 +277,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get interest suggestions
      */
-    getInterestSuggestions: _publicProcedure
+    getInterestSuggestions: publicProcedure
       .input(
         z.object({
           userId: z.string(),
@@ -302,7 +302,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get ad accounts for a client
      */
-    getClientAdAccounts: _publicProcedure
+    getClientAdAccounts: publicProcedure
       .input(
         z.object({
           clientId: z.string().uuid(),
@@ -325,7 +325,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get Facebook Pages for a user (via ad account token)
      */
-    getUserPages: _publicProcedure
+    getUserPages: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -353,7 +353,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get Lead Forms for a Facebook Page
      */
-    getLeadForms: _publicProcedure
+    getLeadForms: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -396,7 +396,7 @@ export const facebookCampaignsRouter = (
      * Upload a video file to Facebook (pre-upload before campaign launch)
      * This prevents JSON payload size issues when launching with multiple videos
      */
-    uploadVideo: _publicProcedure
+    uploadVideo: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -433,7 +433,7 @@ export const facebookCampaignsRouter = (
      * Upload an image file to Facebook (pre-upload before campaign launch)
      * This prevents JSON payload size issues when launching with multiple large images
      */
-    uploadImage: _publicProcedure
+    uploadImage: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -469,7 +469,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get all naming conventions
      */
-    getNamingConventions: _publicProcedure.query(async () => {
+    getNamingConventions: publicProcedure.query(async () => {
       const conventions = await prisma.namingConvention.findMany({
         where: {
           isActive: true,
@@ -483,7 +483,7 @@ export const facebookCampaignsRouter = (
     /**
      * Get default naming convention
      */
-    getDefaultNamingConvention: _publicProcedure.query(async () => {
+    getDefaultNamingConvention: publicProcedure.query(async () => {
       const convention = await prisma.namingConvention.findFirst({
         where: {
           isDefault: true,
@@ -498,7 +498,7 @@ export const facebookCampaignsRouter = (
      * Get Pixel Events
      * Retrieves all events tracked by a Facebook Pixel
      */
-    getPixelEvents: _publicProcedure
+    getPixelEvents: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -528,7 +528,7 @@ export const facebookCampaignsRouter = (
      * Get Custom Conversions
      * Retrieves custom conversions for an ad account
      */
-    getCustomConversions: _publicProcedure
+    getCustomConversions: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
@@ -557,7 +557,7 @@ export const facebookCampaignsRouter = (
      * Get Pixels for an Ad Account
      * Retrieves all Facebook Pixels associated with an ad account
      */
-    getAdAccountPixels: _publicProcedure
+    getAdAccountPixels: publicProcedure
       .input(
         z.object({
           adAccountId: z.string().uuid(),
