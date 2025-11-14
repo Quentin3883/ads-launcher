@@ -21,7 +21,15 @@ import {
 import { cn } from '@launcher-ads/ui'
 import { useClientsStore } from '@/lib/store/clients'
 
-const mainNavigation = [
+type NavigationItem = {
+  name: string
+  href: string
+  icon: any
+  disabled?: boolean
+  submenu?: NavigationItem[]
+}
+
+const mainNavigation: NavigationItem[] = [
   { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Launches', href: '/launches', icon: Rocket },
   { name: 'Strategies', href: '/strategies', icon: Target },
@@ -37,7 +45,7 @@ const mainNavigation = [
   },
 ]
 
-const otherNavigation = [
+const otherNavigation: NavigationItem[] = [
   { name: 'Debug Console', href: '/debug', icon: Terminal },
 ]
 
@@ -126,7 +134,7 @@ export function Sidebar() {
                       </button>
 
                       {/* Submenu */}
-                      {isSettingsOpen && (
+                      {isSettingsOpen && item.submenu && (
                         <ul className="mt-1 ml-6 space-y-0.5 border-l border-white/10 pl-3">
                           {item.submenu.map((subitem) => {
                             const SubIcon = subitem.icon

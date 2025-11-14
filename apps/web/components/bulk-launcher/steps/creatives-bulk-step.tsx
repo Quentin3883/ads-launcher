@@ -732,7 +732,8 @@ export function CreativesBulkStep() {
       {/* Copy Variants */}
       <FormSection
         title="Copy Variants"
-        badge={
+        badge={bulkCreatives.enableVariants ? 'Enabled' : undefined}
+        headerContent={
           <label className={ds.cn('flex items-center cursor-pointer', ds.spacing.gap.sm)}>
             <input
               type="checkbox"

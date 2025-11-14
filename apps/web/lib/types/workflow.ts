@@ -59,4 +59,5 @@ export interface CampaignNodeData {
   multiplier: number  // Ex: "2 campaigns" même sans dimensions
   audiences: AudienceConfig[]  // Audience configuration
   onDelete?: (nodeId: string) => void  // Callback for node deletion
+  onSelect?: (nodeId: string) => void  // Callback for node selection
 }

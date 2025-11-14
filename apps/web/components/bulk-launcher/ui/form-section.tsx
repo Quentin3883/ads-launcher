@@ -20,6 +20,7 @@ export interface FormSectionProps {
   className?: string
   contentClassName?: string
   variant?: 'default' | 'compact' | 'card'
+  headerContent?: ReactNode
 }
 
 const badgeColorClasses = {
@@ -45,6 +46,7 @@ export function FormSection({
   className = '',
   contentClassName = '',
   variant = 'default',
+  headerContent,
 }: FormSectionProps) {
   const isControlled = controlledExpanded !== undefined
   const isExpanded = isControlled ? controlledExpanded : defaultExpanded
@@ -64,7 +66,7 @@ export function FormSection({
   return (
     <div className={`${variantClasses[variant]} ${className}`}>
       {/* Header */}
-      {(title || description || hint) && (
+      {(title || description || hint || headerContent) && (
         <div className="space-y-2">
           {title && (
             <div className="flex items-center gap-2">
@@ -84,6 +86,7 @@ export function FormSection({
                   {badge}
                 </span>
               )}
+              {headerContent && <div className="ml-auto">{headerContent}</div>}
               {collapsible && (
                 <Button variant="ghost"
                   type="button"

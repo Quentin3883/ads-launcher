@@ -47,7 +47,7 @@ export function StyledSelect({
   const [isOpen, setIsOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
-  const selectRef = useRef<HTMLDivElement>(null)
+  const selectRef = useRef<HTMLButtonElement>(null)
 
   const selectedOption = options.find((opt) => opt.value === value)
 

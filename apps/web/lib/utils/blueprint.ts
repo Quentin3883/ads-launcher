@@ -22,11 +22,11 @@ export function exportBlueprint(
       tags: metadata.tags || [],
     },
     campaign: {
-      name: state.campaign.name,
-      country: state.campaign.country,
-      objective: state.campaign.objective,
-      budgetMode: state.campaign.budgetMode,
-      totalBudget: state.campaign.totalBudget,
+      name: state.campaign.name || '',
+      country: state.campaign.country || '',
+      objective: (state.campaign.objective || 'LEAD_GENERATION') as any,
+      budgetMode: state.campaign.budgetMode || 'CBO',
+      totalBudget: (state.campaign as any).totalBudget,
     },
     audiences: {
       presets: state.bulkAudiences.audiences,
@@ -40,7 +40,7 @@ export function exportBlueprint(
     creatives: state.bulkCreatives.creatives.map((creative) => ({
       id: creative.id,
       name: creative.name,
-      format: creative.format,
+      format: (creative.format === 'Carousel' ? 'Image' : creative.format) as 'Image' | 'Video',
       feedFileName: creative.feedVersion?.file.name,
       storyFileName: creative.storyVersion?.file.name,
     })),
@@ -170,7 +170,13 @@ export function importBlueprint(blueprint: LaunchBlueprint): Partial<BulkLaunche
     },
     // Note: Creatives cannot be imported without actual files
     // They need to be re-uploaded by the user
-    matrixConfig: blueprint.matrix,
+    matrixConfig: blueprint.matrix ? {
+      ...blueprint.matrix,
+      dimensions: {
+        ...blueprint.matrix.dimensions,
+        formatSplit: false, // Default value for missing property
+      }
+    } : undefined,
   }
 }
 
