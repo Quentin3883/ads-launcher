@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Facebook, CheckCircle, AlertCircle, RefreshCw, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
@@ -34,7 +34,7 @@ interface AvailableAccount {
   isSelected: boolean
 }
 
-export default function IntegrationsPage() {
+function IntegrationsContent() {
   const searchParams = useSearchParams()
   const [isConnected, setIsConnected] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -942,5 +942,19 @@ export default function IntegrationsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </div>
+    }>
+      <IntegrationsContent />
+    </Suspense>
   )
 }

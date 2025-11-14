@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Settings as SettingsIcon, Users, Plug, FileText } from 'lucide-react'
 import { cn } from '@launcher-ads/ui'
@@ -25,7 +25,7 @@ const tabs: Tab[] = [
   { id: 'naming', label: 'Naming Conventions', icon: FileText },
 ]
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabId | null
   const [activeTab, setActiveTab] = useState<TabId>(tabParam || 'clients')
@@ -90,5 +90,17 @@ export default function SettingsPage() {
         {activeTab === 'naming' && <NamingSettings />}
       </div>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center">
+        <SettingsIcon className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   )
 }

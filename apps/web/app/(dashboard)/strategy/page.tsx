@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useRef, useMemo, useEffect } from 'react'
+import { useCallback, useState, useRef, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PlatformSidebar } from '@/components/strategy-workflow/platform-sidebar'
 import { NodeConfigPanel } from '@/components/strategy-workflow/node-config-panel'
@@ -19,7 +19,7 @@ type Node = {
   data: any
 }
 
-export default function StrategyWorkflowPage() {
+function StrategyWorkflowContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -680,5 +680,17 @@ export default function StrategyWorkflowPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function StrategyWorkflowPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center">
+        <Workflow className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <StrategyWorkflowContent />
+    </Suspense>
   )
 }
