@@ -11,6 +11,8 @@ import {
   readBlueprintFile,
 } from '@/lib/utils/blueprint'
 import type { LaunchBlueprint } from '@/lib/types/blueprint'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function BlueprintActions() {
   const store = useBulkLauncher()
@@ -75,27 +77,31 @@ export function BlueprintActions() {
   return (
     <div className="flex items-center gap-2">
       {/* Export Button */}
-      <button
+      <Button
         onClick={handleExport}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
         title="Export as Blueprint JSON"
       >
         <Download className="h-4 w-4" />
         <span className="hidden sm:inline">Export</span>
-      </button>
+      </Button>
 
       {/* Import Button */}
-      <button
+      <Button
         onClick={handleImportClick}
         disabled={importing}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
         title="Import Blueprint JSON"
       >
         <Upload className="h-4 w-4" />
         <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import'}</span>
-      </button>
+      </Button>
 
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept=".json"

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import type { AudiencePresetType } from '@launcher-ads/sdk'
 import { INTERESTS_OPTIONS } from '@launcher-ads/sdk'
-import { ToggleButtonGroup } from '@/components/ui/toggle-button-group'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { FormField } from '@/components/ui/form-field'
+import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
 const AUDIENCE_PRESET_TYPES: { value: AudiencePresetType; label: string; description: string }[] = [
@@ -64,43 +66,45 @@ export function AudiencePresetBuilder({ onAdd }: AudiencePresetBuilderProps) {
     <div className="space-y-5">
       {/* Audience Type Selector */}
       <div>
-        <label className="block text-sm font-medium text-foreground mb-2">Audience Type</label>
+        <Label>Audience Type</Label>
         <div className="grid grid-cols-4 gap-2">
           {AUDIENCE_PRESET_TYPES.map((type) => (
-            <button
+            <Button
               key={type.value}
               onClick={() => setNewAudienceType(type.value)}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                newAudienceType === type.value
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border bg-background hover:border-primary/50'
-              }`}
+              variant={newAudienceType === type.value ? 'default' : 'outline'}
+              className="p-3 h-auto flex-col items-start"
             >
-              <div
-                className={`font-medium text-sm ${
-                  newAudienceType === type.value ? 'text-primary' : 'text-foreground'
-                }`}
-              >
+              <div className="font-medium text-sm">
                 {type.label}
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">{type.description}</div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Conditional Fields */}
       {newAudienceType === 'INTEREST' && (
-        <ToggleButtonGroup
-          label="Select Interests"
-          items={INTERESTS_OPTIONS}
-          selectedItems={selectedInterests}
-          onToggle={(interest) =>
-            setSelectedInterests((prev) =>
-              prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-            )
-          }
-        />
+        <div className="space-y-2">
+          <Label>Select Interests</Label>
+          <div className="flex flex-wrap gap-2">
+            {INTERESTS_OPTIONS.map((interest) => (
+              <Badge
+                key={interest}
+                variant={selectedInterests.includes(interest) ? 'default' : 'outline'}
+                className="cursor-pointer"
+                onClick={() =>
+                  setSelectedInterests((prev) =>
+                    prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+                  )
+                }
+              >
+                {interest}
+              </Badge>
+            ))}
+          </div>
+        </div>
       )}
 
       {newAudienceType === 'LOOKALIKE' && (
@@ -111,17 +115,25 @@ export function AudiencePresetBuilder({ onAdd }: AudiencePresetBuilderProps) {
             onChange={setLalSource}
             placeholder="e.g., Website Visitors 30D"
           />
-          <ToggleButtonGroup
-            label="LAL %"
-            items={LAL_PERCENTAGES.map((p) => `${p}%`)}
-            selectedItems={lalPercentages.map((p) => `${p}%`)}
-            onToggle={(pct) => {
-              const num = parseInt(pct)
-              setLalPercentages((prev) =>
-                prev.includes(num) ? prev.filter((p) => p !== num) : [...prev, num]
-              )
-            }}
-          />
+          <div className="space-y-2">
+            <Label>LAL %</Label>
+            <div className="flex flex-wrap gap-2">
+              {LAL_PERCENTAGES.map((p) => (
+                <Badge
+                  key={p}
+                  variant={lalPercentages.includes(p) ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setLalPercentages((prev) =>
+                      prev.includes(p) ? prev.filter((pct) => pct !== p) : [...prev, p]
+                    )
+                  }}
+                >
+                  {p}%
+                </Badge>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -134,13 +146,10 @@ export function AudiencePresetBuilder({ onAdd }: AudiencePresetBuilderProps) {
         />
       )}
 
-      <button
-        onClick={handleAdd}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors w-full justify-center"
-      >
-        <Plus className="h-4 w-4" />
+      <Button onClick={handleAdd} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
         Add Audience
-      </button>
+      </Button>
     </div>
   )
 }

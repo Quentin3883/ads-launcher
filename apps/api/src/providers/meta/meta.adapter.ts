@@ -63,14 +63,35 @@ export class MetaAdapter implements ProviderAdapter {
 
   /**
    * Crée une campagne Meta (mockée)
+   *
+   * Meta Ads v24 ODAX objectives:
+   * - OUTCOME_AWARENESS (Awareness)
+   * - OUTCOME_TRAFFIC (Traffic)
+   * - OUTCOME_ENGAGEMENT (Engagement)
+   * - OUTCOME_LEADS (Leads)
+   * - OUTCOME_APP_PROMOTION (AppPromotion)
+   * - OUTCOME_SALES (Sales)
    */
   async createCampaign(input: CreateCampaignInput): Promise<CreateResult> {
     await this.simulateDelay()
 
     console.log('[MetaAdapter] Creating campaign:', input.name)
+    console.log('[MetaAdapter] Objective:', input.objective)
 
     // Stub: génère un ID mocké
     const mockId = `meta_campaign_${this.generateMockId()}`
+
+    // TODO v2: When implementing real Meta API integration, use:
+    // const objective = this.mapToMetaObjective(input.objective)
+    // const response = await fetch(`https://graph.facebook.com/v24.0/act_${adAccountId}/campaigns`, {
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     name: input.name,
+    //     objective: objective, // Meta v24 OUTCOME_* format
+    //     status: input.status,
+    //     special_ad_categories: input.specialAdCategories || []
+    //   })
+    // })
 
     return {
       id: mockId,
@@ -84,13 +105,40 @@ export class MetaAdapter implements ProviderAdapter {
 
   /**
    * Crée un Ad Set Meta (mocké)
+   *
+   * Meta Ads v24 ODAX ad set structure:
+   * - optimization_goal: LINK_CLICKS, LEAD_GENERATION, REACH, etc.
+   * - billing_event: IMPRESSIONS, LINK_CLICKS, THRUPLAY
+   * - promoted_object: { pixel_id, custom_event_type, page_id, application_id, etc. }
    */
   async createAdSet(input: CreateAdSetInput): Promise<CreateResult> {
     await this.simulateDelay()
 
     console.log('[MetaAdapter] Creating ad set:', input.name)
+    console.log('[MetaAdapter] Targeting:', input.targeting)
 
     const mockId = `meta_adset_${this.generateMockId()}`
+
+    // TODO v2: When implementing real Meta API integration, use:
+    // const response = await fetch(`https://graph.facebook.com/v24.0/act_${adAccountId}/adsets`, {
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     name: input.name,
+    //     campaign_id: input.campaignId,
+    //     optimization_goal: input.optimizationGoal, // From ODAX_OPTIMIZATION_GOALS
+    //     billing_event: input.billingEvent, // From OPTIMIZATION_GOAL_TO_BILLING_EVENTS
+    //     bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+    //     promoted_object: {
+    //       pixel_id: input.pixelId,
+    //       custom_event_type: input.customEventType,
+    //       page_id: input.pageId,
+    //       application_id: input.applicationId,
+    //       object_store_url: input.objectStoreUrl
+    //     },
+    //     targeting: input.targeting,
+    //     status: input.status
+    //   })
+    // })
 
     return {
       id: mockId,

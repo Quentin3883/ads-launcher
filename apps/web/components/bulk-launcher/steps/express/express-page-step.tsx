@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { trpc } from '@/lib/trpc'
 import { Loader2, CheckCircle2, Facebook, Instagram } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 /**
  * Express Mode - Step 1: Facebook Page & Instagram
@@ -67,13 +68,14 @@ export function ExpressPageStep() {
         ) : facebookPages && facebookPages.length > 0 ? (
           <div className="space-y-3">
             {facebookPages.map((page: any) => (
-              <button
+              <Button
                 key={page.id}
                 onClick={() => setFacebookPageId(page.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 text-left transition-all ${
+                variant={facebookPageId === page.id ? "default" : "outline"}
+                className={`w-full h-auto flex items-center gap-4 p-4 text-left justify-start ${
                   facebookPageId === page.id
                     ? 'border-primary bg-primary/5 shadow-sm'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    : ''
                 }`}
               >
                 <div className={`p-2 rounded-lg ${
@@ -96,7 +98,7 @@ export function ExpressPageStep() {
                 {facebookPageId === page.id && (
                   <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
                 )}
-              </button>
+              </Button>
             ))}
           </div>
         ) : (

@@ -56,8 +56,9 @@ export const OBJECTIVE_TO_OPTIMIZATION_GOALS: Record<FacebookObjective, Optimiza
 
 /**
  * Optimization Goals par défaut (recommandés)
+ * @deprecated Use DEFAULT_OPTIMIZATION_GOAL from bulk-launcher.schema.ts instead
  */
-export const DEFAULT_OPTIMIZATION_GOAL: Record<FacebookObjective, OptimizationGoal> = {
+export const DEFAULT_OPTIMIZATION_GOAL_LEGACY: Record<FacebookObjective, OptimizationGoal> = {
   OUTCOME_AWARENESS: 'REACH',
   OUTCOME_TRAFFIC: 'LINK_CLICKS',
   OUTCOME_ENGAGEMENT: 'POST_ENGAGEMENT',
@@ -187,7 +188,10 @@ export const PROMOTED_OBJECT_REQUIREMENTS: Record<
 // 5️⃣ DESTINATION TYPES
 // ============================================
 
-export type DestinationType =
+/**
+ * @deprecated Use DestinationType from bulk-launcher.schema.ts instead
+ */
+export type DestinationTypeLegacy =
   | 'WEBSITE'                    // Site web externe
   | 'APP'                        // Application mobile
   | 'MESSENGER'                  // Messenger
@@ -200,8 +204,9 @@ export type DestinationType =
 
 /**
  * Mapping: Objective → Destination Types autorisés
+ * @deprecated Use getAvailableDestinations from bulk-launcher.schema.ts instead
  */
-export const OBJECTIVE_TO_DESTINATION_TYPES: Record<FacebookObjective, DestinationType[]> = {
+export const OBJECTIVE_TO_DESTINATION_TYPES: Record<FacebookObjective, DestinationTypeLegacy[]> = {
   OUTCOME_AWARENESS: ['WEBSITE', 'APP', 'FACEBOOK', 'MESSENGER', 'WHATSAPP'],
   OUTCOME_TRAFFIC: ['WEBSITE', 'APP', 'MESSENGER', 'WHATSAPP', 'INSTAGRAM_DIRECT'],
   OUTCOME_ENGAGEMENT: ['ON_POST', 'ON_VIDEO', 'FACEBOOK'],
@@ -330,7 +335,7 @@ export function validateCampaignConfig(config: {
   objective: FacebookObjective
   optimization_goal: OptimizationGoal
   billing_event: BillingEvent
-  destination_type?: DestinationType
+  destination_type?: DestinationTypeLegacy
   promoted_object?: PromotedObject
   special_ad_categories?: SpecialAdCategory[]
 }): { valid: boolean; errors: string[] } {
@@ -400,7 +405,7 @@ export function getRecommendedConfig(objective: FacebookObjective): {
   buying_type: BuyingType
 } {
   return {
-    optimization_goal: DEFAULT_OPTIMIZATION_GOAL[objective],
+    optimization_goal: DEFAULT_OPTIMIZATION_GOAL_LEGACY[objective],
     billing_event: DEFAULT_BILLING_EVENT[objective],
     bid_strategy: DEFAULT_BID_STRATEGY,
     buying_type: DEFAULT_BUYING_TYPE,

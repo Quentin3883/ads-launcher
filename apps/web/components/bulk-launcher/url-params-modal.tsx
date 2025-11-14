@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { X, Copy, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface UrlParamsModalProps {
   open: boolean
@@ -106,7 +109,7 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
               Configure tracking parameters for your ads
             </p>
           </div>
-          <button
+          <Button
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -117,13 +120,13 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
             aria-label="Close modal"
           >
             <X className="h-5 w-5 text-muted-foreground" />
-          </button>
+          </Button>
         </div>
 
         {/* Mode Toggle */}
         <div className="px-6 py-3 border-b border-border bg-background flex items-center justify-between">
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => !rawMode && handleRawModeChange()}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 !rawMode
@@ -132,8 +135,8 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
               }`}
             >
               Table View
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => rawMode && handleRawModeChange()}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 rawMode
@@ -142,9 +145,9 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
               }`}
             >
               Raw View
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
             onClick={handleCopy}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-muted hover:bg-muted/80 transition-colors"
           >
@@ -159,14 +162,14 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
                 Copy
               </>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {rawMode ? (
             <div>
-              <textarea
+              <Textarea
                 value={rawValue}
                 onChange={(e) => setRawValue(e.target.value)}
                 placeholder="visuel={{ad.name}}&utm_source=facebook&..."
@@ -187,7 +190,7 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
               {params.map((param, index) => (
                 <div key={index} className="grid grid-cols-12 gap-3 items-center">
                   <div className="col-span-5">
-                    <input
+                    <Input
                       type="text"
                       value={param.key}
                       onChange={(e) => handleParamChange(index, 'key', e.target.value)}
@@ -196,7 +199,7 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
                     />
                   </div>
                   <div className="col-span-6">
-                    <input
+                    <Input
                       type="text"
                       value={param.value}
                       onChange={(e) => handleParamChange(index, 'value', e.target.value)}
@@ -205,24 +208,24 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
                     />
                   </div>
                   <div className="col-span-1 flex justify-end">
-                    <button
+                    <Button
                       onClick={() => handleRemoveParam(index)}
                       className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
                       type="button"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
 
-              <button
+              <Button
                 onClick={handleAddParam}
                 className="w-full px-4 py-2.5 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors text-sm font-medium"
                 type="button"
               >
                 + Add Parameter
-              </button>
+              </Button>
 
               {/* Available Variables */}
               <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
@@ -264,20 +267,20 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
             Parameters will be appended to your landing page URL
           </p>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
               type="button"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSave}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
               type="button"
             >
               Save Parameters
-            </button>
+            </Button>
           </div>
         </div>
       </div>

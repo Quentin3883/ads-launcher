@@ -1,4 +1,6 @@
 'use client'
+import { Button } from '@/components/ui/button'
+
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
@@ -249,18 +251,18 @@ export function MatrixGenerationStep() {
         <div className="rounded-lg border border-border bg-card p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-foreground">Dry Run Preview</h4>
-            <button
+            <Button
               onClick={() => setShowDryRun(false)}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               Close
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {generatedAdSets.map((adSet, idx) => (
               <div key={adSet.id} className="rounded-lg border border-border bg-background">
-                <button
+                <Button
                   onClick={() => toggleAdSet(adSet.id)}
                   className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/30 transition-colors"
                 >
@@ -282,7 +284,7 @@ export function MatrixGenerationStep() {
                   <div className="text-xs text-muted-foreground">
                     {adSet.budget ? `$${adSet.budget}/${adSet.budgetType}` : 'CBO'}
                   </div>
-                </button>
+                </Button>
 
                 {expandedAdSets.has(adSet.id) && (
                   <div className="border-t border-border bg-muted/20 p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">

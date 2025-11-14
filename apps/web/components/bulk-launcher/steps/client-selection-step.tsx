@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react'
 import { Building2, Search } from 'lucide-react'
 import { useClientsStore } from '@/lib/store/clients'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function ClientSelectionStep() {
   const { clients } = useClientsStore()
@@ -44,24 +46,32 @@ export function ClientSelectionStep() {
       <>
         {/* Search bar */}
         <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+            <Input
               type="text"
               placeholder="Search clients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-white/60 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full pl-10 bg-white/60 backdrop-blur-md"
             />
           </div>
 
         {/* Client list - scrollable if many clients */}
         <div className="max-h-[500px] overflow-y-auto space-y-2 px-1">
-          {filteredClients.map((client) => (
-            <button
-              key={client.id}
-              onClick={() => handleClientSelect(client.id)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all border border-border bg-white/60 backdrop-blur-md hover:border-primary hover:bg-primary/5"
-            >
+          {filteredClients.map((client) => {
+            const isSelected = clientId === client.id
+            return (
+              <Button
+                key={client.id}
+                onClick={() => handleClientSelect(client.id)}
+                variant={isSelected ? "default" : "outline"}
+                className={`w-full flex items-center gap-3 p-3 h-auto text-left ${
+                  isSelected
+                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                    : 'bg-white/60 backdrop-blur-md hover:bg-white/80'
+                }`}
+              >
+
               {/* Client logo or color */}
               {client.logoUrl ? (
                 <img
@@ -78,10 +88,13 @@ export function ClientSelectionStep() {
 
               {/* Client info */}
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-foreground">{client.name}</h4>
+                <h4 className={`text-sm font-semibold ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {client.name}
+                </h4>
               </div>
-            </button>
-          ))}
+            </Button>
+            )
+          })}
 
           {filteredClients.length === 0 && searchQuery && (
             <div className="text-center py-12">

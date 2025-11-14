@@ -13,12 +13,10 @@ import {
   type PlacementPreset,
 } from '@launcher-ads/sdk'
 import { Info, ChevronDown, X } from 'lucide-react'
-import { FormField } from '@/components/ui/form-field'
-import { FormSelect } from '@/components/ui/form-select'
-import { SectionCard } from '@/components/ui/section-card'
 import { InterestAutocomplete } from '../components/interest-autocomplete'
 import { GeoLocationAutocomplete } from '../components/geo-location-autocomplete'
 import { trpc } from '@/lib/trpc'
+import { FormSection, FormRow, Select, Input, ds, Button } from '../ui/shadcn'
 
 const AUDIENCE_PRESET_TYPES: { value: AudiencePresetType; label: string; description: string }[] = [
   { value: 'BROAD', label: 'Broad', description: 'Wide reach, no targeting' },
@@ -70,11 +68,12 @@ export function AudiencesBulkStep() {
     return CAMPAIGN_TYPE_OPTIMIZATION_EVENTS[campaignType] || OPTIMIZATION_EVENTS
   }, [campaign.type])
 
-  // Auto-reset optimization event if current selection is not available for the new campaign type
+  // Auto-set optimization event based on campaign type
   useEffect(() => {
     const currentEvent = bulkAudiences.optimizationEvent
-    if (currentEvent && !availableOptimizationEvents.includes(currentEvent)) {
-      // Set to first available option for this campaign type
+
+    // If no event is selected or current event is not available, set to first available option
+    if (!currentEvent || !availableOptimizationEvents.includes(currentEvent)) {
       updateBulkAudiences({ optimizationEvent: availableOptimizationEvents[0] })
     }
   }, [campaign.type, availableOptimizationEvents, bulkAudiences.optimizationEvent, updateBulkAudiences])
@@ -202,25 +201,25 @@ export function AudiencesBulkStep() {
   }, [bulkAudiences.demographics, updateBulkAudiences])
 
   return (
-    <div className="space-y-6">
+    <div className={ds.spacing.vertical.lg}>
       {/* Header + Stats Preview */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Bulk Audiences</h3>
-          <p className="text-sm text-muted-foreground">Select multiple audiences, placements, and locations</p>
+          <h3 className={ds.typography.pageTitle}>Bulk Audiences</h3>
+          <p className={ds.componentPresets.hint}>Select multiple audiences, placements, and locations</p>
         </div>
-        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2">
-          <div className="text-xs text-muted-foreground">Preview Ad Sets Count</div>
-          <div className="text-2xl font-bold text-primary">{stats.adSets}</div>
+        <div className={ds.cn('rounded-lg border border-primary/30 bg-primary/5', ds.spacing.padding.md)}>
+          <div className={ds.cn(ds.typography.caption, 'text-muted-foreground')}>Preview Ad Sets Count</div>
+          <div className={ds.cn('text-2xl font-bold text-primary')}>{stats.adSets}</div>
         </div>
       </div>
 
-      {/* Audience Builder - Compact */}
-      <SectionCard title={`Audiences (${bulkAudiences.audiences.length})`}>
+      {/* Audience Builder */}
+      <FormSection title={`Audiences (${bulkAudiences.audiences.length})`}>
         {/* Quick Add Buttons */}
-        <div className="flex flex-wrap gap-2">
+        <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
           {AUDIENCE_PRESET_TYPES.map((type) => (
-            <button
+            <Button
               key={type.value}
               onClick={() => {
                 setNewAudienceType(type.value)
@@ -233,21 +232,21 @@ export function AudiencesBulkStep() {
                   })
                 }
               }}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                newAudienceType === type.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              variant={newAudienceType === type.value ? 'default' : 'secondary'}
+              className={ds.cn(
+                'px-3 py-1.5 rounded-full font-medium transition-all',
+                ds.typography.caption
+              )}
             >
               + {type.label}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Conditional inline forms */}
         {newAudienceType === 'INTEREST' && (
-          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Interest Audience</div>
+          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
+            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Interest Audience</div>
             <InterestAutocomplete
               userId={userId}
               selectedInterests={selectedInterests}
@@ -256,176 +255,195 @@ export function AudiencesBulkStep() {
               placeholder="Search interests..."
             />
             {selectedInterests.length > 0 && (
-              <button
+              <Button
                 onClick={handleAddAudience}
-                className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+                className={ds.cn(
+                  'w-full px-3 py-1.5 rounded-lg',
+                  ds.typography.caption
+                )}
               >
                 Add ({selectedInterests.length} interests)
-              </button>
+              </Button>
             )}
           </div>
         )}
 
         {newAudienceType === 'LOOKALIKE' && (
-          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Lookalike Audience</div>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
+          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
+            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Lookalike Audience</div>
+            <div className={ds.cn('grid grid-cols-2', ds.spacing.gap.sm)}>
+              <Input
                 value={lalSource}
-                onChange={(e) => setLalSource(e.target.value)}
+                onChange={(value) => setLalSource(value)}
                 placeholder="LAL Source"
-                className="px-2 py-1.5 text-xs rounded-lg border border-border bg-background"
+                className={ds.typography.caption}
               />
-              <div className="flex flex-wrap gap-1">
+              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.xs)}>
                 {LAL_PERCENTAGES.map((pct) => (
-                  <button
+                  <Button
                     key={pct}
                     onClick={() => {
                       setLalPercentages((prev) =>
                         prev.includes(pct) ? prev.filter((p) => p !== pct) : [...prev, pct]
                       )
                     }}
-                    className={`px-2 py-1 text-xs rounded ${
-                      lalPercentages.includes(pct)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
+                    variant={lalPercentages.includes(pct) ? 'default' : 'secondary'}
+                    className={ds.cn(
+                      'px-2 py-1 rounded',
+                      ds.typography.caption
+                    )}
                   >
                     {pct}%
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
-            <button
+            <Button
               onClick={handleAddAudience}
-              className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+              className={ds.cn(
+                'w-full px-3 py-1.5 rounded-lg',
+                ds.typography.caption
+              )}
             >
               Add Lookalike
-            </button>
+            </Button>
           </div>
         )}
 
         {newAudienceType === 'CUSTOM_AUDIENCE' && (
-          <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Custom Audience</div>
-            <input
-              type="text"
+          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
+            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Custom Audience</div>
+            <Input
               value={customAudienceId}
-              onChange={(e) => setCustomAudienceId(e.target.value)}
+              onChange={(value) => setCustomAudienceId(value)}
               placeholder="Custom Audience ID"
-              className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background"
+              className={ds.cn('w-full', ds.typography.caption)}
             />
-            <button
+            <Button
               onClick={handleAddAudience}
-              className="w-full px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+              className={ds.cn(
+                'w-full px-3 py-1.5 rounded-lg',
+                ds.typography.caption
+              )}
             >
               Add Custom Audience
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Added Audiences - Compact Pills */}
         {bulkAudiences.audiences.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border">
-            <div className="text-xs font-medium text-muted-foreground mb-2">Added:</div>
-            <div className="flex flex-wrap gap-2">
+            <div className={ds.cn(ds.typography.caption, 'font-medium text-muted-foreground mb-2')}>Added:</div>
+            <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
               {bulkAudiences.audiences.map((audience) => (
                 <div
                   key={audience.id}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+                  className={ds.cn(
+                    ds.componentPresets.badge,
+                    'bg-primary/10 text-primary',
+                    'inline-flex items-center gap-1.5'
+                  )}
                 >
-                  <span>{audience.name}</span>
-                  <button
+                  <span className={ds.typography.caption}>{audience.name}</span>
+                  <Button
                     onClick={() => removeAudience(audience.id)}
-                    className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="hover:bg-primary/20 rounded-full p-0.5 transition-colors h-auto"
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </SectionCard>
+      </FormSection>
 
-      {/* Placement Presets - Compact */}
-      <SectionCard title="Placement Presets">
+      {/* Placement Presets */}
+      <FormSection title="Placement Presets">
         {/* Quick selection - Most used */}
-        <div className="flex flex-wrap gap-2">
+        <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
           {PLACEMENT_PRESET_OPTIONS.filter(p => !p.category).map((preset) => (
-            <button
+            <Button
               key={preset.value}
               onClick={() => togglePlacementPreset(preset.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                bulkAudiences.placementPresets.includes(preset.value)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
+              className={ds.cn(
+                'px-3 py-1.5 rounded-full font-medium transition-all',
+                ds.typography.caption
+              )}
             >
               {preset.label}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Expandable advanced options */}
         {bulkAudiences.placementPresets.length > 0 && (
-          <button
+          <Button
             onClick={() => setPlacementsExpanded(!placementsExpanded)}
-            className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            variant="ghost"
+            className={ds.cn(
+              'mt-3 flex items-center',
+              ds.spacing.gap.sm,
+              ds.typography.caption,
+              'text-muted-foreground hover:text-foreground transition-colors h-auto p-0'
+            )}
           >
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${placementsExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={ds.cn('h-3.5 w-3.5 transition-transform', placementsExpanded && 'rotate-180')} />
             {placementsExpanded ? 'Hide' : 'Show'} advanced options
-          </button>
+          </Button>
         )}
 
         {placementsExpanded && (
-          <div className="mt-3 pt-3 border-t border-border space-y-3">
+          <div className={ds.cn('mt-3 pt-3 border-t border-border', ds.spacing.vertical.md)}>
             {/* Platform Split */}
             <div>
-              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">By Platform</div>
-              <div className="flex flex-wrap gap-2">
+              <div className={ds.cn('text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2')}>By Platform</div>
+              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
                 {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Platform').map((preset) => (
-                  <button
+                  <Button
                     key={preset.value}
                     onClick={() => togglePlacementPreset(preset.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      bulkAudiences.placementPresets.includes(preset.value)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+                    variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
+                    className={ds.cn(
+                      'px-3 py-1.5 rounded-full font-medium transition-all',
+                      ds.typography.caption
+                    )}
                   >
                     {preset.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
             {/* Placement Type Split */}
             <div>
-              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">By Placement Type</div>
-              <div className="flex flex-wrap gap-2">
+              <div className={ds.cn('text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2')}>By Placement Type</div>
+              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
                 {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Placement').map((preset) => (
-                  <button
+                  <Button
                     key={preset.value}
                     onClick={() => togglePlacementPreset(preset.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      bulkAudiences.placementPresets.includes(preset.value)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+                    variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
+                    className={ds.cn(
+                      'px-3 py-1.5 rounded-full font-medium transition-all',
+                      ds.typography.caption
+                    )}
                   >
                     {preset.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
           </div>
         )}
-      </SectionCard>
+      </FormSection>
 
-      {/* Geo Locations - Compact with Collapse */}
-      <SectionCard title="Geo Locations *" icon={Info}>
+      {/* Geo Locations */}
+      <FormSection title="Geo Locations *" icon={<Info className="h-4 w-4" />}>
         {/* Main autocomplete - searches all types */}
         <div>
           <GeoLocationAutocomplete
@@ -449,21 +467,27 @@ export function AudiencesBulkStep() {
 
         {/* Advanced options (collapsible) */}
         {selectedGeoLocations.length > 0 && (
-          <button
+          <Button
             onClick={() => setGeoExpanded(!geoExpanded)}
-            className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            variant="ghost"
+            className={ds.cn(
+              'mt-3 flex items-center',
+              ds.spacing.gap.sm,
+              ds.typography.caption,
+              'text-muted-foreground hover:text-foreground transition-colors h-auto p-0'
+            )}
           >
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${geoExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={ds.cn('h-3.5 w-3.5 transition-transform', geoExpanded && 'rotate-180')} />
             {geoExpanded ? 'Hide' : 'Show'} by type ({selectedGeoLocations.filter(l => l.type === 'country').length} countries, {selectedGeoLocations.filter(l => l.type === 'region').length} regions, {selectedGeoLocations.filter(l => l.type === 'city').length} cities)
-          </button>
+          </Button>
         )}
 
         {geoExpanded && (
-          <div className="mt-3 space-y-3 pt-3 border-t border-border">
+          <div className={ds.cn('mt-3 pt-3 border-t border-border', ds.spacing.vertical.md)}>
             {/* Countries */}
             {selectedGeoLocations.filter(l => l.type === 'country').length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-2">Countries</label>
+                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Countries</label>
                 <GeoLocationAutocomplete
                   value={selectedGeoLocations.filter(loc => loc.type === 'country')}
                   onChange={(locs) => {
@@ -487,7 +511,7 @@ export function AudiencesBulkStep() {
             {/* Regions */}
             {selectedGeoLocations.filter(l => l.type === 'region').length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-2">Regions</label>
+                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Regions</label>
                 <GeoLocationAutocomplete
                   value={selectedGeoLocations.filter(loc => loc.type === 'region')}
                   onChange={(locs) => {
@@ -511,7 +535,7 @@ export function AudiencesBulkStep() {
             {/* Cities */}
             {selectedGeoLocations.filter(l => l.type === 'city').length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-2">Cities</label>
+                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Cities</label>
                 <GeoLocationAutocomplete
                   value={selectedGeoLocations.filter(loc => loc.type === 'city')}
                   onChange={(locs) => {
@@ -533,149 +557,159 @@ export function AudiencesBulkStep() {
             )}
           </div>
         )}
-      </SectionCard>
+      </FormSection>
 
       {/* Demographics */}
-      <SectionCard title="Demographics">
-        <div className="space-y-4">
-          {/* Age Range and Gender - Same Line */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Age Range Slider - Dual Handle */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Age Range</label>
-              <div className="relative h-10 flex items-center">
-                {/* Age labels above handles */}
-                <div
-                  className="absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded shadow-sm"
-                  style={{
-                    left: `calc(${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}% - 12px)`,
-                    transition: 'left 0.05s ease-out'
-                  }}
-                >
-                  {bulkAudiences.demographics.ageMin}
-                </div>
-                <div
-                  className="absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded shadow-sm"
-                  style={{
-                    left: `calc(${((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}% - 12px)`,
-                    transition: 'left 0.05s ease-out'
-                  }}
-                >
-                  {bulkAudiences.demographics.ageMax === 65 ? '65+' : bulkAudiences.demographics.ageMax}
-                </div>
-
-                {/* Track */}
-                <div className="absolute w-full h-1.5 bg-muted rounded-full"></div>
-
-                {/* Active track between handles */}
-                <div
-                  className="absolute h-1.5 bg-primary rounded-full"
-                  style={{
-                    left: `${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}%`,
-                    right: `${100 - ((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}%`,
-                    transition: 'left 0.05s ease-out, right 0.05s ease-out'
-                  }}
-                ></div>
-
-                {/* Min handle */}
-                <input
-                  type="range"
-                  min={13}
-                  max={65}
-                  value={bulkAudiences.demographics.ageMin}
-                  onChange={(e) =>
-                    updateBulkAudiences({
-                      demographics: {
-                        ...bulkAudiences.demographics,
-                        ageMin: Math.min(Number(e.target.value), bulkAudiences.demographics.ageMax - 1)
-                      },
-                    })
-                  }
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
-                />
-
-                {/* Max handle */}
-                <input
-                  type="range"
-                  min={13}
-                  max={65}
-                  value={bulkAudiences.demographics.ageMax}
-                  onChange={(e) =>
-                    updateBulkAudiences({
-                      demographics: {
-                        ...bulkAudiences.demographics,
-                        ageMax: Math.max(Number(e.target.value), bulkAudiences.demographics.ageMin + 1)
-                      },
-                    })
-                  }
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
-                />
-              </div>
-            </div>
-
-            {/* Gender Selection (Pills) */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Gender</label>
-              <div className="flex flex-wrap gap-2">
-                {['All', 'Male', 'Female'].map((gender) => (
-                  <button
-                    key={gender}
-                    onClick={() =>
-                      updateBulkAudiences({
-                        demographics: { ...bulkAudiences.demographics, gender: gender as any },
-                      })
-                    }
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      bulkAudiences.demographics.gender === gender
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                  >
-                    {gender}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Languages Dropdown */}
+      <FormSection title="Demographics">
+        {/* Age Range and Gender */}
+        <FormRow columns={2} gap="lg">
+          {/* Age Range Slider - Dual Handle */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Languages (optional)</label>
-            <FormSelect
-              value={(bulkAudiences.demographics.languages || [])[0] || ''}
-              onChange={(val) =>
-                updateBulkAudiences({
-                  demographics: { ...bulkAudiences.demographics, languages: val ? [val] : [] },
-                })
-              }
-              options={[
-                { value: '', label: 'No language targeting' },
-                ...LANGUAGES.map(lang => ({ value: lang, label: lang }))
-              ]}
-            />
+            <label className={ds.componentPresets.label}>Age Range</label>
+            <div className="relative h-10 flex items-center mt-3">
+              {/* Age labels above handles */}
+              <div
+                className={ds.cn(
+                  'absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground rounded shadow-sm',
+                  ds.typography.caption,
+                  'font-medium'
+                )}
+                style={{
+                  left: `calc(${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}% - 12px)`,
+                  transition: 'left 0.05s ease-out'
+                }}
+              >
+                {bulkAudiences.demographics.ageMin}
+              </div>
+              <div
+                className={ds.cn(
+                  'absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground rounded shadow-sm',
+                  ds.typography.caption,
+                  'font-medium'
+                )}
+                style={{
+                  left: `calc(${((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}% - 12px)`,
+                  transition: 'left 0.05s ease-out'
+                }}
+              >
+                {bulkAudiences.demographics.ageMax === 65 ? '65+' : bulkAudiences.demographics.ageMax}
+              </div>
+
+              {/* Track */}
+              <div className="absolute w-full h-1.5 bg-muted rounded-full"></div>
+
+              {/* Active track between handles */}
+              <div
+                className="absolute h-1.5 bg-primary rounded-full"
+                style={{
+                  left: `${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}%`,
+                  right: `${100 - ((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}%`,
+                  transition: 'left 0.05s ease-out, right 0.05s ease-out'
+                }}
+              ></div>
+
+              {/* Min handle */}
+              <input
+                type="range"
+                min={13}
+                max={65}
+                value={bulkAudiences.demographics.ageMin}
+                onChange={(e) =>
+                  updateBulkAudiences({
+                    demographics: {
+                      ...bulkAudiences.demographics,
+                      ageMin: Math.min(Number(e.target.value), bulkAudiences.demographics.ageMax - 1)
+                    },
+                  })
+                }
+                className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
+              />
+
+              {/* Max handle */}
+              <input
+                type="range"
+                min={13}
+                max={65}
+                value={bulkAudiences.demographics.ageMax}
+                onChange={(e) =>
+                  updateBulkAudiences({
+                    demographics: {
+                      ...bulkAudiences.demographics,
+                      ageMax: Math.max(Number(e.target.value), bulkAudiences.demographics.ageMin + 1)
+                    },
+                  })
+                }
+                className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
+              />
+            </div>
           </div>
+
+          {/* Gender Selection (Pills) */}
+          <div>
+            <label className={ds.componentPresets.label}>Gender</label>
+            <div className={ds.cn('flex flex-wrap mt-2', ds.spacing.gap.sm)}>
+              {['All', 'Male', 'Female'].map((gender) => (
+                <Button
+                  key={gender}
+                  onClick={() =>
+                    updateBulkAudiences({
+                      demographics: { ...bulkAudiences.demographics, gender: gender as any },
+                    })
+                  }
+                  variant={bulkAudiences.demographics.gender === gender ? 'default' : 'secondary'}
+                  className={ds.cn(
+                    'px-4 py-2 rounded-full font-medium transition-all',
+                    ds.typography.body
+                  )}
+                >
+                  {gender}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </FormRow>
+
+        {/* Languages Dropdown */}
+        <div>
+          <Select
+            label="Languages (optional)"
+            value={(bulkAudiences.demographics.languages || [])[0] || ''}
+            onChange={(val) =>
+              updateBulkAudiences({
+                demographics: { ...bulkAudiences.demographics, languages: val ? [val] : [] },
+              })
+            }
+            options={[
+              { value: '', label: 'No language targeting' },
+              ...LANGUAGES.map(lang => ({ value: lang, label: lang }))
+            ]}
+            hint="Target specific languages (optional)"
+          />
         </div>
-      </SectionCard>
+      </FormSection>
 
       {/* Optimization & Budget */}
-      <SectionCard title="Optimization & Budget">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormSelect
-              label="Optimization Event *"
-              value={bulkAudiences.optimizationEvent}
-              onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
-              options={availableOptimizationEvents.map((event) => ({
-                value: event,
-                label: event.replace(/_/g, ' '),
-              }))}
-            />
+      <FormSection title="Optimization & Budget">
+        <FormRow columns={2} gap="md">
+          <Select
+            label="Optimization Event *"
+            value={bulkAudiences.optimizationEvent}
+            onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
+            options={availableOptimizationEvents.map((event) => ({
+              value: event,
+              label: event.replace(/_/g, ' '),
+            }))}
+            required
+            hint="How Facebook will optimize delivery"
+          />
 
-            {isABO && (
+          {isABO && (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Budget per Ad Set (USD) *</label>
-              <div className="flex gap-2">
-                <FormSelect
+              <label className={ds.componentPresets.label}>
+                Budget per Ad Set (USD) *
+              </label>
+              <div className={ds.cn('flex', ds.spacing.gap.sm)}>
+                <Select
                   value={bulkAudiences.budgetType || 'daily'}
                   onChange={(val) => updateBulkAudiences({ budgetType: val as any })}
                   options={[
@@ -684,10 +718,10 @@ export function AudiencesBulkStep() {
                   ]}
                   className="w-24"
                 />
-                <FormField
+                <Input
                   type="number"
                   min={5}
-                  value={bulkAudiences.budgetPerAdSet || ''}
+                  value={bulkAudiences.budgetPerAdSet?.toString() || ''}
                   onChange={(val) => updateBulkAudiences({ budgetPerAdSet: Number(val) })}
                   placeholder="50"
                   className="flex-1"
@@ -696,102 +730,107 @@ export function AudiencesBulkStep() {
             </div>
           )}
 
-            {!isABO && (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
-                <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">
-                  Budget managed at campaign level (CBO)
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Pixel Conversion Event - Only show when pixel is configured */}
-          {facebookPixelId && (pixelEvents || customConversions) && (
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Conversion Event (optionnel)
-                </label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Sélectionner un événement pixel ou une conversion personnalisée
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Pixel Events */}
-                {pixelEvents && pixelEvents.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-2">
-                      Événements Pixel
-                    </label>
-                    <select
-                      value={bulkAudiences.customEventStr || ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          updateBulkAudiences({
-                            customEventType: 'OTHER',
-                            customEventStr: e.target.value,
-                            customConversionId: undefined
-                          })
-                        } else {
-                          updateBulkAudiences({
-                            customEventType: undefined,
-                            customEventStr: undefined
-                          })
-                        }
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="">Aucun</option>
-                      {pixelEvents.map((event) => (
-                        <option key={event} value={event}>
-                          {event}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Custom Conversions */}
-                {customConversions && customConversions.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-2">
-                      Custom Conversions
-                    </label>
-                    <select
-                      value={bulkAudiences.customConversionId || ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const conversion = customConversions.find((c: any) => c.id === e.target.value)
-                          updateBulkAudiences({
-                            customEventType: 'LEAD',
-                            customConversionId: e.target.value,
-                            customEventStr: conversion?.name
-                          })
-                        } else {
-                          updateBulkAudiences({
-                            customEventType: undefined,
-                            customConversionId: undefined
-                          })
-                        }
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="">Aucune</option>
-                      {customConversions.map((conversion: any) => (
-                        <option key={conversion.id} value={conversion.id}>
-                          {conversion.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+          {!isABO && (
+            <div className={ds.cn('flex items-center rounded-lg border border-border bg-muted/30', ds.spacing.padding.sm, ds.spacing.gap.sm)}>
+              <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <p className={ds.componentPresets.hint}>
+                Budget managed at campaign level (CBO)
+              </p>
             </div>
           )}
-        </div>
-      </SectionCard>
+        </FormRow>
+
+        {/* Pixel Conversion Event - Combined dropdown */}
+        {facebookPixelId && (pixelEvents || customConversions) && (
+          <div className={ds.cn('pt-2 border-t border-border', ds.spacing.vertical.md)}>
+            <div>
+              <label className={ds.componentPresets.label}>
+                Événement de Conversion (optionnel)
+              </label>
+              <p className={ds.cn(ds.componentPresets.hint, 'mb-3')}>
+                Sélectionner un événement pixel ou une conversion personnalisée
+              </p>
+            </div>
+
+            <div className="relative">
+              <select
+                value={
+                  bulkAudiences.customConversionId
+                    ? `cc_${bulkAudiences.customConversionId}`
+                    : bulkAudiences.customEventStr
+                    ? `pe_${bulkAudiences.customEventStr}`
+                    : ''
+                }
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (!value) {
+                    // Clear selection
+                    updateBulkAudiences({
+                      customEventType: undefined,
+                      customEventStr: undefined,
+                      customConversionId: undefined
+                    })
+                  } else if (value.startsWith('pe_')) {
+                    // Pixel Event selected
+                    const eventName = value.substring(3)
+                    updateBulkAudiences({
+                      customEventType: 'OTHER',
+                      customEventStr: eventName,
+                      customConversionId: undefined
+                    })
+                  } else if (value.startsWith('cc_')) {
+                    // Custom Conversion selected
+                    const conversionId = value.substring(3)
+                    const conversion = customConversions?.find((c: any) => c.id === conversionId)
+                    updateBulkAudiences({
+                      customConversionId: conversionId,
+                      customEventStr: conversion?.name,
+                      customEventType: conversion?.custom_event_type || 'LEAD'
+                    })
+                  }
+                }}
+                className={ds.componentPresets.select}
+              >
+                <option value="">Aucun événement</option>
+
+                {/* Pixel Events Section */}
+                {pixelEvents && pixelEvents.length > 0 && (
+                  <optgroup label="📊 Événements Pixel">
+                    {pixelEvents.map((event: string) => (
+                      <option key={`pe_${event}`} value={`pe_${event}`}>
+                        {event}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                {/* Custom Conversions Section */}
+                {customConversions && customConversions.length > 0 && (
+                  <optgroup label="🎯 Custom Conversions">
+                    {customConversions.map((conversion: any) => (
+                      <option key={`cc_${conversion.id}`} value={`cc_${conversion.id}`}>
+                        {conversion.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+
+              {/* Badge label when an option is selected */}
+              {(bulkAudiences.customConversionId || bulkAudiences.customEventStr) && (
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <span className={ds.cn(
+                    ds.componentPresets.badge,
+                    ds.getBadgeColor(bulkAudiences.customConversionId ? 'purple' : 'blue')
+                  )}>
+                    {bulkAudiences.customConversionId ? 'Custom Conversion' : 'Pixel Event'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </FormSection>
     </div>
   )
 }

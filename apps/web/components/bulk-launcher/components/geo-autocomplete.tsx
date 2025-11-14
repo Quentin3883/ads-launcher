@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, MapPin } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface GeoLocation {
   key: string
@@ -120,14 +122,14 @@ export function GeoAutocomplete({
       <div className="relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => query.length >= 2 && results.length > 0 && setShowResults(true)}
             placeholder={placeholder}
-            className="w-full pl-10 pr-10 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="pl-10 pr-10"
           />
           {loading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -145,13 +147,12 @@ export function GeoAutocomplete({
             {results.map((location) => {
               const isSelected = selectedLocations.some(l => l.key === location.key)
               return (
-                <button
+                <Button
                   key={location.key}
                   onClick={() => !isSelected && handleSelect(location)}
                   disabled={isSelected}
-                  className={`w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-start gap-2 ${
-                    isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
+                  variant="ghost"
+                  className="w-full justify-start text-left px-3 py-2 h-auto flex items-start gap-2"
                 >
                   <span className="text-base mt-0.5">{getLocationIcon(location.type)}</span>
                   <div className="flex-1 min-w-0">
@@ -163,7 +164,7 @@ export function GeoAutocomplete({
                       {getLocationSubtext(location)}
                     </div>
                   </div>
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -193,12 +194,14 @@ export function GeoAutocomplete({
               {location.country_code && location.type !== 'country' && (
                 <span className="text-[10px] opacity-70">({location.country_code})</span>
               )}
-              <button
+              <Button
                 onClick={() => onRemove(location.key)}
-                className="ml-1 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-4 w-4 p-0 hover:bg-primary/20 rounded-full"
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

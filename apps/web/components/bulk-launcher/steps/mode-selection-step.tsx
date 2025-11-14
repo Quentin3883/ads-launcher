@@ -2,9 +2,10 @@
 
 import { Zap, Target, Sparkles } from 'lucide-react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
+import { Button } from '@/components/ui/button'
 
 export function ModeSelectionStep() {
-  const { setLaunchMode, setCurrentStep, currentStep } = useBulkLauncher()
+  const { launchMode, setLaunchMode, setCurrentStep, currentStep } = useBulkLauncher()
 
   const handleSelectMode = (mode: 'express' | 'pro' | 'custom') => {
     if (mode === 'custom') {
@@ -31,80 +32,138 @@ export function ModeSelectionStep() {
         {/* Mode Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Express Mode */}
-          <button
+          <Button
             onClick={() => handleSelectMode('express')}
-            className="group relative p-6 rounded-xl border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-all duration-200 text-left"
+            variant={launchMode === 'express' ? 'default' : 'outline'}
+            className={`group relative p-6 rounded-xl h-auto text-left ${
+              launchMode === 'express'
+                ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                : 'hover:bg-muted/50'
+            }`}
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-yellow-100 text-yellow-600 group-hover:bg-yellow-200 transition-colors">
+                <div className={`p-2 rounded-lg transition-colors ${
+                  launchMode === 'express'
+                    ? 'bg-yellow-600 text-white'
+                    : 'bg-yellow-100 text-yellow-600 group-hover:bg-yellow-200'
+                }`}>
                   <Zap className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Express Mode</h3>
+                <h3 className={`text-lg font-semibold ${
+                  launchMode === 'express' ? 'text-primary-foreground' : 'text-foreground'
+                }`}>Express Mode</h3>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-4 flex-1">
-                Quick campaign launch in <span className="font-semibold text-foreground">3 steps</span>
+              <p className={`text-sm mb-4 flex-1 ${
+                launchMode === 'express' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+              }`}>
+                Quick campaign launch in <span className={`font-semibold ${
+                  launchMode === 'express' ? 'text-primary-foreground' : 'text-foreground'
+                }`}>3 steps</span>
               </p>
 
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'express' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'express' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Simple targeting
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'express' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'express' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Fast setup
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'express' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'express' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Perfect for speed
                 </div>
               </div>
 
-              <div className="text-xs font-medium text-primary group-hover:text-primary/80">
-                Select →
+              <div className={`text-xs font-medium ${
+                launchMode === 'express' ? 'text-primary-foreground' : 'text-primary group-hover:text-primary/80'
+              }`}>
+                {launchMode === 'express' ? 'Selected ✓' : 'Select →'}
               </div>
             </div>
-          </button>
+          </Button>
 
           {/* Pro Mode */}
-          <button
+          <Button
             onClick={() => handleSelectMode('pro')}
-            className="group relative p-6 rounded-xl border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-all duration-200 text-left"
+            variant={launchMode === 'pro' ? 'default' : 'outline'}
+            className={`group relative p-6 rounded-xl h-auto text-left ${
+              launchMode === 'pro'
+                ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                : 'hover:bg-muted/50'
+            }`}
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-200 transition-colors">
+                <div className={`p-2 rounded-lg transition-colors ${
+                  launchMode === 'pro'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                }`}>
                   <Target className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Pro Mode</h3>
+                <h3 className={`text-lg font-semibold ${
+                  launchMode === 'pro' ? 'text-primary-foreground' : 'text-foreground'
+                }`}>Pro Mode</h3>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-4 flex-1">
-                Advanced targeting in <span className="font-semibold text-foreground">4 steps</span>
+              <p className={`text-sm mb-4 flex-1 ${
+                launchMode === 'pro' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+              }`}>
+                Advanced targeting in <span className={`font-semibold ${
+                  launchMode === 'pro' ? 'text-primary-foreground' : 'text-foreground'
+                }`}>4 steps</span>
               </p>
 
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'pro' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'pro' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Strategy presets
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'pro' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'pro' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Advanced targeting
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className={`flex items-center gap-2 text-xs ${
+                  launchMode === 'pro' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    launchMode === 'pro' ? 'bg-primary-foreground' : 'bg-primary'
+                  }`} />
                   Matrix generation
                 </div>
               </div>
 
-              <div className="text-xs font-medium text-primary group-hover:text-primary/80">
-                Select →
+              <div className={`text-xs font-medium ${
+                launchMode === 'pro' ? 'text-primary-foreground' : 'text-primary group-hover:text-primary/80'
+              }`}>
+                {launchMode === 'pro' ? 'Selected ✓' : 'Select →'}
               </div>
             </div>
-          </button>
+          </Button>
 
           {/* Custom Strategy Mode */}
           <div className="group relative p-6 rounded-xl border-2 border-dashed border-border bg-muted/30 opacity-60 cursor-not-allowed text-left">

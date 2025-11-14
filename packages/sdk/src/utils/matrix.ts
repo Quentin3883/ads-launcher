@@ -229,7 +229,7 @@ function createAd(
     primaryText: finalPrimaryText,
     cta: copy.cta,
     destination: {
-      type: campaign.redirectionType,
+      type: campaign.redirectionType || 'LANDING_PAGE',
       url: campaign.redirectionType === 'LANDING_PAGE' ? campaign.redirectionUrl : undefined,
       formId: campaign.redirectionType === 'LEAD_FORM' ? campaign.redirectionFormId : undefined,
       deeplink: campaign.redirectionType === 'DEEPLINK' ? campaign.redirectionDeeplink : undefined,

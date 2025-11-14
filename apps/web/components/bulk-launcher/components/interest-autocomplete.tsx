@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Target } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface Interest {
   id: string
@@ -113,14 +115,14 @@ export function InterestAutocomplete({
       <div className="relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => query.length >= 2 && results.length > 0 && setShowResults(true)}
             placeholder={placeholder}
-            className="w-full pl-10 pr-10 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="pl-10 pr-10"
           />
           {loading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -140,13 +142,12 @@ export function InterestAutocomplete({
               const audienceSize = formatAudienceSize(interest.audience_size_lower_bound, interest.audience_size_upper_bound)
 
               return (
-                <button
+                <Button
                   key={interest.id}
                   onClick={() => !isSelected && handleSelect(interest)}
                   disabled={isSelected}
-                  className={`w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-start gap-2 ${
-                    isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
+                  variant="ghost"
+                  className="w-full justify-start text-left px-3 py-2 h-auto flex items-start gap-2"
                 >
                   <Target className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -160,7 +161,7 @@ export function InterestAutocomplete({
                       </div>
                     )}
                   </div>
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -187,12 +188,14 @@ export function InterestAutocomplete({
             >
               <Target className="h-3 w-3" />
               <span>{interest.name}</span>
-              <button
+              <Button
                 onClick={() => onRemove(interest.id)}
-                className="ml-1 hover:bg-green-500/20 rounded-full p-0.5 transition-colors"
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-4 w-4 p-0 hover:bg-green-500/20 rounded-full"
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

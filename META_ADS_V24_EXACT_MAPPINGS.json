@@ -1,0 +1,224 @@
+{
+  "meta_ads_v24_odax_mappings": {
+    "description": "Exact mappings from Facebook Marketing API v24.0 - OUTCOME objectives",
+    "source": "Facebook official documentation",
+    "objectives": [
+      {
+        "launcher_name": "Awareness",
+        "meta_objective": "OUTCOME_AWARENESS",
+        "old_objectives": ["BRAND_AWARENESS", "REACH", "VIDEO_VIEWS", "STORE_VISITS"],
+        "scenarios": [
+          {
+            "destination_type": null,
+            "optimization_goals": ["AD_RECALL_LIFT", "REACH", "IMPRESSIONS", "THRUPLAY", "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS"],
+            "billing_events": ["IMPRESSIONS", "THRUPLAY"],
+            "promoted_object": ["page_id", "place_page_set_id"],
+            "notes": "For store visits, use place_page_set_id"
+          }
+        ]
+      },
+      {
+        "launcher_name": "Traffic",
+        "meta_objective": "OUTCOME_TRAFFIC",
+        "old_objectives": ["LINK_CLICKS", "MESSENGER", "WHATSAPP", "PHONE_CALL"],
+        "scenarios": [
+          {
+            "destination_type": null,
+            "optimization_goals": ["LINK_CLICKS", "LANDING_PAGE_VIEWS", "REACH", "IMPRESSIONS"],
+            "billing_events": ["LINK_CLICKS", "IMPRESSIONS"],
+            "promoted_object": ["application_id", "object_store_url"],
+            "notes": "For app traffic, include application_id and object_store_url"
+          },
+          {
+            "destination_type": "MESSENGER",
+            "optimization_goals": ["LINK_CLICKS", "REACH", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": [],
+            "notes": "Messenger conversations"
+          },
+          {
+            "destination_type": "WHATSAPP",
+            "optimization_goals": ["LINK_CLICKS", "REACH", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "WhatsApp conversations"
+          },
+          {
+            "destination_type": null,
+            "optimization_goals": ["QUALITY_CALL", "LINK_CLICKS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": [],
+            "notes": "Phone call campaigns"
+          }
+        ]
+      },
+      {
+        "launcher_name": "Engagement",
+        "meta_objective": "OUTCOME_ENGAGEMENT",
+        "old_objectives": ["POST_ENGAGEMENT", "PAGE_LIKES", "EVENT_RESPONSES", "VIDEO_VIEWS", "MESSAGES"],
+        "scenarios": [
+          {
+            "destination_type": "ON_POST",
+            "optimization_goals": ["POST_ENGAGEMENT", "REACH", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": [],
+            "notes": "Post engagement"
+          },
+          {
+            "destination_type": "ON_PAGE",
+            "optimization_goals": ["PAGE_LIKES"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Page likes"
+          },
+          {
+            "destination_type": "ON_EVENT",
+            "optimization_goals": ["EVENT_RESPONSES", "POST_ENGAGEMENT", "REACH", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": [],
+            "notes": "Event responses"
+          },
+          {
+            "destination_type": "ON_VIDEO",
+            "optimization_goals": ["THRUPLAY", "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS"],
+            "billing_events": ["THRUPLAY", "IMPRESSIONS"],
+            "promoted_object": [],
+            "notes": "Video views"
+          },
+          {
+            "destination_type": "MESSENGER",
+            "optimization_goals": ["CONVERSATIONS", "LINK_CLICKS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Messenger conversations for engagement"
+          },
+          {
+            "destination_type": null,
+            "optimization_goals": ["OFFSITE_CONVERSIONS", "LINK_CLICKS", "REACH", "LANDING_PAGE_VIEWS", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS", "LINK_CLICKS"],
+            "promoted_object": ["pixel_id", "custom_event_type", "application_id", "object_store_url"],
+            "notes": "For CONVERSIONS objective mapped to OUTCOME_ENGAGEMENT"
+          }
+        ]
+      },
+      {
+        "launcher_name": "Leads",
+        "meta_objective": "OUTCOME_LEADS",
+        "old_objectives": ["LEAD_GENERATION", "LEAD_FROM_MESSENGER", "LEAD_FROM_IG_DIRECT", "PHONE_CALL"],
+        "scenarios": [
+          {
+            "destination_type": "ON_AD",
+            "optimization_goals": ["LEAD_GENERATION", "QUALITY_LEAD"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Instant form (lead form on Facebook)"
+          },
+          {
+            "destination_type": "MESSENGER",
+            "optimization_goals": ["LEAD_GENERATION", "CONVERSATIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Lead generation via Messenger"
+          },
+          {
+            "destination_type": "INSTAGRAM",
+            "optimization_goals": ["LEAD_GENERATION"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Lead generation via Instagram Direct"
+          },
+          {
+            "destination_type": null,
+            "optimization_goals": ["QUALITY_CALL"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Phone call leads"
+          },
+          {
+            "destination_type": null,
+            "optimization_goals": ["OFFSITE_CONVERSIONS", "LINK_CLICKS", "REACH", "LANDING_PAGE_VIEWS", "IMPRESSIONS"],
+            "billing_events": ["IMPRESSIONS", "LINK_CLICKS"],
+            "promoted_object": ["pixel_id", "custom_event_type", "application_id", "object_store_url"],
+            "notes": "For CONVERSIONS objective mapped to OUTCOME_LEADS"
+          }
+        ]
+      },
+      {
+        "launcher_name": "AppPromotion",
+        "meta_objective": "OUTCOME_APP_PROMOTION",
+        "old_objectives": ["APP_INSTALL"],
+        "scenarios": [
+          {
+            "destination_type": null,
+            "optimization_goals": ["APP_INSTALLS", "OFFSITE_CONVERSIONS", "LINK_CLICKS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["application_id", "object_store_url"],
+            "notes": "App installs and events"
+          }
+        ]
+      },
+      {
+        "launcher_name": "Sales",
+        "meta_objective": "OUTCOME_SALES",
+        "old_objectives": ["CONVERSIONS", "PRODUCT_CATALOG_SALES"],
+        "scenarios": [
+          {
+            "destination_type": null,
+            "optimization_goals": ["OFFSITE_CONVERSIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["pixel_id", "custom_event_type", "application_id", "object_store_url"],
+            "notes": "For CONVERSIONS objective mapped to OUTCOME_SALES"
+          },
+          {
+            "destination_type": "MESSENGER",
+            "optimization_goals": ["CONVERSATIONS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id", "pixel_id", "custom_event_type"],
+            "notes": "Sales via Messenger conversations"
+          },
+          {
+            "destination_type": null,
+            "optimization_goals": ["QUALITY_CALL"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["page_id"],
+            "notes": "Sales via phone calls"
+          },
+          {
+            "destination_type": "WEBSITE",
+            "optimization_goals": ["LINK_CLICKS"],
+            "billing_events": ["IMPRESSIONS"],
+            "promoted_object": ["product_catalog_id", "product_set_id", "custom_event_type"],
+            "notes": "Catalog sales (product_catalog_id at campaign level, product_set_id at ad set level)"
+          }
+        ]
+      }
+    ],
+    "launcher_phase_1_support": {
+      "supported": [
+        {
+          "objective": "Awareness",
+          "destination": "NONE",
+          "optimization_goals": ["REACH", "IMPRESSIONS"]
+        },
+        {
+          "objective": "Traffic",
+          "destination": "NONE",
+          "optimization_goals": ["LINK_CLICKS", "LANDING_PAGE_VIEWS", "IMPRESSIONS"],
+          "notes": "For website traffic (no specific messenger/whatsapp/call)"
+        },
+        {
+          "objective": "Leads",
+          "destination": "ON_AD",
+          "optimization_goals": ["LEAD_GENERATION"]
+        }
+      ],
+      "future": [
+        "Engagement (all types)",
+        "Traffic (Messenger, WhatsApp, Calls)",
+        "Leads (Messenger, Instagram, Calls, Conversions)",
+        "AppPromotion",
+        "Sales"
+      ]
+    }
+  }
+}

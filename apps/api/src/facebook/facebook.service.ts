@@ -30,6 +30,375 @@ export class FacebookService {
     private readonly apiClient: FacebookApiClient,
   ) {}
 
+  // ============================================================================
+  // HELPER METHODS - Ad Set Optimization & Promoted Object
+  // ============================================================================
+
+  /**
+   * Maps user-friendly optimization event names to Facebook API optimization goals
+   * @see https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/
+   */
+  private readonly OPTIMIZATION_EVENT_TO_GOAL_MAP: Record<string, string> = {
+    'Link Clicks': 'LINK_CLICKS',
+    'Landing Page Views': 'LANDING_PAGE_VIEWS',
+    'Impressions': 'IMPRESSIONS',
+    'Reach': 'REACH',
+    'Conversions': 'OFFSITE_CONVERSIONS',
+    'Leads': 'OFFSITE_CONVERSIONS', // For OUTCOME_LEADS with website, use OFFSITE_CONVERSIONS
+    'Post Engagement': 'POST_ENGAGEMENT',
+    'Video Views': 'VIDEO_VIEWS',
+    'ThruPlay': 'THRUPLAY',
+  }
+
+  /**
+   * Get the Facebook API optimization goal from user's selected optimization event
+   */
+  private getOptimizationGoal(optimizationEvent: string | undefined): string {
+    if (!optimizationEvent) {
+      return 'LINK_CLICKS' // Default fallback
+    }
+    return this.OPTIMIZATION_EVENT_TO_GOAL_MAP[optimizationEvent] || 'LINK_CLICKS'
+  }
+
+  /**
+   * Builds the promoted_object for an ad set based on optimization goal and campaign settings
+   *
+   * Facebook promoted_object rules (v24.0):
+   * @see https://developers.facebook.com/docs/marketing-api/outcome-objectives
+   *
+   * QUALITY_LEAD / LEAD_GENERATION:
+   *   - promoted_object: { page_id }
+   *
+   * OFFSITE_CONVERSIONS / LANDING_PAGE_VIEWS:
+   *   - promoted_object: { pixel_id, custom_event_type, [custom_event_str], [custom_conversion_id] }
+   *
+   * LINK_CLICKS / REACH / IMPRESSIONS (with conversion tracking):
+   *   - promoted_object: { pixel_id, custom_event_type, [custom_event_str], [custom_conversion_id] }
+   *   - Only include if user explicitly selected conversion tracking
+   *
+   * @param optimizationGoal - Facebook API optimization goal (e.g., 'OFFSITE_CONVERSIONS')
+   * @param campaignObjective - Campaign objective (e.g., 'OUTCOME_LEADS')
+   * @param pageId - Facebook Page ID
+   * @param pixelId - Facebook Pixel ID (optional)
+   * @param customEventType - Custom event type (optional)
+   * @param customEventStr - Custom event string for 'OTHER' type (optional)
+   * @param customConversionId - Custom conversion ID (optional)
+   */
+  private buildPromotedObject(params: {
+    optimizationGoal: string
+    campaignObjective: string
+    pageId: string
+    pixelId?: string
+    customEventType?: string
+    customEventStr?: string
+    customConversionId?: string
+  }): any {
+    const {
+      optimizationGoal,
+      campaignObjective,
+      pageId,
+      pixelId,
+      customEventType,
+      customEventStr,
+      customConversionId,
+    } = params
+
+    // Case 1: QUALITY_LEAD or LEAD_GENERATION - Only page_id
+    if (optimizationGoal === 'QUALITY_LEAD' || optimizationGoal === 'LEAD_GENERATION') {
+      return { page_id: pageId }
+    }
+
+    // Case 2: OFFSITE_CONVERSIONS or LANDING_PAGE_VIEWS - Require pixel + event
+    if (pixelId && (optimizationGoal === 'OFFSITE_CONVERSIONS' || optimizationGoal === 'LANDING_PAGE_VIEWS')) {
+      const promotedObject: any = { pixel_id: pixelId }
+
+      // Add custom event type (required for these goals)
+      if (customEventType) {
+        promotedObject.custom_event_type = customEventType
+        if (customEventType === 'OTHER' && customEventStr) {
+          promotedObject.custom_event_str = customEventStr
+        }
+      } else if (campaignObjective === 'OUTCOME_LEADS') {
+        // Default to LEAD for OUTCOME_LEADS campaigns
+        promotedObject.custom_event_type = 'LEAD'
+      }
+
+      // Add custom conversion if specified
+      if (customConversionId) {
+        promotedObject.custom_conversion_id = customConversionId
+      }
+
+      return promotedObject
+    }
+
+    // Case 3: LINK_CLICKS, REACH, IMPRESSIONS - Only if explicitly tracking conversions
+    if (
+      pixelId &&
+      (customEventType || customConversionId) &&
+      (optimizationGoal === 'LINK_CLICKS' || optimizationGoal === 'REACH' || optimizationGoal === 'IMPRESSIONS')
+    ) {
+      const promotedObject: any = { pixel_id: pixelId }
+
+      if (customEventType) {
+        promotedObject.custom_event_type = customEventType
+        if (customEventType === 'OTHER' && customEventStr) {
+          promotedObject.custom_event_str = customEventStr
+        }
+      }
+
+      if (customConversionId) {
+        promotedObject.custom_conversion_id = customConversionId
+      }
+
+      return promotedObject
+    }
+
+    // Case 4: Fallback for OUTCOME_LEADS without pixel
+    if (campaignObjective === 'OUTCOME_LEADS') {
+      return { page_id: pageId }
+    }
+
+    // Case 5: No promoted_object needed
+    return undefined
+  }
+
+  /**
+   * Builds call_to_action object with proper formatting for Facebook API
+   *
+   * @param cta - Call to action type from frontend
+   * @param destination - Destination configuration
+   * @param displayLink - Optional link caption override
+   * @returns Call to action object for Facebook API
+   */
+  private buildCallToAction(params: {
+    cta: string
+    destination: any
+    displayLink?: string
+  }): any {
+    const { cta, destination, displayLink } = params
+
+    const callToAction: any = {
+      type: FACEBOOK_CTA_MAP[cta] || cta,
+    }
+
+    // Add destination based on type
+    if (destination.type === 'LANDING_PAGE') {
+      callToAction.value = {
+        link: destination.url,
+        ...(displayLink && { link_caption: displayLink }),
+      }
+    } else if (destination.type === 'LEAD_FORM') {
+      callToAction.value = {
+        lead_gen_form_id: destination.formId,
+      }
+    } else if (destination.type === 'DEEPLINK') {
+      callToAction.value = {
+        application: destination.deeplink,
+      }
+    }
+
+    return callToAction
+  }
+
+  /**
+   * Builds asset customization rules for PAC (Placement Asset Customization)
+   *
+   * These rules determine which assets (images/videos) are shown on which placements
+   * Rule 1: Stories/Reels/Search → Portrait assets (9:16)
+   * Rule 2: Feed/Default → Square/Landscape assets (1:1 or 16:9)
+   *
+   * @param assetType - 'image' or 'video'
+   * @param feedLabel - Label name for feed asset (e.g., 'LBL_FEED_VIDEO')
+   * @param storyLabel - Label name for story asset (e.g., 'LBL_STORY_VIDEO')
+   * @returns Array of asset customization rules
+   */
+  private buildAssetCustomizationRules(params: {
+    assetType: 'image' | 'video'
+    feedLabel: string
+    storyLabel: string
+  }): any[] {
+    const { assetType, feedLabel, storyLabel } = params
+    const labelKey = assetType === 'image' ? 'image_label' : 'video_label'
+
+    return [
+      // Rule 1: All Stories/Reels/Search placements (portrait asset)
+      {
+        customization_spec: {
+          age_max: 65,
+          age_min: 13,
+          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
+          facebook_positions: ['story'],
+          instagram_positions: ['ig_search', 'story', 'reels'],
+          messenger_positions: ['story'],
+          audience_network_positions: ['classic', 'rewarded_video'],
+        },
+        [labelKey]: { name: storyLabel },
+        body_label: { name: 'LBL_COMMON' },
+        link_url_label: { name: 'LBL_COMMON' },
+        title_label: { name: 'LBL_COMMON' },
+        priority: 1,
+      },
+      // Rule 2: Default/fallback for everything else (Feed - square/landscape asset)
+      {
+        customization_spec: {
+          age_max: 65,
+          age_min: 13,
+        },
+        [labelKey]: { name: feedLabel },
+        body_label: { name: 'LBL_COMMON' },
+        link_url_label: { name: 'LBL_COMMON' },
+        title_label: { name: 'LBL_COMMON' },
+        priority: 2,
+      },
+    ]
+  }
+
+  /**
+   * Builds asset_feed_spec for PAC video creative
+   *
+   * @param videoIdFeed - Video ID for feed placements
+   * @param videoIdStory - Video ID for story/reels placements
+   * @param primaryText - Ad primary text/body
+   * @param headline - Ad headline/title
+   * @param destinationUrl - Landing page URL
+   * @param displayLink - Optional link caption
+   * @param cta - Call to action type
+   * @returns Complete asset_feed_spec object
+   */
+  private buildPacVideoAssetFeedSpec(params: {
+    videoIdFeed: string
+    videoIdStory: string
+    primaryText: string
+    headline: string
+    destinationUrl: string
+    displayLink?: string
+    cta: string
+  }): any {
+    const { videoIdFeed, videoIdStory, primaryText, headline, destinationUrl, displayLink, cta } = params
+
+    return {
+      ad_formats: ['AUTOMATIC_FORMAT'],
+      videos: [
+        {
+          video_id: videoIdFeed,
+          adlabels: [{ name: 'LBL_FEED_VIDEO' }],
+        },
+        {
+          video_id: videoIdStory,
+          adlabels: [{ name: 'LBL_STORY_VIDEO' }],
+        },
+      ],
+      bodies: [
+        {
+          text: primaryText,
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      titles: [
+        {
+          text: headline,
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      descriptions: [{ text: '' }],
+      link_urls: [
+        {
+          website_url: destinationUrl || '',
+          ...(displayLink && { display_link: displayLink }),
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      call_to_action_types: [FACEBOOK_CTA_MAP[cta] || cta],
+      asset_customization_rules: this.buildAssetCustomizationRules({
+        assetType: 'video',
+        feedLabel: 'LBL_FEED_VIDEO',
+        storyLabel: 'LBL_STORY_VIDEO',
+      }),
+      optimization_type: 'PLACEMENT',
+      additional_data: {
+        multi_share_end_card: false,
+        is_click_to_message: false,
+      },
+      reasons_to_shop: false,
+      shops_bundle: false,
+    }
+  }
+
+  /**
+   * Builds asset_feed_spec for PAC image creative
+   *
+   * @param imageHashFeed - Image hash for feed placements
+   * @param imageHashStory - Image hash for story/reels placements
+   * @param primaryText - Ad primary text/body
+   * @param headline - Ad headline/title
+   * @param destinationUrl - Landing page URL
+   * @param displayLink - Optional link caption
+   * @param cta - Call to action type
+   * @returns Complete asset_feed_spec object
+   */
+  private buildPacImageAssetFeedSpec(params: {
+    imageHashFeed: string
+    imageHashStory: string
+    primaryText: string
+    headline: string
+    destinationUrl: string
+    displayLink?: string
+    cta: string
+  }): any {
+    const { imageHashFeed, imageHashStory, primaryText, headline, destinationUrl, displayLink, cta } = params
+
+    return {
+      ad_formats: ['AUTOMATIC_FORMAT'],
+      images: [
+        {
+          hash: imageHashFeed,
+          adlabels: [{ name: 'LBL_FEED_IMG' }],
+        },
+        {
+          hash: imageHashStory,
+          adlabels: [{ name: 'LBL_STORY_IMG' }],
+        },
+      ],
+      bodies: [
+        {
+          text: primaryText,
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      titles: [
+        {
+          text: headline,
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      descriptions: [{ text: '' }],
+      link_urls: [
+        {
+          website_url: destinationUrl || '',
+          ...(displayLink && { display_link: displayLink }),
+          adlabels: [{ name: 'LBL_COMMON' }],
+        },
+      ],
+      call_to_action_types: [FACEBOOK_CTA_MAP[cta] || cta],
+      asset_customization_rules: this.buildAssetCustomizationRules({
+        assetType: 'image',
+        feedLabel: 'LBL_FEED_IMG',
+        storyLabel: 'LBL_STORY_IMG',
+      }),
+      optimization_type: 'PLACEMENT',
+      additional_data: {
+        multi_share_end_card: false,
+        is_click_to_message: false,
+      },
+      reasons_to_shop: false,
+      shops_bundle: false,
+    }
+  }
+
+  // ============================================================================
+  // PUBLIC API METHODS
+  // ============================================================================
+
   /**
    * Save or update Facebook token for a user
    */
@@ -1673,6 +2042,7 @@ export class FacebookService {
         endDate?: string
         endTime?: string
         urlTags?: string
+        displayLink?: string
       }
       adSets: Array<{
         name: string
@@ -1834,7 +2204,6 @@ export class FacebookService {
 
           // Build targeting
           const targeting: any = {
-            geo_locations: {} as any,
             age_min: adSetConfig.demographics.ageMin,
             age_max: adSetConfig.demographics.ageMax,
             // Add all placements (Facebook, Instagram, Audience Network, Messenger)
@@ -1847,18 +2216,24 @@ export class FacebookService {
           }
 
           // Build geo_locations with support for countries, regions, and cities
+          const geoLocations: any = {}
           if (adSetConfig.geoLocations.countries && adSetConfig.geoLocations.countries.length > 0) {
-            targeting.geo_locations.countries = adSetConfig.geoLocations.countries
+            geoLocations.countries = adSetConfig.geoLocations.countries
           }
           if (adSetConfig.geoLocations.regions && adSetConfig.geoLocations.regions.length > 0) {
-            targeting.geo_locations.regions = adSetConfig.geoLocations.regions.map((region: any) =>
+            geoLocations.regions = adSetConfig.geoLocations.regions.map((region: any) =>
               typeof region === 'string' ? { key: region } : region
             )
           }
           if (adSetConfig.geoLocations.cities && adSetConfig.geoLocations.cities.length > 0) {
-            targeting.geo_locations.cities = adSetConfig.geoLocations.cities.map((city: any) =>
+            geoLocations.cities = adSetConfig.geoLocations.cities.map((city: any) =>
               typeof city === 'string' ? { key: city } : city
             )
+          }
+
+          // Only add geo_locations if at least one location type is specified
+          if (Object.keys(geoLocations).length > 0) {
+            targeting.geo_locations = geoLocations
           }
 
           // Add gender (1 = male, 2 = female)
@@ -1905,49 +2280,19 @@ export class FacebookService {
             ]
           }
 
-          // Map optimization goal based on objective
-          const optimizationGoalMap: Record<string, string> = {
-            OUTCOME_TRAFFIC: 'LINK_CLICKS',
-            OUTCOME_AWARENESS: 'REACH',
-            OUTCOME_ENGAGEMENT: 'POST_ENGAGEMENT',
-            OUTCOME_LEADS: 'LEAD_GENERATION',
-            OUTCOME_SALES: 'OFFSITE_CONVERSIONS',
-            OUTCOME_APP_PROMOTION: 'APP_INSTALLS',
-          }
+          // Get optimization goal from user's selected optimization event
+          const optimizationGoal = this.getOptimizationGoal(adSetConfig.optimizationEvent)
 
-          const optimizationGoal =
-            optimizationGoalMap[launchData.campaign.objective] || 'LINK_CLICKS'
-
-          // Build promoted_object based on campaign objective
-          let promotedObject: any = undefined
-
-          // For LEADS campaigns, we need the page_id
-          if (launchData.campaign.objective === 'OUTCOME_LEADS') {
-            promotedObject = {
-              page_id: launchData.facebookPageId,
-            }
-          }
-          // For conversion-based campaigns, add pixel info
-          else if (launchData.facebookPixelId) {
-            promotedObject = {
-              pixel_id: launchData.facebookPixelId,
-            }
-
-            // Add custom conversion if specified
-            if (launchData.customConversionId) {
-              promotedObject.custom_conversion_id = launchData.customConversionId
-            }
-
-            // Add custom event type and name
-            if (launchData.customEventType) {
-              promotedObject.custom_event_type = launchData.customEventType
-
-              // For OTHER type, we need the custom event string
-              if (launchData.customEventType === 'OTHER' && launchData.customEventStr) {
-                promotedObject.custom_event_str = launchData.customEventStr
-              }
-            }
-          }
+          // Build promoted_object using helper method
+          const promotedObject = this.buildPromotedObject({
+            optimizationGoal,
+            campaignObjective: launchData.campaign.objective,
+            pageId: launchData.facebookPageId,
+            pixelId: launchData.facebookPixelId,
+            customEventType: launchData.customEventType,
+            customEventStr: launchData.customEventStr,
+            customConversionId: launchData.customConversionId,
+          })
 
           const adSetData = {
             name: adSetConfig.name,
@@ -2210,25 +2555,14 @@ export class FacebookService {
                 objectStorySpec.instagram_user_id = launchData.instagramAccountId
               }
 
-              // Map CTA from frontend format to Facebook API format
+              // Build call to action using helper method
               this.logger.log(`DEBUG: FACEBOOK_CTA_MAP = ${JSON.stringify(FACEBOOK_CTA_MAP)}`)
               this.logger.log(`DEBUG: adConfig.cta = ${adConfig.cta}`)
-              const callToAction: any = {
-                type: FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta,
-              }
-
-              // Add destination based on type
-              if (adConfig.destination.type === 'LANDING_PAGE') {
-                callToAction.value = { link: adConfig.destination.url }
-              } else if (adConfig.destination.type === 'LEAD_FORM') {
-                callToAction.value = {
-                  lead_gen_form_id: adConfig.destination.formId,
-                }
-              } else if (adConfig.destination.type === 'DEEPLINK') {
-                callToAction.value = {
-                  application: adConfig.destination.deeplink,
-                }
-              }
+              const callToAction = this.buildCallToAction({
+                cta: adConfig.cta,
+                destination: adConfig.destination,
+                displayLink: launchData.campaign.displayLink,
+              })
 
               let createdCreative: any
 
@@ -2236,81 +2570,16 @@ export class FacebookService {
                 // For videos with multiple placements (Feed + Story in ONE ad)
                 // IMPORTANT: Only create PAC if Feed and Story are DIFFERENT videos
                 if (videoIdFeed && videoIdStory && videoIdFeed !== videoIdStory) {
-                  // Use asset_feed_spec with asset_customization_rules (PAC)
-                  // Using label-based approach matching Ads Manager structure
-                  const assetFeedSpec = {
-                    ad_formats: ['AUTOMATIC_FORMAT'],
-                    videos: [
-                      {
-                        video_id: videoIdFeed,
-                        adlabels: [{ name: 'LBL_FEED_VIDEO' }],
-                      },
-                      {
-                        video_id: videoIdStory,
-                        adlabels: [{ name: 'LBL_STORY_VIDEO' }],
-                      },
-                    ],
-                    bodies: [
-                      {
-                        text: adConfig.primaryText,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    titles: [
-                      {
-                        text: adConfig.headline,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    descriptions: [
-                      { text: '' },
-                    ],
-                    link_urls: [
-                      {
-                        website_url: adConfig.destination.url || '',
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
-                    asset_customization_rules: [
-                      // Rule 1: All Stories/Reels/Search placements (portrait video)
-                      {
-                        customization_spec: {
-                          age_max: 65,
-                          age_min: 13,
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
-                          facebook_positions: ['story'],
-                          instagram_positions: ['ig_search', 'story', 'reels'],
-                          messenger_positions: ['story'],
-                          audience_network_positions: ['classic', 'rewarded_video'],
-                        },
-                        video_label: { name: 'LBL_STORY_VIDEO' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        title_label: { name: 'LBL_COMMON' },
-                        priority: 1,
-                      },
-                      // Rule 2: Default/fallback for everything else (Feed - square/landscape video)
-                      {
-                        customization_spec: {
-                          age_max: 65,
-                          age_min: 13,
-                        },
-                        video_label: { name: 'LBL_FEED_VIDEO' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        title_label: { name: 'LBL_COMMON' },
-                        priority: 2,
-                      },
-                    ],
-                    optimization_type: 'PLACEMENT',
-                    additional_data: {
-                      multi_share_end_card: false,
-                      is_click_to_message: false,
-                    },
-                    reasons_to_shop: false,
-                    shops_bundle: false,
-                  }
+                  // Build PAC video asset_feed_spec using helper method
+                  const assetFeedSpec = this.buildPacVideoAssetFeedSpec({
+                    videoIdFeed,
+                    videoIdStory,
+                    primaryText: adConfig.primaryText,
+                    headline: adConfig.headline,
+                    destinationUrl: adConfig.destination.url || '',
+                    displayLink: launchData.campaign.displayLink,
+                    cta: adConfig.cta,
+                  })
 
                   // Build object_story_spec (required even for PAC)
                   const objectStorySpecPAC: any = {
@@ -2372,82 +2641,16 @@ export class FacebookService {
                 // For images with multiple placements (Feed + Story in ONE ad)
                 // IMPORTANT: Only create PAC if Feed and Story are DIFFERENT images
                 if (imageHashFeed && imageHashStory && imageHashFeed !== imageHashStory) {
-                  // Use asset_feed_spec with asset_customization_rules (PAC)
-                  // Using label-based approach matching Ads Manager structure
-
-                  const assetFeedSpec = {
-                    ad_formats: ['AUTOMATIC_FORMAT'],
-                    images: [
-                      {
-                        hash: imageHashFeed,
-                        adlabels: [{ name: 'LBL_FEED_IMG' }],
-                      },
-                      {
-                        hash: imageHashStory,
-                        adlabels: [{ name: 'LBL_STORY_IMG' }],
-                      },
-                    ],
-                    bodies: [
-                      {
-                        text: adConfig.primaryText,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    titles: [
-                      {
-                        text: adConfig.headline,
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    descriptions: [
-                      { text: '' },
-                    ],
-                    link_urls: [
-                      {
-                        website_url: adConfig.destination.url || '',
-                        adlabels: [{ name: 'LBL_COMMON' }],
-                      },
-                    ],
-                    call_to_action_types: [FACEBOOK_CTA_MAP[adConfig.cta] || adConfig.cta],
-                    asset_customization_rules: [
-                      // Rule 1: All Stories/Reels/Search placements (portrait image)
-                      {
-                        customization_spec: {
-                          age_max: 65,
-                          age_min: 13,
-                          publisher_platforms: ['facebook', 'instagram', 'audience_network', 'messenger'],
-                          facebook_positions: ['story'],
-                          instagram_positions: ['ig_search', 'story', 'reels'],
-                          messenger_positions: ['story'],
-                          audience_network_positions: ['classic', 'rewarded_video'],
-                        },
-                        image_label: { name: 'LBL_STORY_IMG' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        title_label: { name: 'LBL_COMMON' },
-                        priority: 1,
-                      },
-                      // Rule 2: Default/fallback for everything else (Feed - square image)
-                      {
-                        customization_spec: {
-                          age_max: 65,
-                          age_min: 13,
-                        },
-                        image_label: { name: 'LBL_FEED_IMG' },
-                        body_label: { name: 'LBL_COMMON' },
-                        link_url_label: { name: 'LBL_COMMON' },
-                        title_label: { name: 'LBL_COMMON' },
-                        priority: 2,
-                      },
-                    ],
-                    optimization_type: 'PLACEMENT',
-                    additional_data: {
-                      multi_share_end_card: false,
-                      is_click_to_message: false,
-                    },
-                    reasons_to_shop: false,
-                    shops_bundle: false,
-                  }
+                  // Build PAC image asset_feed_spec using helper method
+                  const assetFeedSpec = this.buildPacImageAssetFeedSpec({
+                    imageHashFeed,
+                    imageHashStory,
+                    primaryText: adConfig.primaryText,
+                    headline: adConfig.headline,
+                    destinationUrl: adConfig.destination.url || '',
+                    displayLink: launchData.campaign.displayLink,
+                    cta: adConfig.cta,
+                  })
 
                   // Build object_story_spec (required even for PAC)
                   const objectStorySpecPAC: any = {
@@ -2485,6 +2688,9 @@ export class FacebookService {
                     name: adConfig.headline,
                     call_to_action: callToAction,
                     image_hash: imageHash,
+                    ...(launchData.campaign.displayLink && {
+                      display_link: launchData.campaign.displayLink,
+                    }),
                   }
 
                   this.logger.log(`Creating single image ad (${imageHashFeed ? 'Feed' : 'Story'} format for all placements)`)

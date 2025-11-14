@@ -201,15 +201,16 @@ export interface BulkLauncherState {
 }
 
 const initialCampaign: Partial<CampaignConfig> = {
-  name: 'Test Campaign',
-  type: 'Traffic',
+  name: '',
+  type: undefined, // Campaign objective (Awareness, Traffic, Leads, etc.)
   objective: '',
-  redirectionType: 'LANDING_PAGE',
-  redirectionUrl: 'https://test.io',
-  budgetMode: 'CBO',
-  budgetType: 'daily',
-  budget: 1000,
-  startDate: 'NOW',
+  destinationType: undefined, // Meta Ads v24 ODAX: WEBSITE, ON_AD, MESSENGER, etc.
+  redirectionType: undefined, // Deprecated - kept for backward compatibility
+  redirectionUrl: '',
+  budgetMode: undefined, // CBO or ABO
+  budgetType: undefined, // daily or lifetime
+  budget: undefined,
+  startDate: undefined, // 'NOW' or ISO date
   startTime: undefined,
   urlParamsOverride: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}',
   urlTags: 'visuel={{ad.name}}&site_source_name={{site_source_name}}&placement={{placement}}&meta_campaign_id={{campaign.id}}&meta_adset_id={{adset.id}}&meta_ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{adset.name}}', // Facebook url_tags for UTM tracking at creative level
@@ -217,10 +218,10 @@ const initialCampaign: Partial<CampaignConfig> = {
 
 const initialBulkAudiences: BulkAudiencesConfig = {
   audiences: [],
-  placementPresets: ['ALL_PLACEMENTS'],
+  placementPresets: ['ALL_PLACEMENTS'], // Default: All placements selected
   customPlacements: [],
   geoLocations: {
-    countries: ['US'],
+    countries: [],
     regions: [],
     cities: [],
   },
@@ -230,9 +231,12 @@ const initialBulkAudiences: BulkAudiencesConfig = {
     gender: 'All',
     languages: [],
   },
-  optimizationEvent: 'LINK_CLICK',
-  budgetPerAdSet: 50,
+  optimizationEvent: '',
+  budgetPerAdSet: undefined,
   budgetType: 'daily',
+  customEventType: undefined,
+  customEventStr: undefined,
+  customConversionId: undefined,
 }
 
 const initialBulkCreatives: BulkCreativesConfig = {

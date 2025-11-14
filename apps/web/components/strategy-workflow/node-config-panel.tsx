@@ -4,7 +4,13 @@ import { X, Plus, Trash2, Users, Target, Layers, Minimize2 } from 'lucide-react'
 import type { CampaignNodeData, NodeDimension, AudienceConfig, AudienceType } from '@/lib/types/workflow'
 import { META_OBJECTIVES, GOOGLE_CAMPAIGN_TYPES, AUDIENCE_TYPES } from '@/lib/types/workflow'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { CustomSelect } from '@/components/ui/custom-select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface NodeConfigPanelProps {
   node: any | null
@@ -261,12 +267,21 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
               {/* Objective */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">Objective</label>
-                <CustomSelect
-                  value={objective}
-                  onChange={(value) => setObjective(value as any)}
-                  options={objectiveOptions}
-                  placeholder={nodeData?.platform === 'google' ? 'Select campaign type' : 'Select objective'}
-                />
+                <Select value={objective} onValueChange={(value) => setObjective(value as any)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={nodeData?.platform === 'google' ? 'Select campaign type' : 'Select objective'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {objectiveOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          {option.icon}
+                          <span>{option.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Multiplier */}
@@ -527,24 +542,30 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Combination Mode
                       </label>
-                      <CustomSelect
+                      <Select
                         value={dim.combinationMode}
-                        onChange={(value) =>
+                        onValueChange={(value) =>
                           updateDimension(dim.id, { combinationMode: value as any })
                         }
-                        options={[
-                          {
-                            value: 'multiply',
-                            label: 'Multiply (combine)',
-                            icon: <Layers className="h-3.5 w-3.5 text-amber-600" />,
-                          },
-                          {
-                            value: 'separate',
-                            label: 'Separate (1 each)',
-                            icon: <Minimize2 className="h-3.5 w-3.5 text-teal-600" />,
-                          },
-                        ]}
-                      />
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="multiply">
+                            <div className="flex items-center gap-2">
+                              <Layers className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Multiply (combine)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="separate">
+                            <div className="flex items-center gap-2">
+                              <Minimize2 className="h-3.5 w-3.5 text-teal-600" />
+                              <span>Separate (1 each)</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="text-xs text-gray-500">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Image as ImageIcon, Video, Loader2, Monitor, Smartphone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface MediaLibraryModalProps {
   open: boolean
@@ -118,18 +119,18 @@ export function MediaLibraryModal({
               Select {type === 'image' ? 'Image' : 'Video'} from Library
             </h2>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
               onClose()
             }}
-            className="p-2 rounded-lg hover:bg-muted transition-colors"
-            type="button"
             aria-label="Close modal"
           >
-            <X className="h-5 w-5 text-muted-foreground" />
-          </button>
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Content */}
@@ -141,12 +142,9 @@ export function MediaLibraryModal({
           ) : error ? (
             <div className="text-center py-12">
               <p className="text-destructive">{error}</p>
-              <button
-                onClick={fetchMedia}
-                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-              >
+              <Button onClick={fetchMedia} className="mt-4">
                 Retry
-              </button>
+              </Button>
             </div>
           ) : media.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -198,36 +196,43 @@ export function MediaLibraryModal({
                     <div className="p-1.5 bg-card flex gap-1">
                       {targetCreativeId && targetSlot ? (
                         // If targeting a specific slot, show only that button
-                        <button
+                        <Button
+                          size="sm"
                           onClick={() => handleAssign(item, targetSlot === 'feed' ? 'Feed' : 'Story')}
-                          className="flex-1 px-1.5 py-1 rounded text-[10px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                          className="flex-1 text-[10px] h-6 px-1.5"
                         >
                           Select
-                        </button>
+                        </Button>
                       ) : (
                         // Otherwise show all three options
                         <>
-                          <button
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => handleAssign(item, 'Feed')}
-                            className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded text-[10px] font-medium bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
+                            className="flex-1 h-6 px-1.5 text-[10px]"
                             title="Add as Feed"
                           >
                             <Monitor className="h-3 w-3" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => handleAssign(item, 'Story')}
-                            className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded text-[10px] font-medium bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
+                            className="flex-1 h-6 px-1.5 text-[10px]"
                             title="Add as Story"
                           >
                             <Smartphone className="h-3 w-3" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => handleAssign(item, 'Both')}
-                            className="flex-1 px-1.5 py-1 rounded text-[10px] font-medium bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
+                            className="flex-1 h-6 px-1.5 text-[10px]"
                             title="Add as Both"
                           >
                             Both
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>

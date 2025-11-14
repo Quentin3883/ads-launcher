@@ -2,6 +2,9 @@
 
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { Image, FileText, Rocket } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 /**
  * Express Mode - Step 3: Créa & Lancement
@@ -79,12 +82,12 @@ export function ExpressCreativeStep() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Texte principal
             </label>
-            <textarea
+            <Textarea
               value={adCopy.primaryText || ''}
               onChange={(e) => setAdCopy({ ...adCopy, primaryText: e.target.value })}
               placeholder="Écrivez votre message..."
               rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -92,12 +95,11 @@ export function ExpressCreativeStep() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Titre
             </label>
-            <input
+            <Input
               type="text"
               value={adCopy.headline || ''}
               onChange={(e) => setAdCopy({ ...adCopy, headline: e.target.value })}
               placeholder="Un titre accrocheur..."
-              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -105,12 +107,11 @@ export function ExpressCreativeStep() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Description
             </label>
-            <input
+            <Input
               type="text"
               value={adCopy.description || ''}
               onChange={(e) => setAdCopy({ ...adCopy, description: e.target.value })}
               placeholder="Courte description..."
-              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -118,10 +119,13 @@ export function ExpressCreativeStep() {
 
       {/* Launch Button */}
       <div className="flex justify-center pt-4">
-        <button className="flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
+        <Button
+          size="lg"
+          className="flex items-center gap-3 px-8 py-6 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl"
+        >
           <Rocket className="h-6 w-6" />
           Lancer la campagne
-        </button>
+        </Button>
       </div>
     </div>
   )

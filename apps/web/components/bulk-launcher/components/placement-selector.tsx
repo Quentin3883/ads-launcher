@@ -1,6 +1,7 @@
 'use client'
 
-import { SectionCard } from '@/components/ui/section-card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { PLACEMENT_PRESETS, type PlacementPreset } from '@launcher-ads/sdk'
 
 const PLACEMENT_PRESET_OPTIONS: { value: PlacementPreset; label: string; placements: string[] }[] =
@@ -21,31 +22,29 @@ interface PlacementSelectorProps {
 
 export function PlacementSelector({ selectedPresets, onToggle }: PlacementSelectorProps) {
   return (
-    <SectionCard title="Placement Presets">
-      <div className="grid grid-cols-3 gap-3">
-        {PLACEMENT_PRESET_OPTIONS.map((preset) => (
-          <button
-            key={preset.value}
-            onClick={() => onToggle(preset.value)}
-            className={`p-4 rounded-lg border-2 text-left transition-all ${
-              selectedPresets.includes(preset.value)
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-background hover:border-primary/50'
-            }`}
-          >
-            <div
-              className={`font-semibold text-sm ${
-                selectedPresets.includes(preset.value) ? 'text-primary' : 'text-foreground'
-              }`}
+    <Card>
+      <CardHeader>
+        <CardTitle>Placement Presets</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-3">
+          {PLACEMENT_PRESET_OPTIONS.map((preset) => (
+            <Button
+              key={preset.value}
+              onClick={() => onToggle(preset.value)}
+              variant={selectedPresets.includes(preset.value) ? 'default' : 'outline'}
+              className="p-4 h-auto flex-col items-start text-left"
             >
-              {preset.label}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {preset.placements.join(', ')}
-            </div>
-          </button>
-        ))}
-      </div>
-    </SectionCard>
+              <div className="font-semibold text-sm">
+                {preset.label}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {preset.placements.join(', ')}
+              </div>
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

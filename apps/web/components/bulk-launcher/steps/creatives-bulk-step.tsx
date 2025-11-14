@@ -4,11 +4,10 @@ import { useState, useRef } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { CTA_OPTIONS, generateId, hasDynamicParams, getPreviewText } from '@launcher-ads/sdk'
 import type { Creative, CreativeVersion, CreativeLabel } from '@launcher-ads/sdk'
-import { Upload, Trash2, Plus, X, Monitor, Smartphone, Lock, Library, ChevronDown, Sparkles } from 'lucide-react'
-import { FormField } from '@/components/ui/form-field'
-import { FormSelect } from '@/components/ui/form-select'
-import { SectionCard } from '@/components/ui/section-card'
+import { Upload, Trash2, Plus, X, Monitor, Smartphone, Library, ChevronDown, Sparkles } from 'lucide-react'
 import { MediaLibraryModal } from '../media-library-modal'
+import { FormSection, Input, Select, ds, Button } from '../ui/shadcn'
+import { Textarea } from '@/components/ui/textarea'
 
 export function CreativesBulkStep() {
   const {
@@ -223,21 +222,21 @@ export function CreativesBulkStep() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={ds.spacing.vertical.md}>
       {/* Header + Stats */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-foreground">Creatives & Copies</h3>
-          <p className="text-xs text-muted-foreground">Upload files • Auto-groups: "Name - Feed.png" + "Name - Story.png"</p>
+          <h3 className={ds.typography.pageTitle}>Creatives & Copies</h3>
+          <p className={ds.componentPresets.hint}>Upload files • Auto-groups: "Name - Feed.png" + "Name - Story.png"</p>
         </div>
-        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground">Creatives</div>
+        <div className={ds.cn('rounded-lg border border-primary/30 bg-primary/5', ds.spacing.padding.sm)}>
+          <div className={ds.cn(ds.typography.caption, 'text-muted-foreground')}>Creatives</div>
           <div className="text-xl font-bold text-primary">{bulkCreatives.creatives.length}</div>
         </div>
       </div>
 
       {/* Actions Row */}
-      <div className="flex gap-2">
+      <div className={ds.cn('flex', ds.spacing.gap.sm)}>
         {/* Upload Zone - Compact */}
         <div
           onDragOver={(e) => {
@@ -247,13 +246,15 @@ export function CreativesBulkStep() {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`flex-1 rounded-lg border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+          className={ds.cn(
+            'flex-1 rounded-lg border-2 border-dashed text-center cursor-pointer transition-all',
+            ds.spacing.padding.md,
             dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/20 hover:border-primary/50'
-          }`}
+          )}
         >
           <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-          <p className="text-xs font-medium text-foreground">Drop files or click to upload</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Support: -Feed / -Story suffixes</p>
+          <p className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Drop files or click to upload</p>
+          <p className={ds.cn(ds.typography.caption, 'text-muted-foreground mt-0.5')}>Support: -Feed / -Story suffixes</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -265,98 +266,124 @@ export function CreativesBulkStep() {
         </div>
 
         {/* Browse Library Buttons */}
-        <button
+        <Button
           onClick={() => {
             setMediaLibraryType('video')
             setShowMediaLibrary(true)
           }}
-          className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors min-w-[100px]"
+          variant="outline"
+          className={ds.cn(
+            'flex flex-col items-center justify-center rounded-lg min-w-[100px]',
+            ds.spacing.gap.xs,
+            ds.spacing.padding.sm
+          )}
         >
           <Library className="h-5 w-5" />
-          <span className="text-xs">Videos</span>
-        </button>
-        <button
+          <span className={ds.typography.caption}>Videos</span>
+        </Button>
+        <Button
           onClick={() => {
             setMediaLibraryType('image')
             setShowMediaLibrary(true)
           }}
-          className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors min-w-[100px]"
+          variant="outline"
+          className={ds.cn(
+            'flex flex-col items-center justify-center rounded-lg min-w-[100px]',
+            ds.spacing.gap.xs,
+            ds.spacing.padding.sm
+          )}
         >
           <Library className="h-5 w-5" />
-          <span className="text-xs">Images</span>
-        </button>
+          <span className={ds.typography.caption}>Images</span>
+        </Button>
 
         {/* Add Empty Creative */}
-        <button
+        <Button
           onClick={handleAddEmptyCreative}
-          className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors min-w-[100px]"
+          variant="outline"
+          className={ds.cn(
+            'flex flex-col items-center justify-center rounded-lg border-2 border-dashed min-w-[100px]',
+            ds.spacing.gap.xs,
+            ds.spacing.padding.sm
+          )}
         >
           <Plus className="h-5 w-5" />
-          <span className="text-xs font-medium">New</span>
-        </button>
+          <span className={ds.cn(ds.typography.caption, 'font-medium')}>New</span>
+        </Button>
       </div>
 
       {/* Creatives Grid */}
       {bulkCreatives.creatives.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-foreground">Creatives ({bulkCreatives.creatives.length})</h4>
+        <div className={ds.spacing.vertical.sm}>
+          <h4 className={ds.cn(ds.typography.cardTitle, 'text-foreground')}>Creatives ({bulkCreatives.creatives.length})</h4>
 
-          <div className="space-y-1.5">
+          <div className={ds.spacing.vertical.xs}>
             {bulkCreatives.creatives.map((creative) => (
-              <div key={creative.id} className="p-2 rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2">
+              <div key={creative.id} className={ds.cn('rounded-lg border border-border bg-card', ds.spacing.padding.sm)}>
+                <div className={ds.cn('flex items-center', ds.spacing.gap.sm)}>
                   {/* Creative Name */}
                   <div className="flex-1 min-w-0">
                     <input
                       type="text"
                       value={creative.name}
                       onChange={(e) => updateCreative(creative.id, { name: e.target.value })}
-                      className="w-full px-2 py-1 text-xs font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded"
+                      className={ds.cn(
+                        'w-full px-2 py-1 font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded',
+                        ds.typography.caption
+                      )}
                     />
                   </div>
 
                   {/* Label Pills */}
-                  <div className="flex gap-1">
-                    <button
+                  <div className={ds.cn('flex', ds.spacing.gap.xs)}>
+                    <Button
                       onClick={() => updateCreative(creative.id, { label: 'Static' })}
-                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
-                        creative.label === 'Static'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      variant={creative.label === 'Static' ? 'default' : 'secondary'}
+                      size="sm"
+                      className={ds.cn(
+                        ds.componentPresets.badge,
+                        'font-medium transition-colors',
+                        creative.label === 'Static' && ds.getBadgeColor('blue')
+                      )}
                     >
                       Static
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => updateCreative(creative.id, { label: 'Video' })}
-                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
-                        creative.label === 'Video'
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      variant={creative.label === 'Video' ? 'default' : 'secondary'}
+                      size="sm"
+                      className={ds.cn(
+                        ds.componentPresets.badge,
+                        'font-medium transition-colors',
+                        creative.label === 'Video' && ds.getBadgeColor('green')
+                      )}
                     >
                       Video
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => updateCreative(creative.id, { label: 'UGC' })}
-                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
-                        creative.label === 'UGC'
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      variant={creative.label === 'UGC' ? 'default' : 'secondary'}
+                      size="sm"
+                      className={ds.cn(
+                        ds.componentPresets.badge,
+                        'font-medium transition-colors',
+                        creative.label === 'UGC' && ds.getBadgeColor('purple')
+                      )}
                     >
                       UGC
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => updateCreative(creative.id, { label: 'Other' })}
-                      className={`px-2 py-1 text-[10px] font-medium rounded-full transition-colors ${
-                        creative.label === 'Other'
-                          ? 'bg-yellow-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      variant={creative.label === 'Other' ? 'default' : 'secondary'}
+                      size="sm"
+                      className={ds.cn(
+                        ds.componentPresets.badge,
+                        'font-medium transition-colors',
+                        creative.label === 'Other' && ds.getBadgeColor('orange')
+                      )}
                     >
                       Other
-                    </button>
+                    </Button>
                   </div>
 
                   {/* Feed Preview */}
@@ -372,26 +399,29 @@ export function CreativesBulkStep() {
                         ) : (
                           <img src={creative.feedVersion.thumbnail || creative.feedVersion.url} alt="Feed" className="w-full h-full object-cover" />
                         )}
-                        <button
+                        <Button
                           onClick={() => updateCreative(creative.id, { feedVersion: undefined })}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center h-auto p-0"
                         >
                           <X className="h-3 w-3 text-white" />
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="relative">
-                        <button
+                        <Button
                           onClick={() => setOpenDropdown(openDropdown === `${creative.id}-feed` ? null : `${creative.id}-feed`)}
                           onBlur={() => setTimeout(() => setOpenDropdown(null), 200)}
-                          className="w-12 h-12 rounded border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 cursor-pointer flex flex-col items-center justify-center"
+                          variant="outline"
+                          className="w-12 h-12 rounded border-2 border-dashed cursor-pointer flex flex-col items-center justify-center p-1"
                         >
                           <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-[8px] text-muted-foreground">Feed</span>
-                        </button>
+                          <span className={ds.cn(ds.typography.caption, 'text-muted-foreground')}>Feed</span>
+                        </Button>
                         {openDropdown === `${creative.id}-feed` && (
                           <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
-                            <button
+                            <Button
                               onClick={() => {
                                 const input = document.createElement('input')
                                 input.type = 'file'
@@ -405,11 +435,12 @@ export function CreativesBulkStep() {
                                 }
                                 input.click()
                               }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted cursor-pointer rounded-t-lg"
+                              variant="ghost"
+                              className={ds.cn('w-full text-left px-3 py-2 cursor-pointer rounded-t-lg justify-start', ds.typography.caption)}
                             >
                               Computer
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => {
                                 setTargetCreativeId(creative.id)
                                 setTargetSlot('feed')
@@ -420,10 +451,11 @@ export function CreativesBulkStep() {
                                 setShowMediaLibrary(true)
                                 setOpenDropdown(null)
                               }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted rounded-b-lg"
+                              variant="ghost"
+                              className={ds.cn('w-full text-left px-3 py-2 rounded-b-lg justify-start', ds.typography.caption)}
                             >
                               Library
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -443,26 +475,29 @@ export function CreativesBulkStep() {
                         ) : (
                           <img src={creative.storyVersion.thumbnail || creative.storyVersion.url} alt="Story" className="w-full h-full object-cover" />
                         )}
-                        <button
+                        <Button
                           onClick={() => updateCreative(creative.id, { storyVersion: undefined })}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center h-auto p-0"
                         >
                           <X className="h-2.5 w-2.5 text-white" />
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="relative">
-                        <button
+                        <Button
                           onClick={() => setOpenDropdown(openDropdown === `${creative.id}-story` ? null : `${creative.id}-story`)}
                           onBlur={() => setTimeout(() => setOpenDropdown(null), 200)}
-                          className="w-7 h-12 rounded border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 cursor-pointer flex flex-col items-center justify-center"
+                          variant="outline"
+                          className="w-7 h-12 rounded border-2 border-dashed cursor-pointer flex flex-col items-center justify-center p-1"
                         >
                           <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-[8px] text-muted-foreground">Story</span>
-                        </button>
+                          <span className={ds.cn(ds.typography.caption, 'text-muted-foreground')}>Story</span>
+                        </Button>
                         {openDropdown === `${creative.id}-story` && (
                           <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
-                            <button
+                            <Button
                               onClick={() => {
                                 const input = document.createElement('input')
                                 input.type = 'file'
@@ -476,11 +511,12 @@ export function CreativesBulkStep() {
                                 }
                                 input.click()
                               }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted cursor-pointer rounded-t-lg"
+                              variant="ghost"
+                              className={ds.cn('w-full text-left px-3 py-2 cursor-pointer rounded-t-lg justify-start', ds.typography.caption)}
                             >
                               Computer
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => {
                                 setTargetCreativeId(creative.id)
                                 setTargetSlot('story')
@@ -491,10 +527,11 @@ export function CreativesBulkStep() {
                                 setShowMediaLibrary(true)
                                 setOpenDropdown(null)
                               }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted rounded-b-lg"
+                              variant="ghost"
+                              className={ds.cn('w-full text-left px-3 py-2 rounded-b-lg justify-start', ds.typography.caption)}
                             >
                               Library
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -502,51 +539,54 @@ export function CreativesBulkStep() {
                   </div>
 
                   {/* Toggle Copy Fields */}
-                  <button
+                  <Button
                     onClick={() => setExpandedCreativeId(expandedCreativeId === creative.id ? null : creative.id)}
-                    className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors h-auto"
                     title="Edit copy for this creative"
                   >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedCreativeId === creative.id ? 'rotate-180' : ''}`} />
-                  </button>
+                    <ChevronDown className={ds.cn('h-3.5 w-3.5 transition-transform', expandedCreativeId === creative.id && 'rotate-180')} />
+                  </Button>
 
                   {/* Delete Creative */}
-                  <button
+                  <Button
                     onClick={() => removeCreative(creative.id)}
-                    className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors h-auto"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Expandable Copy Fields */}
                 {expandedCreativeId === creative.id && (
-                  <div className="mt-2 pt-2 border-t border-border space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground mb-1.5">
+                  <div className={ds.cn('mt-2 pt-2 border-t border-border', ds.spacing.vertical.sm)}>
+                    <div className={ds.cn('flex items-center gap-2 mb-1.5', ds.typography.caption, 'font-medium text-muted-foreground')}>
                       <span>Optional Copy (overrides copy variants)</span>
-                      <div className="flex items-center gap-1 text-blue-600">
+                      <div className={ds.cn('flex items-center', ds.spacing.gap.xs, 'text-blue-600')}>
                         <Sparkles className="h-3 w-3" />
                         <span>Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={ds.cn('grid grid-cols-2', ds.spacing.gap.sm)}>
                       <div>
-                        <FormField
+                        <Input
                           label="Headline"
                           maxLength={255}
                           value={creative.headline || ''}
                           onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
                           placeholder="Override headline for this creative..."
-                          className="text-xs"
                         />
                         {creative.headline && hasDynamicParams(creative.headline) && (
                           <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                            <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                            <p className="text-[10px] text-blue-700">{getPreviewText(creative.headline)}</p>
+                            <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                            <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(creative.headline)}</p>
                           </div>
                         )}
                       </div>
-                      <FormSelect
+                      <Select
                         label="CTA"
                         value={creative.cta || ''}
                         onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
@@ -554,34 +594,31 @@ export function CreativesBulkStep() {
                           { value: '', label: '(Clear - use global)' },
                           ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
                         ]}
-                        className="text-xs"
                       />
                     </div>
                     <div>
-                      <FormField
-                        label="Primary Text"
+                      <label className={ds.componentPresets.label}>Primary Text</label>
+                      <Textarea
                         maxLength={2000}
                         value={creative.primaryText || ''}
-                        onChange={(val) => updateCreative(creative.id, { primaryText: val || undefined })}
+                        onChange={(e) => updateCreative(creative.id, { primaryText: e.target.value || undefined })}
                         placeholder="Override primary text for this creative..."
-                        multiline
                         rows={2}
-                        className="text-xs"
+                        className={ds.cn(ds.typography.body)}
                       />
                       {creative.primaryText && hasDynamicParams(creative.primaryText) && (
                         <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                          <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                          <p className="text-[10px] text-blue-700">{getPreviewText(creative.primaryText)}</p>
+                          <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                          <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(creative.primaryText)}</p>
                         </div>
                       )}
                     </div>
-                    <FormField
+                    <Input
                       label="Description"
                       maxLength={255}
                       value={creative.description || ''}
                       onChange={(val) => updateCreative(creative.id, { description: val || undefined })}
                       placeholder="Optional description..."
-                      className="text-xs"
                     />
                   </div>
                 )}
@@ -592,20 +629,11 @@ export function CreativesBulkStep() {
       )}
 
       {/* Copy Section */}
-      <SectionCard
-        title="Ad Copy"
-        subtitle={
-          <span className="flex items-center gap-1 text-blue-600">
-            <Sparkles className="h-3 w-3" />
-            <span className="text-xs">Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
-          </span>
-        }
-        className="p-3"
-      >
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+      <FormSection title="Ad Copy">
+        <div className={ds.spacing.vertical.md}>
+          <div className={ds.cn('grid grid-cols-3', ds.spacing.gap.md)}>
             <div>
-              <FormField
+              <Input
                 label="Headline"
                 maxLength={40}
                 value={bulkCreatives.globalHeadline || ''}
@@ -626,13 +654,13 @@ export function CreativesBulkStep() {
               />
               {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
                 <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                  <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                  <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalHeadline)}</p>
+                  <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                  <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalHeadline)}</p>
                 </div>
               )}
             </div>
             <div>
-              <FormField
+              <Input
                 label="Primary Text"
                 maxLength={125}
                 value={bulkCreatives.globalPrimaryText || ''}
@@ -653,12 +681,12 @@ export function CreativesBulkStep() {
               />
               {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
                 <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                  <p className="text-[9px] text-blue-600 font-medium">Preview:</p>
-                  <p className="text-[10px] text-blue-700">{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
+                  <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                  <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
                 </div>
               )}
             </div>
-            <FormSelect
+            <Select
               label="CTA"
               value={bulkCreatives.globalCTA || 'Learn More'}
               onChange={(val) => {
@@ -674,11 +702,11 @@ export function CreativesBulkStep() {
                   }
                 })
               }}
-              options={CTA_OPTIONS}
+              options={CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))}
             />
           </div>
           <div className="flex justify-end">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 // Apply global copy to all creatives (override any existing specific wording)
@@ -690,35 +718,36 @@ export function CreativesBulkStep() {
                   })
                 })
               }}
-              className="px-3 py-1.5 rounded-md bg-foreground text-background text-xs font-medium hover:bg-foreground/90 active:scale-95 transition-all shadow-sm"
+              className={ds.cn(
+                'px-3 py-1.5 rounded-md',
+                ds.typography.caption
+              )}
             >
               Apply to All
-            </button>
+            </Button>
           </div>
         </div>
-      </SectionCard>
+      </FormSection>
 
       {/* Copy Variants */}
-      <SectionCard
-        title="Copy Variants (A/B Test)"
-        subtitle="Multiply ads for testing"
-        headerAction={
-          <label className="flex items-center gap-2 cursor-pointer">
+      <FormSection
+        title="Copy Variants"
+        badge={
+          <label className={ds.cn('flex items-center cursor-pointer', ds.spacing.gap.sm)}>
             <input
               type="checkbox"
               checked={bulkCreatives.enableVariants}
               onChange={(e) => updateBulkCreatives({ enableVariants: e.target.checked })}
-              className="rounded border-border"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20 focus:ring-offset-0"
             />
-            <span className="text-xs text-foreground">Enable</span>
+            <span className={ds.cn(ds.typography.caption, 'text-foreground font-medium')}>Enable</span>
           </label>
         }
-        className="p-3"
       >
         {bulkCreatives.enableVariants && (
-          <div className="space-y-2">
+          <div className={ds.spacing.vertical.sm}>
             {(bulkCreatives.copyVariants || []).map((variant) => (
-              <div key={variant.id} className="flex items-center gap-2">
+              <div key={variant.id} className={ds.cn('flex items-center', ds.spacing.gap.sm)}>
                 <input
                   type="text"
                   value={variant.name}
@@ -729,7 +758,7 @@ export function CreativesBulkStep() {
                     updateBulkCreatives({ copyVariants: updated })
                   }}
                   placeholder="VP-A"
-                  className="w-16 px-2 py-1 text-xs font-semibold rounded border border-border bg-background"
+                  className={ds.cn('w-16 px-2 py-1 font-semibold rounded border border-border bg-background', ds.typography.caption)}
                 />
                 <input
                   type="text"
@@ -742,7 +771,7 @@ export function CreativesBulkStep() {
                     )
                     updateBulkCreatives({ copyVariants: updated })
                   }}
-                  className="flex-1 px-3 py-1.5 text-xs rounded border border-border bg-background"
+                  className={ds.cn('flex-1 px-3 py-1.5 rounded border border-border bg-background', ds.typography.caption)}
                 />
                 <input
                   type="text"
@@ -755,7 +784,7 @@ export function CreativesBulkStep() {
                     )
                     updateBulkCreatives({ copyVariants: updated })
                   }}
-                  className="flex-1 px-3 py-1.5 text-xs rounded border border-border bg-background"
+                  className={ds.cn('flex-1 px-3 py-1.5 rounded border border-border bg-background', ds.typography.caption)}
                 />
                 <select
                   value={variant.cta}
@@ -765,7 +794,7 @@ export function CreativesBulkStep() {
                     )
                     updateBulkCreatives({ copyVariants: updated })
                   }}
-                  className="w-32 px-2 py-1.5 text-xs rounded border border-border bg-background"
+                  className={ds.cn('w-32 px-2 py-1.5 rounded border border-border bg-background', ds.typography.caption)}
                 >
                   {CTA_OPTIONS.map((cta) => (
                     <option key={cta} value={cta}>
@@ -773,16 +802,18 @@ export function CreativesBulkStep() {
                     </option>
                   ))}
                 </select>
-                <button
+                <Button
                   onClick={() => removeCopyVariant(variant.id)}
-                  className="p-1.5 rounded text-destructive hover:bg-destructive/10"
+                  variant="ghost"
+                  size="sm"
+                  className="p-1.5 rounded text-destructive hover:bg-destructive/10 h-auto"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             ))}
 
-            <button
+            <Button
               onClick={() =>
                 addCopyVariant({
                   id: generateId(),
@@ -792,14 +823,19 @@ export function CreativesBulkStep() {
                   cta: 'Learn More',
                 })
               }
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-border hover:bg-muted transition-colors text-xs w-full justify-center"
+              variant="outline"
+              className={ds.cn(
+                'flex items-center justify-center w-full px-3 py-1.5 rounded-lg border-dashed',
+                ds.spacing.gap.sm,
+                ds.typography.caption
+              )}
             >
               <Plus className="h-3.5 w-3.5" />
               Add Variant
-            </button>
+            </Button>
           </div>
         )}
-      </SectionCard>
+      </FormSection>
 
       {/* Media Library Modal */}
       <MediaLibraryModal

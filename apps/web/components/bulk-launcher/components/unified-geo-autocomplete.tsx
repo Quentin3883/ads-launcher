@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, MapPin, Map, Globe } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface GeoLocation {
   key: string
@@ -170,13 +172,15 @@ export function UnifiedGeoAutocomplete({
             >
               {getIcon(location.type)}
               <span>{location.name}</span>
-              <button
+              <Button
                 onClick={() => handleRemove(location.key)}
-                className="hover:opacity-70 transition-opacity"
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 hover:opacity-70"
                 type="button"
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -186,7 +190,7 @@ export function UnifiedGeoAutocomplete({
       <div className="relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={query}
@@ -196,7 +200,7 @@ export function UnifiedGeoAutocomplete({
             }}
             onFocus={() => setIsOpen(true)}
             placeholder={placeholder}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="pl-10 pr-4"
           />
         </div>
 
@@ -219,15 +223,12 @@ export function UnifiedGeoAutocomplete({
                 {suggestions.map((location) => {
                   const isSelected = value.some(v => v.key === location.key)
                   return (
-                    <button
+                    <Button
                       key={location.key}
                       onClick={() => handleSelect(location)}
                       disabled={isSelected}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isSelected
-                          ? 'opacity-50 cursor-not-allowed bg-muted'
-                          : 'hover:bg-muted cursor-pointer'
-                      }`}
+                      variant="ghost"
+                      className="w-full justify-start h-auto flex items-center gap-3 px-4 py-2.5 text-left"
                       type="button"
                     >
                       <div className={`p-1.5 rounded ${getTypeColor(location.type)}`}>
@@ -248,7 +249,7 @@ export function UnifiedGeoAutocomplete({
                       <div className="text-[10px] uppercase font-semibold text-muted-foreground">
                         {location.type}
                       </div>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>

@@ -3,6 +3,7 @@
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { UploadProgressList } from './upload-progress-list'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
+import { Button } from '@/components/ui/button'
 
 export interface ProgressStep {
   id: string
@@ -37,12 +38,9 @@ export function CampaignProgressModal({ open, steps, onClose }: CampaignProgress
             {hasError ? 'Campaign Creation Failed' : allCompleted ? 'Campaign Created Successfully' : 'Creating Campaign...'}
           </h2>
           {(allCompleted || hasError) && onClose && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
+            <Button onClick={onClose}>
               Close
-            </button>
+            </Button>
           )}
         </div>
 

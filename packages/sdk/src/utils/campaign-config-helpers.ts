@@ -1,53 +1,36 @@
 /**
  * Campaign Configuration Helpers
- * Auto-complétion et validation des configurations de campagne Facebook API v24
+ * Auto-complétion et validation des configurations de campagne Facebook API v24 ODAX
  */
 
 import type { CampaignConfig } from '../schemas/bulk-launcher.schema'
 import {
-  type FacebookObjective,
-  type OptimizationGoal,
-  type BillingEvent,
-  type DestinationType,
+  ODAX_OPTIMIZATION_GOALS,
   DEFAULT_OPTIMIZATION_GOAL,
-  DEFAULT_BILLING_EVENT,
-  DEFAULT_BID_STRATEGY,
-  DEFAULT_BUYING_TYPE,
-  OBJECTIVE_TO_DESTINATION_TYPES,
-  validateCampaignConfig,
-} from '../constants/facebook-api-v24-config'
-import { CAMPAIGN_TYPE_TO_OBJECTIVE } from '../constants/facebook-mappings'
+  OPTIMIZATION_GOAL_TO_BILLING_EVENTS,
+  getAvailableDestinations,
+  requiresPixel,
+  getRequiredPromotedObjectFields as getRequiredFieldsFromSchema,
+} from '../schemas/bulk-launcher.schema'
 
 /**
  * Auto-complète les champs manquants d'une campagne selon son objectif
- * Utilise les valeurs recommandées par Facebook API v24
+ * Utilise les valeurs recommandées par Facebook API v24 ODAX
  */
 export function autoCompleteCampaignConfig(
   campaign: Partial<CampaignConfig>
 ): CampaignConfig {
-  // Déterminer l'objectif Facebook depuis le type de campagne
-  let facebookObjective: FacebookObjective | undefined
+  const campaignType = campaign.type
 
-  if (campaign.type) {
-    facebookObjective = CAMPAIGN_TYPE_TO_OBJECTIVE[campaign.type] as FacebookObjective
-  }
-
-  // Si pas d'objectif déterminable, retourner la campagne telle quelle
-  if (!facebookObjective) {
+  // Si pas d'objectif, retourner tel quel
+  if (!campaignType) {
     return campaign as CampaignConfig
   }
-
-  // Configuration recommandée
-  const optimizationGoal = campaign.optimizationGoal || DEFAULT_OPTIMIZATION_GOAL[facebookObjective]
-  const billingEvent = campaign.billingEvent || DEFAULT_BILLING_EVENT[facebookObjective]
-  const bidStrategy = campaign.bidStrategy || DEFAULT_BID_STRATEGY
-  const buyingType = campaign.buyingType || DEFAULT_BUYING_TYPE
 
   // Destination type par défaut
   let destinationType = campaign.destinationType
   if (!destinationType) {
-    const allowedDestinations = OBJECTIVE_TO_DESTINATION_TYPES[facebookObjective]
-    // Choisir le premier autorisé par défaut
+    // Map old redirectionType to new destinationType
     if (campaign.redirectionType === 'LANDING_PAGE') {
       destinationType = 'WEBSITE'
     } else if (campaign.redirectionType === 'DEEPLINK') {
@@ -55,9 +38,29 @@ export function autoCompleteCampaignConfig(
     } else if (campaign.redirectionType === 'LEAD_FORM') {
       destinationType = 'ON_AD'
     } else {
-      destinationType = allowedDestinations[0]
+      // Default: use NONE for most objectives
+      const allowedDestinations = getAvailableDestinations(campaignType)
+      destinationType = allowedDestinations[0] // NONE for most
     }
   }
+
+  // Optimization goal par défaut basé sur objective + destination
+  let optimizationGoal = campaign.optimizationGoal
+  if (!optimizationGoal && destinationType) {
+    const defaultGoal = DEFAULT_OPTIMIZATION_GOAL[campaignType]?.[destinationType]
+    optimizationGoal = defaultGoal || ODAX_OPTIMIZATION_GOALS[campaignType]?.[destinationType]?.[0]
+  }
+
+  // Billing event depuis optimization goal
+  let billingEvent = campaign.billingEvent
+  if (!billingEvent && optimizationGoal) {
+    const allowedBillingEvents = OPTIMIZATION_GOAL_TO_BILLING_EVENTS[optimizationGoal]
+    billingEvent = allowedBillingEvents?.[0] || 'IMPRESSIONS'
+  }
+
+  // Bid strategy et buying type par défaut
+  const bidStrategy = campaign.bidStrategy || 'LOWEST_COST_WITHOUT_CAP'
+  const buyingType = campaign.buyingType || 'AUCTION'
 
   // Special Ad Categories par défaut (vide si non spécifié)
   const specialAdCategories = campaign.specialAdCategories || []
@@ -65,7 +68,7 @@ export function autoCompleteCampaignConfig(
 
   return {
     ...campaign,
-    objective: facebookObjective,
+    objective: campaignType, // Keep as CampaignType (not converted)
     optimizationGoal,
     billingEvent,
     bidStrategy,
@@ -78,6 +81,7 @@ export function autoCompleteCampaignConfig(
 
 /**
  * Valide une configuration de campagne et retourne les erreurs
+ * Meta Ads v24 ODAX validation
  */
 export function validateCampaignConfiguration(campaign: Partial<CampaignConfig>): {
   valid: boolean
@@ -93,24 +97,73 @@ export function validateCampaignConfiguration(campaign: Partial<CampaignConfig>)
   }
 
   if (!campaign.type) {
-    errors.push('Le type de campagne est requis')
+    errors.push('Le type de campagne (objective) est requis')
   }
 
-  if (!campaign.redirectionType) {
-    errors.push('Le type de redirection est requis')
+  // Validation destination
+  const dest = campaign.destinationType
+  const obj = campaign.type
+
+  if (dest === 'WEBSITE' && !campaign.redirectionUrl) {
+    errors.push('URL de destination requise pour destination WEBSITE')
   }
 
-  // Validation de la redirection selon le type
-  if (campaign.redirectionType === 'LANDING_PAGE' && !campaign.redirectionUrl) {
-    errors.push('URL de destination requise pour redirectionType = LANDING_PAGE')
+  if (dest === 'ON_AD' && !campaign.redirectionFormId) {
+    errors.push('Lead form ID requis pour destination ON_AD')
   }
 
-  if (campaign.redirectionType === 'LEAD_FORM' && !campaign.redirectionFormId) {
-    warnings.push('Aucun formulaire de lead spécifié')
+  if (dest === 'APP' && (!campaign.applicationId || !campaign.objectStoreUrl)) {
+    errors.push('application_id et object_store_url requis pour destination APP')
   }
 
-  if (campaign.redirectionType === 'DEEPLINK' && !campaign.redirectionDeeplink) {
-    errors.push('Deeplink requis pour redirectionType = DEEPLINK')
+  // Validation optimization goal compatible avec objective + destination
+  if (obj && dest && campaign.optimizationGoal) {
+    const allowedGoals = ODAX_OPTIMIZATION_GOALS[obj]?.[dest]
+    if (allowedGoals && !allowedGoals.includes(campaign.optimizationGoal)) {
+      errors.push(
+        `Optimization goal "${campaign.optimizationGoal}" incompatible avec ${obj} + ${dest}. Autorisés: ${allowedGoals.join(', ')}`
+      )
+    }
+  }
+
+  // Validation billing event compatible avec optimization goal
+  if (campaign.optimizationGoal && campaign.billingEvent) {
+    const allowedBilling = OPTIMIZATION_GOAL_TO_BILLING_EVENTS[campaign.optimizationGoal]
+    if (allowedBilling && !allowedBilling.includes(campaign.billingEvent)) {
+      errors.push(
+        `Billing event "${campaign.billingEvent}" incompatible avec optimization goal "${campaign.optimizationGoal}". Autorisés: ${allowedBilling.join(', ')}`
+      )
+    }
+  }
+
+  // Validation pixel requirements
+  if (obj && dest && campaign.optimizationGoal) {
+    const needsPixel = requiresPixel(obj, dest, campaign.optimizationGoal)
+    if (needsPixel && !campaign.pixelId) {
+      errors.push(`Facebook Pixel requis pour ${obj} avec optimization goal ${campaign.optimizationGoal}`)
+    }
+  }
+
+  // Validation promoted_object fields
+  if (obj && dest && campaign.optimizationGoal) {
+    const requiredFields = getRequiredFieldsFromSchema(obj, dest, campaign.optimizationGoal)
+    requiredFields.forEach((field: string) => {
+      if (field === 'page_id' && !campaign.pageId) {
+        errors.push('page_id requis pour cette configuration')
+      }
+      if (field === 'pixel_id' && !campaign.pixelId) {
+        errors.push('pixel_id requis pour cette configuration')
+      }
+      if (field === 'custom_event_type' && !campaign.customEventType) {
+        warnings.push('custom_event_type recommandé pour le tracking des conversions')
+      }
+      if (field === 'application_id' && !campaign.applicationId) {
+        errors.push('application_id requis pour les campagnes APP')
+      }
+      if (field === 'object_store_url' && !campaign.objectStoreUrl) {
+        errors.push('object_store_url requis pour les campagnes APP')
+      }
+    })
   }
 
   // Validation budget
@@ -121,29 +174,6 @@ export function validateCampaignConfiguration(campaign: Partial<CampaignConfig>)
   // Validation dates
   if (!campaign.startDate) {
     errors.push('Date de début requise')
-  }
-
-  // Validation Facebook API v24
-  if (campaign.objective && campaign.optimizationGoal && campaign.billingEvent) {
-    const fbValidation = validateCampaignConfig({
-      objective: campaign.objective as FacebookObjective,
-      optimization_goal: campaign.optimizationGoal as OptimizationGoal,
-      billing_event: campaign.billingEvent as BillingEvent,
-      destination_type: campaign.destinationType as DestinationType,
-      promoted_object: {
-        pixel_id: campaign.pixelId,
-        page_id: undefined, // Géré au niveau ad set
-        application_id: campaign.applicationId,
-        object_store_url: campaign.objectStoreUrl,
-        product_catalog_id: campaign.productCatalogId,
-        custom_event_type: campaign.customEventType,
-      },
-      special_ad_categories: campaign.specialAdCategories as any,
-    })
-
-    if (!fbValidation.valid) {
-      errors.push(...fbValidation.errors)
-    }
   }
 
   // Warnings pour Special Ad Categories
@@ -165,53 +195,6 @@ export function validateCampaignConfiguration(campaign: Partial<CampaignConfig>)
     errors,
     warnings,
   }
-}
-
-/**
- * Détermine les champs promoted_object requis pour un optimization goal donné
- */
-export function getRequiredPromotedObjectFields(
-  optimizationGoal: OptimizationGoal
-): {
-  pixelId: boolean
-  pageId: boolean
-  applicationId: boolean
-  objectStoreUrl: boolean
-  customEventType: boolean
-  productCatalogId: boolean
-} {
-  // Par défaut, rien n'est requis
-  const requirements = {
-    pixelId: false,
-    pageId: false,
-    applicationId: false,
-    objectStoreUrl: false,
-    customEventType: false,
-    productCatalogId: false,
-  }
-
-  // Conversions off-Facebook
-  if (optimizationGoal === 'OFFSITE_CONVERSIONS') {
-    requirements.pixelId = true
-  }
-
-  // Lead Generation
-  if (optimizationGoal === 'LEAD_GENERATION') {
-    requirements.pageId = true
-  }
-
-  // App Installs
-  if (optimizationGoal === 'APP_INSTALLS') {
-    requirements.applicationId = true
-    requirements.objectStoreUrl = true
-  }
-
-  // Engagement
-  if (optimizationGoal === 'POST_ENGAGEMENT') {
-    requirements.pageId = true
-  }
-
-  return requirements
 }
 
 /**

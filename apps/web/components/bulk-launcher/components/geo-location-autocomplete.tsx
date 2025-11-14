@@ -5,6 +5,8 @@ import { Search, X, MapPin, Loader2 } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
 import { cn } from '@launcher-ads/ui'
 import { useDebounce } from '@/lib/hooks/use-debounce'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface GeoLocation {
   key: string
@@ -129,12 +131,14 @@ export function GeoLocationAutocomplete({
               {location.country_name && location.type !== 'country' && (
                 <span className="text-muted-foreground">({location.country_name})</span>
               )}
-              <button
+              <Button
                 onClick={() => handleRemove(location.key)}
-                className="ml-1 hover:bg-primary/20 rounded p-0.5 transition-colors"
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-5 w-5 p-0 hover:bg-primary/20 rounded"
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -143,7 +147,7 @@ export function GeoLocationAutocomplete({
       {/* Search input */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
+        <Input
           type="text"
           placeholder={placeholder}
           value={searchQuery}
@@ -153,7 +157,7 @@ export function GeoLocationAutocomplete({
           }}
           onFocus={() => setIsOpen(true)}
           disabled={maxSelections ? value.length >= maxSelections : false}
-          className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-border bg-white text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="pl-10 pr-10"
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
@@ -171,15 +175,16 @@ export function GeoLocationAutocomplete({
           ) : searchResults && searchResults.length > 0 ? (
             <div className="py-1">
               {searchResults.map((result: any) => (
-                <button
+                <Button
                   key={result.key}
                   onClick={() => handleSelect(result)}
                   disabled={value.some((loc) => loc.key === result.key)}
+                  variant="ghost"
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
+                    'w-full justify-start h-auto flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
                     value.some((loc) => loc.key === result.key)
-                      ? 'bg-muted/50 cursor-not-allowed opacity-50'
-                      : 'hover:bg-muted cursor-pointer'
+                      ? 'opacity-50'
+                      : ''
                   )}
                 >
                   <span className="text-lg">{getLocationTypeIcon(result.type)}</span>
@@ -194,7 +199,7 @@ export function GeoLocationAutocomplete({
                   {value.some((loc) => loc.key === result.key) && (
                     <span className="text-xs text-muted-foreground">Selected</span>
                   )}
-                </button>
+                </Button>
               ))}
             </div>
           ) : (

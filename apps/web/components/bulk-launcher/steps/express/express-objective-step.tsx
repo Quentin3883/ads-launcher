@@ -2,6 +2,8 @@
 
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { Target, MapPin, Layout, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 /**
  * Express Mode - Step 2: Objectif & Cible
@@ -51,18 +53,19 @@ export function ExpressObjectiveStep() {
             { value: 'OUTCOME_LEADS', label: 'Prospects', description: 'Collecter des informations' },
             { value: 'OUTCOME_SALES', label: 'Ventes', description: 'Générer des conversions' },
           ].map((objective) => (
-            <button
+            <Button
               key={objective.value}
               onClick={() => setCampaignObjective(objective.value)}
-              className={`p-4 rounded-lg border-2 text-left transition-all ${
+              variant={campaignObjective === objective.value ? "default" : "outline"}
+              className={`h-auto p-4 text-left flex flex-col items-start justify-start ${
                 campaignObjective === objective.value
                   ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  : ''
               }`}
             >
               <div className="font-semibold text-foreground">{objective.label}</div>
               <div className="text-xs text-muted-foreground mt-1">{objective.description}</div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -80,10 +83,9 @@ export function ExpressObjectiveStep() {
         </div>
 
         <div className="space-y-2">
-          <input
+          <Input
             type="text"
             placeholder="Rechercher un pays, région ou ville..."
-            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <p className="text-xs text-muted-foreground">
             Tapez au moins 2 caractères pour rechercher
@@ -109,18 +111,19 @@ export function ExpressObjectiveStep() {
             { value: 'feed-only', label: 'Feed uniquement', description: 'FB & IG Feed' },
             { value: 'stories-only', label: 'Stories uniquement', description: 'FB & IG Stories' },
           ].map((placement) => (
-            <button
+            <Button
               key={placement.value}
               onClick={() => setPlacementPreset(placement.value)}
-              className={`p-4 rounded-lg border-2 text-left transition-all ${
+              variant={placementPreset === placement.value ? "default" : "outline"}
+              className={`h-auto p-4 text-left flex flex-col items-start justify-start ${
                 placementPreset === placement.value
                   ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  : ''
               }`}
             >
               <div className="font-semibold text-sm text-foreground">{placement.label}</div>
               <div className="text-xs text-muted-foreground mt-1">{placement.description}</div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -144,18 +147,19 @@ export function ExpressObjectiveStep() {
             { value: 'parents', label: 'Parents', description: 'Parents avec enfants' },
             { value: 'professionals', label: 'Professionnels', description: '25-54 ans, actifs' },
           ].map((audience) => (
-            <button
+            <Button
               key={audience.value}
               onClick={() => setAudiencePreset(audience.value)}
-              className={`p-4 rounded-lg border-2 text-left transition-all ${
+              variant={audiencePreset === audience.value ? "default" : "outline"}
+              className={`h-auto p-4 text-left flex flex-col items-start justify-start ${
                 audiencePreset === audience.value
                   ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  : ''
               }`}
             >
               <div className="font-semibold text-foreground">{audience.label}</div>
               <div className="text-xs text-muted-foreground mt-1">{audience.description}</div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>

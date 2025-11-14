@@ -4,8 +4,30 @@ import { z } from 'zod'
 // ENUMS & BASIC TYPES
 // ============================================
 
+// Meta Ads v24 ODAX Campaign Objectives
 export const campaignTypeSchema = z.enum(['Awareness', 'Traffic', 'Engagement', 'Leads', 'AppPromotion', 'Sales'])
+
+// Meta Ads v24 Destination Types (replaces redirectionType)
+export const destinationTypeSchema = z.enum([
+  'WEBSITE',        // Traffic to website (for link clicks, conversions)
+  'ON_AD',          // Lead form on Facebook
+  'ON_POST',        // Engagement on a post
+  'ON_PAGE',        // Page engagement (likes)
+  'ON_EVENT',       // Event engagement
+  'ON_VIDEO',       // Video engagement
+  'MESSENGER',      // Messenger conversation
+  'WHATSAPP',       // WhatsApp conversation
+  'INSTAGRAM',      // Instagram Direct
+  'APP',            // Mobile app
+  'SHOP_AUTOMATIC', // Facebook/Instagram Shop (catalog sales)
+  'CALL',           // Phone calls
+  'WEBSITE_AND_MESSENGER', // Both website and messenger
+  'NONE',           // For Awareness campaigns without specific destination
+])
+
+// Deprecated: kept for backward compatibility
 export const redirectionTypeSchema = z.enum(['LANDING_PAGE', 'LEAD_FORM', 'DEEPLINK'])
+
 export const budgetModeSchema = z.enum(['CBO', 'ABO'])
 export const budgetTypeSchema = z.enum(['daily', 'lifetime'])
 export const audiencePresetTypeSchema = z.enum(['BROAD', 'INTEREST', 'LOOKALIKE', 'CUSTOM_AUDIENCE'])
@@ -26,7 +48,8 @@ export const genderSchema = z.enum(['All', 'Male', 'Female'])
 
 // TypeScript types from Zod schemas
 export type CampaignType = z.infer<typeof campaignTypeSchema>
-export type RedirectionType = z.infer<typeof redirectionTypeSchema>
+export type DestinationType = z.infer<typeof destinationTypeSchema>
+export type RedirectionType = z.infer<typeof redirectionTypeSchema> // Deprecated
 export type BudgetMode = z.infer<typeof budgetModeSchema>
 export type BudgetType = z.infer<typeof budgetTypeSchema>
 export type AudiencePresetType = z.infer<typeof audiencePresetTypeSchema>
@@ -119,10 +142,17 @@ export const campaignConfigSchema = z.object({
   type: campaignTypeSchema,
   objective: z.string().optional(),
   country: z.string().optional(),
-  redirectionType: redirectionTypeSchema,
+
+  // Meta Ads v24 ODAX: Destination Type (new standard)
+  destinationType: destinationTypeSchema.optional(),
+
+  // Deprecated fields (kept for backward compatibility)
+  redirectionType: redirectionTypeSchema.optional(),
   redirectionUrl: z.string().url().optional(),
+  displayLink: z.string().optional(), // Display link shown in the ad (Facebook's link_url)
   redirectionFormId: z.string().optional(),
   redirectionDeeplink: z.string().optional(),
+
   budgetMode: budgetModeSchema,
   budgetType: budgetTypeSchema,
   budget: z.number().positive().optional(),
@@ -133,20 +163,20 @@ export const campaignConfigSchema = z.object({
   urlParamsOverride: z.string().optional(),
   urlTags: z.string().optional(), // UTM parameters for Facebook ad creative (url_tags field)
 
-  // Facebook API v24 Advanced Fields
-  optimizationGoal: z.string().optional(), // Ex: 'LINK_CLICKS', 'REACH', 'OFFSITE_CONVERSIONS'
+  // Facebook API v24 ODAX Fields
+  optimizationGoal: z.string().optional(), // Ex: 'LINK_CLICKS', 'REACH', 'OFFSITE_CONVERSIONS', 'LEAD_GENERATION'
   billingEvent: z.string().optional(), // Ex: 'IMPRESSIONS', 'LINK_CLICKS'
-  bidStrategy: z.string().optional(), // Ex: 'LOWEST_COST_WITHOUT_CAP'
+  bidStrategy: z.string().optional(), // Ex: 'LOWEST_COST_WITHOUT_CAP', 'COST_CAP'
   buyingType: z.string().optional(), // 'AUCTION' (default) ou 'RESERVED'
-  destinationType: z.string().optional(), // 'WEBSITE', 'APP', 'MESSENGER', etc.
 
   // Promoted Object (conversions, pixel, app)
-  pixelId: z.string().optional(), // Pour conversions off-Facebook
+  pixelId: z.string().optional(), // For off-Facebook conversions (WEBSITE destination with tracking)
   customEventType: z.string().optional(), // Ex: 'PURCHASE', 'LEAD', 'ADD_TO_CART'
-  applicationId: z.string().optional(), // Pour app promotion
+  applicationId: z.string().optional(), // For APP destination type
   objectStoreUrl: z.string().optional(), // URL App Store / Play Store
-  productCatalogId: z.string().optional(), // Pour dynamic ads
-  productSetId: z.string().optional(), // Pour dynamic ads
+  productCatalogId: z.string().optional(), // For dynamic ads (SALES with catalog)
+  productSetId: z.string().optional(), // For dynamic ads
+  pageId: z.string().optional(), // For ON_AD lead forms and some objectives
 
   // Special Ad Categories
   specialAdCategories: z.array(z.string()).optional(), // ['HOUSING'], ['CREDIT'], etc.
@@ -364,6 +394,207 @@ export const OPTIMIZATION_EVENTS = [
   'Video Views',
   'ThruPlay',
 ]
+
+// ============================================
+// META ADS V24 ODAX MAPPINGS
+// ============================================
+
+/**
+ * Map Campaign Objective + Destination Type to Optimization Goals
+ * Based on Meta Ads v24 ODAX API documentation (exact mappings from Facebook)
+ * Source: Facebook Marketing API v24.0 - OUTCOME_* objectives
+ */
+export const ODAX_OPTIMIZATION_GOALS: Record<string, Record<string, string[]>> = {
+  // OUTCOME_AWARENESS (old: BRAND_AWARENESS, REACH, VIDEO_VIEWS, STORE_VISITS)
+  'Awareness': {
+    'NONE': ['REACH', 'IMPRESSIONS', 'AD_RECALL_LIFT', 'THRUPLAY', 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS'],
+  },
+
+  // OUTCOME_TRAFFIC (old: LINK_CLICKS, MESSENGER, WHATSAPP, PHONE_CALL)
+  'Traffic': {
+    'NONE': ['LINK_CLICKS', 'LANDING_PAGE_VIEWS', 'REACH', 'IMPRESSIONS'], // App or general traffic
+    'MESSENGER': ['LINK_CLICKS', 'REACH', 'IMPRESSIONS'],
+    'WHATSAPP': ['LINK_CLICKS', 'REACH', 'IMPRESSIONS'],
+    'CALL': ['QUALITY_CALL', 'LINK_CLICKS'],
+  },
+
+  // OUTCOME_ENGAGEMENT (old: POST_ENGAGEMENT, PAGE_LIKES, EVENT_RESPONSES, VIDEO_VIEWS, MESSAGES)
+  'Engagement': {
+    'ON_POST': ['POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS'],
+    'ON_PAGE': ['PAGE_LIKES'],
+    'ON_EVENT': ['EVENT_RESPONSES', 'POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS'],
+    'ON_VIDEO': ['THRUPLAY', 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS'],
+    'MESSENGER': ['CONVERSATIONS', 'LINK_CLICKS'],
+    'NONE': ['OFFSITE_CONVERSIONS', 'LINK_CLICKS', 'REACH', 'LANDING_PAGE_VIEWS', 'IMPRESSIONS'], // For conversions objective mapped to engagement
+  },
+
+  // OUTCOME_LEADS (old: LEAD_GENERATION, LEAD_FROM_MESSENGER, LEAD_FROM_IG_DIRECT, PHONE_CALL)
+  'Leads': {
+    'ON_AD': ['LEAD_GENERATION', 'QUALITY_LEAD'],
+    'MESSENGER': ['LEAD_GENERATION', 'CONVERSATIONS'],
+    'INSTAGRAM': ['LEAD_GENERATION'],
+    'CALL': ['QUALITY_CALL'],
+    'NONE': ['OFFSITE_CONVERSIONS', 'LINK_CLICKS', 'REACH', 'LANDING_PAGE_VIEWS', 'IMPRESSIONS'], // For conversions objective mapped to leads
+  },
+
+  // OUTCOME_APP_PROMOTION (old: APP_INSTALL)
+  'AppPromotion': {
+    'NONE': ['APP_INSTALLS', 'OFFSITE_CONVERSIONS', 'LINK_CLICKS'],
+  },
+
+  // OUTCOME_SALES (old: CONVERSIONS, PRODUCT_CATALOG_SALES)
+  'Sales': {
+    'NONE': ['OFFSITE_CONVERSIONS'], // For general conversions
+    'WEBSITE': ['LINK_CLICKS'], // For catalog sales
+    'MESSENGER': ['CONVERSATIONS'],
+    'CALL': ['QUALITY_CALL'],
+  },
+}
+
+/**
+ * Map Optimization Goal to Billing Events
+ * Based on Facebook Marketing API v24.0 specifications
+ */
+export const OPTIMIZATION_GOAL_TO_BILLING_EVENTS: Record<string, string[]> = {
+  'REACH': ['IMPRESSIONS'],
+  'IMPRESSIONS': ['IMPRESSIONS'],
+  'AD_RECALL_LIFT': ['IMPRESSIONS'],
+  'LINK_CLICKS': ['LINK_CLICKS', 'IMPRESSIONS'],
+  'LANDING_PAGE_VIEWS': ['IMPRESSIONS'],
+  'OFFSITE_CONVERSIONS': ['IMPRESSIONS'],
+  'CONVERSATIONS': ['IMPRESSIONS'],
+  'LEAD_GENERATION': ['IMPRESSIONS'],
+  'QUALITY_LEAD': ['IMPRESSIONS'],
+  'QUALITY_CALL': ['IMPRESSIONS'],
+  'POST_ENGAGEMENT': ['IMPRESSIONS'],
+  'PAGE_LIKES': ['IMPRESSIONS'],
+  'EVENT_RESPONSES': ['IMPRESSIONS'],
+  'THRUPLAY': ['THRUPLAY', 'IMPRESSIONS'],
+  'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS': ['IMPRESSIONS'],
+  'APP_INSTALLS': ['IMPRESSIONS'],
+}
+
+/**
+ * Default Optimization Goal by Campaign Objective + Destination Type
+ * (Most common/recommended goal for each combination)
+ */
+export const DEFAULT_OPTIMIZATION_GOAL: Record<string, Record<string, string>> = {
+  'Awareness': {
+    'NONE': 'REACH',
+  },
+  'Traffic': {
+    'NONE': 'LINK_CLICKS',
+    'MESSENGER': 'LINK_CLICKS',
+    'WHATSAPP': 'LINK_CLICKS',
+    'CALL': 'QUALITY_CALL',
+  },
+  'Engagement': {
+    'ON_POST': 'POST_ENGAGEMENT',
+    'ON_PAGE': 'PAGE_LIKES',
+    'ON_EVENT': 'EVENT_RESPONSES',
+    'ON_VIDEO': 'THRUPLAY',
+    'MESSENGER': 'CONVERSATIONS',
+    'NONE': 'OFFSITE_CONVERSIONS',
+  },
+  'Leads': {
+    'ON_AD': 'LEAD_GENERATION',
+    'MESSENGER': 'LEAD_GENERATION',
+    'INSTAGRAM': 'LEAD_GENERATION',
+    'CALL': 'QUALITY_CALL',
+    'NONE': 'OFFSITE_CONVERSIONS',
+  },
+  'AppPromotion': {
+    'NONE': 'APP_INSTALLS',
+  },
+  'Sales': {
+    'NONE': 'OFFSITE_CONVERSIONS',
+    'WEBSITE': 'LINK_CLICKS',
+    'MESSENGER': 'CONVERSATIONS',
+    'CALL': 'QUALITY_CALL',
+  },
+}
+
+/**
+ * Determine if Pixel is required for a given configuration
+ * Based on promoted_object requirements from Meta API v24
+ */
+export function requiresPixel(objective: CampaignType, destinationType?: DestinationType, optimizationGoal?: string): boolean {
+  // Pixel required for OFFSITE_CONVERSIONS
+  if (optimizationGoal === 'OFFSITE_CONVERSIONS') {
+    return true
+  }
+
+  // Pixel optional but recommended for LANDING_PAGE_VIEWS
+  if (optimizationGoal === 'LANDING_PAGE_VIEWS') {
+    return false // Optional
+  }
+
+  // Sales with conversions requires pixel
+  if (objective === 'Sales' && destinationType === 'NONE') {
+    return true
+  }
+
+  // Leads with NONE (conversions) may require pixel
+  if (objective === 'Leads' && destinationType === 'NONE') {
+    return true // For OFFSITE_CONVERSIONS
+  }
+
+  return false
+}
+
+/**
+ * Determine if URL is required for a given destination type
+ */
+export function requiresUrl(destinationType?: DestinationType): boolean {
+  return destinationType === 'WEBSITE'
+}
+
+/**
+ * Get available destination types for a campaign objective
+ * Based on Meta Ads v24 ODAX allowed combinations
+ */
+export function getAvailableDestinations(objective: CampaignType): DestinationType[] {
+  const destinations: Record<CampaignType, DestinationType[]> = {
+    'Awareness': ['NONE'],
+    'Traffic': ['NONE', 'MESSENGER', 'WHATSAPP', 'CALL'],
+    'Engagement': ['ON_POST', 'ON_PAGE', 'ON_EVENT', 'ON_VIDEO', 'MESSENGER', 'NONE'],
+    'Leads': ['ON_AD', 'MESSENGER', 'INSTAGRAM', 'CALL', 'NONE'],
+    'AppPromotion': ['NONE'],
+    'Sales': ['NONE', 'WEBSITE', 'MESSENGER', 'CALL'],
+  }
+  return destinations[objective] || []
+}
+
+/**
+ * Get required promoted_object fields for a given configuration
+ */
+export function getRequiredPromotedObjectFields(
+  objective: CampaignType,
+  destinationType?: DestinationType,
+  optimizationGoal?: string
+): string[] {
+  // Page ID required for most on-platform destinations
+  if (['ON_AD', 'ON_PAGE', 'MESSENGER', 'WHATSAPP', 'INSTAGRAM', 'CALL'].includes(destinationType || '')) {
+    return ['page_id']
+  }
+
+  // Pixel for conversions
+  if (optimizationGoal === 'OFFSITE_CONVERSIONS') {
+    return ['pixel_id', 'custom_event_type']
+  }
+
+  // App promotion
+  if (objective === 'AppPromotion') {
+    return ['application_id', 'object_store_url']
+  }
+
+  // Catalog sales
+  if (objective === 'Sales' && destinationType === 'WEBSITE') {
+    return ['product_catalog_id', 'product_set_id']
+  }
+
+  return []
+}
 
 // ============================================
 // UTILITIES

@@ -1,20 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, ArrowLeft, ArrowRight, Check, Maximize2, Minimize2, Rocket, Loader2, Settings } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { X, Maximize2, Minimize2, Rocket, Loader2, Settings, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { useClientsStore } from '@/lib/store/clients'
 import { ClientSelectionStep } from '../bulk-launcher/steps/client-selection-step'
 import { AdAccountSelectionStep } from '../bulk-launcher/steps/ad-account-selection-step'
 import { ModeSelectionStep } from '../bulk-launcher/steps/mode-selection-step'
-import { ExpressObjectiveStep } from '../bulk-launcher/steps/express/express-objective-step'
-import { ExpressCreativeStep } from '../bulk-launcher/steps/express/express-creative-step'
-import { CampaignConfigStep } from '../bulk-launcher/steps/campaign-config-step'
-import { AudiencesBulkStep } from '../bulk-launcher/steps/audiences-bulk-step'
-import { CreativesBulkStep } from '../bulk-launcher/steps/creatives-bulk-step'
-import { MatrixGenerationStep } from '../bulk-launcher/steps/matrix-generation-step'
 import { UndoRedoControls } from '../bulk-launcher/controls/undo-redo-controls'
+import { SidebarNavigation } from '../bulk-launcher/ui'
+import type { SidebarSection } from '../bulk-launcher/ui'
 import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { isValidUrl } from '@/lib/validation/url'
+import {
+  AccountsPixelSection,
+  CampaignStrategySection,
+  RedirectionSection,
+  BudgetSection,
+  ScheduleSection,
+  AudienceTargetingSection,
+  PlacementSection,
+  GeolocationSection,
+  OptimizationSection,
+  CreativesSection,
+  SummarySection,
+} from '../bulk-launcher/subsections'
 
 interface BulkLauncherModalProps {
   open: boolean
@@ -22,40 +34,38 @@ interface BulkLauncherModalProps {
   editLaunchId?: string | null
 }
 
-// Define steps for Express Mode (2 screens)
-const expressSteps = [
-  { id: 1, name: 'Objectif & Cible', description: 'Objectif et ciblage de votre campagne' },
-  { id: 2, name: 'Créa & Lancement', description: 'Visuels et textes de la publicité' },
-]
-
-// Define steps for Pro Mode (4 steps)
-const proSteps = [
-  { id: 1, name: 'Compte & Stratégie', description: 'Configuration du compte et stratégie' },
-  { id: 2, name: 'Audiences & Geo', description: 'Audiences et ciblage géographique' },
-  { id: 3, name: 'Créatifs & Copies', description: 'Visuels et copies publicitaires' },
-  { id: 4, name: 'Budget & Génération', description: 'Budget et génération de campagne' },
-]
-
-/**
- * FLOW STRUCTURE:
- *
- * If client already selected globally (selectedClientId exists):
- *   Step 0: Ad Account Selection
- *   Step 1: Mode Selection (Express or Pro)
- *   Step 2+: Mode-specific steps (Express: 2 steps, Pro: 4 steps)
- *
- * If no client selected globally:
- *   Step 0: Client Selection
- *   Step 1: Ad Account Selection
- *   Step 2: Mode Selection (Express or Pro)
- *   Step 3+: Mode-specific steps (Express: 2 steps, Pro: 4 steps)
- */
-
 export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLauncherModalProps) {
-  const { currentStep, setCurrentStep, reset, clientId, setClientId, launchMode, launchCallback, mode, setMode, campaign } = useBulkLauncher()
+  const {
+    reset,
+    clientId,
+    setClientId,
+    launchCallback,
+    mode,
+    setMode,
+    campaign,
+    launchMode,
+    adAccountId,
+    currentStep,
+    setCurrentStep,
+    facebookPageId,
+    instagramAccountId,
+    facebookPixelId,
+    bulkAudiences,
+    bulkCreatives,
+  } = useBulkLauncher()
   const { selectedClientId } = useClientsStore()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isLaunching, setIsLaunching] = useState(false)
+  const [activeSection, setActiveSection] = useState('campaign')
+  const [canScrollToNextSection, setCanScrollToNextSection] = useState(true)
+  const [visitedSections, setVisitedSections] = useState<Set<string>>(new Set())
+
+  // Refs for scroll sections (only for main content sections)
+  const campaignRef = useRef<HTMLDivElement>(null)
+  const audiencesRef = useRef<HTMLDivElement>(null)
+  const creativesRef = useRef<HTMLDivElement>(null)
+  const summaryRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Fetch Naming Conventions
   const { data: namingConventions } = trpc.facebookCampaigns.getNamingConventions.useQuery()
@@ -88,13 +98,11 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
   // Check if client is already selected
   const hasPreselectedClient = !!selectedClientId
 
-  // Calculate key step indices based on flow
-  const STEP_AD_ACCOUNT = hasPreselectedClient ? 0 : 1
-  const STEP_MODE_SELECTION = hasPreselectedClient ? 1 : 2
-  const STEP_FIRST_MODE = hasPreselectedClient ? 2 : 3
-
-  // Get mode steps
-  const modeSteps = launchMode === 'express' ? expressSteps : launchMode === 'pro' ? proSteps : []
+  // Calculate step indices for the initial 3 steps
+  const STEP_MODE = hasPreselectedClient ? 0 : 1
+  const STEP_CLIENT = hasPreselectedClient ? -1 : 0 // Skip if preselected
+  const STEP_AD_ACCOUNT = hasPreselectedClient ? 1 : 2
+  const STEP_MAIN_CONTENT = hasPreselectedClient ? 2 : 3 // When to show single-page view
 
   // Initialize when modal opens
   useEffect(() => {
@@ -103,27 +111,18 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
       if (selectedClientId && !clientId) {
         setClientId(selectedClientId)
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
-  // Reset to initial step when modal opens
-  useEffect(() => {
-    if (open) {
-      setCurrentStep(0) // Always start at step 0
+      setCurrentStep(0) // Start at step 0
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const handleClose = () => {
-    // Only confirm if user has made progress past mode selection
-    if (currentStep > STEP_MODE_SELECTION && launchMode) {
+    if (currentStep > 0) {
       if (confirm('Are you sure? All progress will be lost.')) {
         reset()
         onOpenChange(false)
       }
     } else {
-      // No progress yet, close immediately
       reset()
       onOpenChange(false)
     }
@@ -144,9 +143,17 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentStep, launchMode])
+  }, [open, currentStep])
 
   const handleNext = () => {
+    // Mark current setup step as visited when moving to next
+    if (currentStep === STEP_CLIENT) {
+      setVisitedSections(prev => new Set([...prev, 'client']))
+    } else if (currentStep === STEP_MODE) {
+      setVisitedSections(prev => new Set([...prev, 'mode']))
+    } else if (currentStep === STEP_AD_ACCOUNT) {
+      setVisitedSections(prev => new Set([...prev, 'ad-account']))
+    }
     setCurrentStep(currentStep + 1)
   }
 
@@ -167,65 +174,289 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
     }
   }
 
-  // Render the correct step component
-  const renderStep = () => {
-    // PRE-MODE STEPS (before mode selection)
-    if (!hasPreselectedClient) {
-      // Flow: Client (0) → Ad Account (1) → Mode (2) → Mode steps (3+)
-      if (currentStep === 0) return <ClientSelectionStep />
-      if (currentStep === 1) return <AdAccountSelectionStep />
-      if (currentStep === 2) return <ModeSelectionStep />
-    } else {
-      // Flow: Ad Account (0) → Mode (1) → Mode steps (2+)
-      if (currentStep === 0) return <AdAccountSelectionStep />
-      if (currentStep === 1) return <ModeSelectionStep />
+  // All granular sections in order
+  const allSections = [
+    'accounts-pixel',
+    'campaign-strategy',
+    'redirection',
+    'budget',
+    'schedule',
+    'audience-targeting',
+    'placement',
+    'geolocation',
+    'optimization',
+    'creatives',
+    'summary',
+  ]
+
+  // Get next/previous sections for navigation
+  const getNextSection = (currentSectionId: string) => {
+    const currentIndex = allSections.indexOf(currentSectionId)
+    if (currentIndex === -1 || currentIndex === allSections.length - 1) return null
+
+    const nextSection = allSections[currentIndex + 1]
+    return unlockedSections.includes(nextSection) ? nextSection : null
+  }
+
+  const getPreviousSection = (currentSectionId: string) => {
+    const currentIndex = allSections.indexOf(currentSectionId)
+    if (currentIndex <= 0) return null
+    return allSections[currentIndex - 1]
+  }
+
+  // Navigate to section (change active section or step)
+  const navigateToSection = (sectionId: string) => {
+    // Mark section as visited
+    setVisitedSections(prev => new Set([...prev, sectionId]))
+
+    // Handle navigation to initial setup steps
+    if (sectionId === 'client' && !hasPreselectedClient) {
+      setCurrentStep(STEP_CLIENT)
+      return
+    }
+    if (sectionId === 'mode') {
+      setCurrentStep(STEP_MODE)
+      return
+    }
+    if (sectionId === 'ad-account') {
+      setCurrentStep(STEP_AD_ACCOUNT)
+      return
     }
 
-    // MODE-SPECIFIC STEPS (after mode selection)
-    if (currentStep >= STEP_FIRST_MODE) {
-      const modeStepIndex = currentStep - STEP_FIRST_MODE // 0-based index within the mode
+    // Handle navigation to main content sections
+    if (allSections.includes(sectionId)) {
+      setActiveSection(sectionId)
+    }
+  }
 
-      if (launchMode === 'express') {
-        if (modeStepIndex === 0) return <ExpressObjectiveStep />
-        if (modeStepIndex === 1) return <ExpressCreativeStep />
+  // Helper: Get current destination type (with backward compatibility)
+  const getCurrentDestination = () => {
+    if (campaign.destinationType) return campaign.destinationType
+    // Map old redirectionType to new destinationType
+    const map: Record<string, string> = {
+      'LANDING_PAGE': 'WEBSITE',
+      'LEAD_FORM': 'ON_AD',
+      'DEEPLINK': 'APP',
+    }
+    return campaign.redirectionType ? map[campaign.redirectionType] : undefined
+  }
+
+  // Subsection completion validation (Meta Ads v24 ODAX)
+  const sectionCompletion = {
+    'accounts-pixel': !!(facebookPageId && instagramAccountId), // Pixel is optional, validated separately
+    'campaign-strategy': !!campaign.objective,
+    // Redirection: depends on destination type and objective (Meta Ads v24 ODAX rules)
+    'redirection': (() => {
+      const dest = getCurrentDestination()
+      const obj = campaign.type
+
+      // WEBSITE destination requires VALID URL (for catalog sales)
+      if (dest === 'WEBSITE') return isValidUrl(campaign.redirectionUrl)
+
+      // ON_AD (lead form) requires form ID
+      if (dest === 'ON_AD') return !!campaign.redirectionFormId
+
+      // NONE destination (default - URL goes in creative):
+      // - For Awareness: URL optional (but must be valid if provided)
+      // - For Traffic, Engagement, Leads, Sales: VALID URL REQUIRED
+      // - For AppPromotion: URL not needed
+      if (dest === 'NONE' || !dest) {
+        // AppPromotion doesn't require URL
+        if (obj === 'AppPromotion') {
+          return true
+        }
+        // Awareness: URL optional but must be valid if provided
+        if (obj === 'Awareness') {
+          return !campaign.redirectionUrl || isValidUrl(campaign.redirectionUrl)
+        }
+        // Traffic, Engagement, Leads, Sales REQUIRE VALID URL
+        if (['Traffic', 'Engagement', 'Leads', 'Sales'].includes(obj || '')) {
+          return isValidUrl(campaign.redirectionUrl)
+        }
+        return false
       }
 
-      if (launchMode === 'pro') {
-        if (modeStepIndex === 0) return <CampaignConfigStep />
-        if (modeStepIndex === 1) return <AudiencesBulkStep />
-        if (modeStepIndex === 2) return <CreativesBulkStep />
-        if (modeStepIndex === 3) return <MatrixGenerationStep />
+      // Other destinations (MESSENGER, etc.)
+      return !!dest
+    })(),
+    'budget': !!(campaign.budgetMode && (campaign.budgetMode === 'CBO' ? campaign.budget : bulkAudiences.budgetPerAdSet)),
+    'schedule': !!campaign.startDate,
+    'audience-targeting': !!(bulkAudiences.audiences && bulkAudiences.audiences.length > 0),
+    'placement': !!(bulkAudiences.placementPresets && bulkAudiences.placementPresets.length > 0),
+    'geolocation': !!(bulkAudiences.geoLocations && (bulkAudiences.geoLocations.countries?.length > 0 || bulkAudiences.geoLocations.regions?.length > 0 || bulkAudiences.geoLocations.cities?.length > 0)),
+    'optimization': !!bulkAudiences.optimizationEvent,
+    'creatives': !!(bulkCreatives.creatives && bulkCreatives.creatives.length > 0),
+    'summary': false, // Not checked until everything is ready
+  }
+
+  const isSectionComplete = (sectionId: string) => {
+    return sectionCompletion[sectionId as keyof typeof sectionCompletion] || false
+  }
+
+  // Define sidebar sections (ALL steps including initial setup)
+  // Only show checkmark if section has been visited AND completed
+  const sidebarSections: SidebarSection[] = [
+    ...(!hasPreselectedClient
+      ? [
+          {
+            id: 'client',
+            title: 'Select Client',
+            isComplete: visitedSections.has('client') && !!clientId,
+          },
+        ]
+      : []),
+    {
+      id: 'mode',
+      title: 'Launch Mode',
+      isComplete: visitedSections.has('mode') && !!launchMode,
+    },
+    {
+      id: 'ad-account',
+      title: 'Facebook Ad Account',
+      isComplete: visitedSections.has('ad-account') && !!adAccountId,
+    },
+    // Granular subsections as main sections
+    {
+      id: 'accounts-pixel',
+      title: 'Accounts & Pages',
+      isComplete: visitedSections.has('accounts-pixel') && isSectionComplete('accounts-pixel'),
+    },
+    {
+      id: 'campaign-strategy',
+      title: 'Campaign Strategy',
+      isComplete: visitedSections.has('campaign-strategy') && isSectionComplete('campaign-strategy'),
+    },
+    {
+      id: 'redirection',
+      title: 'Redirection & URL',
+      isComplete: visitedSections.has('redirection') && isSectionComplete('redirection'),
+    },
+    {
+      id: 'budget',
+      title: 'Budget',
+      isComplete: visitedSections.has('budget') && isSectionComplete('budget'),
+    },
+    {
+      id: 'schedule',
+      title: 'Schedule',
+      isComplete: visitedSections.has('schedule') && isSectionComplete('schedule'),
+    },
+    {
+      id: 'audience-targeting',
+      title: 'Audience',
+      isComplete: visitedSections.has('audience-targeting') && isSectionComplete('audience-targeting'),
+    },
+    {
+      id: 'placement',
+      title: 'Placement & Demographics',
+      isComplete: visitedSections.has('placement') && isSectionComplete('placement'),
+    },
+    {
+      id: 'geolocation',
+      title: 'Geolocation',
+      isComplete: visitedSections.has('geolocation') && isSectionComplete('geolocation'),
+    },
+    {
+      id: 'optimization',
+      title: 'Optimization Goal',
+      isComplete: visitedSections.has('optimization') && isSectionComplete('optimization'),
+    },
+    {
+      id: 'creatives',
+      title: 'Creative & Wording',
+      isComplete: visitedSections.has('creatives') && isSectionComplete('creatives'),
+    },
+    {
+      id: 'summary',
+      title: 'Summary',
+      isComplete: visitedSections.has('summary') && isSectionComplete('summary'),
+    },
+  ]
+
+  // Determine which sections are unlocked (progressive unlocking)
+  const unlockedSections: string[] = []
+
+  // Initial setup sections
+  if (!hasPreselectedClient) {
+    unlockedSections.push('client')
+    if (clientId) {
+      unlockedSections.push('mode')
+    }
+  } else {
+    unlockedSections.push('mode')
+  }
+  if (launchMode) {
+    unlockedSections.push('ad-account')
+  }
+
+  // Progressive unlocking for granular sections
+  if (adAccountId) {
+    // Unlock each section progressively based on completion
+    for (let i = 0; i < allSections.length; i++) {
+      const sectionId = allSections[i]
+
+      // First section is always unlocked
+      if (i === 0) {
+        unlockedSections.push(sectionId)
+      } else {
+        // Unlock next section if previous one is complete
+        const previousSection = allSections[i - 1]
+        if (isSectionComplete(previousSection)) {
+          unlockedSections.push(sectionId)
+        } else {
+          // Stop unlocking if previous section not complete
+          break
+        }
       }
     }
+  }
 
+  // Determine if we're in the main content view (single page with sidebar)
+  const isMainContentView = currentStep >= STEP_MAIN_CONTENT && launchMode === 'pro' && adAccountId
+
+  // Set initial active section when entering main content view and mark as visited
+  useEffect(() => {
+    if (isMainContentView && activeSection !== 'accounts-pixel') {
+      setActiveSection('accounts-pixel')
+      setVisitedSections(prev => new Set([...prev, 'accounts-pixel']))
+    }
+  }, [isMainContentView])
+
+  // Mark active section as visited when it changes
+  useEffect(() => {
+    if (isMainContentView && activeSection) {
+      setVisitedSections(prev => new Set([...prev, activeSection]))
+    }
+  }, [activeSection, isMainContentView])
+
+  // Auto-jump disabled for now - user navigates manually with Previous/Next buttons
+  // useEffect(() => {
+  //   if (!isMainContentView) return
+  //   if (!allSections.includes(activeSection)) return
+  //   if (isSectionComplete(activeSection)) {
+  //     const timer = setTimeout(() => {
+  //       const nextSection = getNextSection(activeSection)
+  //       if (nextSection) navigateToSection(nextSection)
+  //     }, 500)
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [...])
+
+  // Render initial setup steps (before main content)
+  const renderSetupStep = () => {
+    if (currentStep === STEP_MODE) return <ModeSelectionStep />
+    if (currentStep === STEP_CLIENT && !hasPreselectedClient) return <ClientSelectionStep />
+    if (currentStep === STEP_AD_ACCOUNT) return <AdAccountSelectionStep />
     return null
   }
 
-  // Get header description
-  const getHeaderDescription = () => {
-    if (currentStep < STEP_MODE_SELECTION) {
-      if (currentStep === 0 && !hasPreselectedClient) return 'Sélectionnez votre client'
-      if (currentStep === STEP_AD_ACCOUNT) return 'Sélectionnez le compte publicitaire'
-    }
-
-    if (currentStep === STEP_MODE_SELECTION) {
-      return 'Choisissez votre mode de lancement'
-    }
-
-    // Mode steps
-    if (currentStep >= STEP_FIRST_MODE && modeSteps.length > 0) {
-      const modeStepIndex = currentStep - STEP_FIRST_MODE
-      return modeSteps[modeStepIndex]?.description || ''
-    }
-
+  // Get step description
+  const getStepDescription = () => {
+    if (currentStep === STEP_MODE) return 'Choose your launch mode'
+    if (currentStep === STEP_CLIENT) return 'Select your client'
+    if (currentStep === STEP_AD_ACCOUNT) return 'Select Facebook Ad Account'
     return ''
   }
-
-  // Calculate display step for progress bar (1-based, within mode steps only)
-  const displayModeStep = currentStep >= STEP_FIRST_MODE ? currentStep - STEP_FIRST_MODE + 1 : 0
-
-  // Check if we're on the last step
-  const isLastStep = displayModeStep === modeSteps.length
 
   if (!open) return null
 
@@ -238,12 +469,12 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
         className={`relative w-full flex flex-col bg-card shadow-2xl border border-border transition-all duration-300 ${
           isFullscreen
             ? 'h-full rounded-none'
-            : 'max-w-6xl max-h-[90vh] rounded-xl animate-in zoom-in-95 duration-200'
+            : 'max-w-7xl h-[90vh] rounded-xl animate-in zoom-in-95 duration-200'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -256,32 +487,34 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {getHeaderDescription()}
-              </p>
+              {!isMainContentView && (
+                <p className="text-sm text-muted-foreground mt-0.5">{getStepDescription()}</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {launchMode && currentStep >= STEP_FIRST_MODE && <UndoRedoControls />}
-            <button
+            {isMainContentView && <UndoRedoControls />}
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
               {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Naming Convention - Always visible */}
-        {launchMode && currentStep >= STEP_FIRST_MODE && (
-          <div className="border-b border-border bg-background px-6 py-4">
+        {/* Naming Convention (only show in main content view) */}
+        {isMainContentView && (
+          <div className="border-b border-border bg-background px-6 py-4 flex-shrink-0">
             <div className="flex items-center gap-4 max-w-6xl mx-auto">
               <div className="flex items-center gap-3 flex-1">
                 <label className="text-sm font-medium text-foreground whitespace-nowrap">Campaign Name:</label>
@@ -310,107 +543,147 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
           </div>
         )}
 
-        {/* Progress Steps - Only show when in mode steps */}
-        {launchMode && currentStep >= STEP_FIRST_MODE && modeSteps.length > 0 && (
-          <div className="border-b border-border bg-background px-6 py-4">
-            <div className="flex items-center justify-center max-w-4xl mx-auto">
-              {modeSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <button
-                    onClick={() => step.id <= displayModeStep && setCurrentStep(STEP_FIRST_MODE + step.id - 1)}
-                    disabled={step.id > displayModeStep}
-                    className={`flex items-center gap-3 transition-all ${
-                      step.id <= displayModeStep ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed'
-                    }`}
-                  >
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold text-sm transition-all ${
-                        displayModeStep > step.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : displayModeStep === step.id
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-muted bg-muted/30 text-muted-foreground'
-                      }`}
-                    >
-                      {displayModeStep > step.id ? <Check className="h-5 w-5" /> : step.id}
-                    </div>
-                    <div>
-                      <div
-                        className={`text-sm font-medium whitespace-nowrap ${
-                          displayModeStep >= step.id ? 'text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {step.name}
-                      </div>
-                    </div>
-                  </button>
-                  {index < modeSteps.length - 1 && (
-                    <div className="mx-4 w-16 h-0.5 bg-border flex-shrink-0">
-                      <div
-                        className={`h-full transition-all duration-300 ${
-                          displayModeStep > step.id ? 'bg-primary' : 'bg-transparent'
-                        }`}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+        {/* Main Content Area with Sidebar */}
+        <div className="flex h-full min-h-0 flex-1 relative overflow-hidden">
+          {/* Sidebar - Scrollable within modal */}
+          <div className="w-64 flex-shrink-0 h-full overflow-y-auto border-r border-border bg-muted/20">
+            <SidebarNavigation
+              sections={sidebarSections}
+              activeSection={
+                currentStep === STEP_CLIENT ? 'client' :
+                currentStep === STEP_MODE ? 'mode' :
+                currentStep === STEP_AD_ACCOUNT ? 'ad-account' :
+                activeSection
+              }
+              onSectionClick={navigateToSection}
+              unlockedSections={unlockedSections}
+            />
           </div>
-        )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div key={currentStep} className="animate-in fade-in slide-in-from-right-4 duration-200">
-            {renderStep()}
-          </div>
+          {/* Main Content */}
+          {isMainContentView ? (
+            // Show only active section (scrollable if content is long)
+            <div className="flex-1 min-h-0 overflow-y-auto flex justify-center relative">
+              <div className="w-full max-w-5xl py-6 px-6 flex items-center justify-center">
+                <div className="w-full animate-in fade-in slide-in-from-right-4 duration-200">
+                  {activeSection === 'accounts-pixel' && <AccountsPixelSection />}
+                  {activeSection === 'campaign-strategy' && (
+                    <CampaignStrategySection
+                      onComplete={() => {
+                        const nextSection = getNextSection('campaign-strategy')
+                        if (nextSection) {
+                          navigateToSection(nextSection)
+                        }
+                      }}
+                    />
+                  )}
+                  {activeSection === 'redirection' && <RedirectionSection />}
+                  {activeSection === 'budget' && <BudgetSection />}
+                  {activeSection === 'schedule' && <ScheduleSection />}
+                  {activeSection === 'audience-targeting' && <AudienceTargetingSection />}
+                  {activeSection === 'placement' && <PlacementSection />}
+                  {activeSection === 'geolocation' && <GeolocationSection />}
+                  {activeSection === 'optimization' && <OptimizationSection />}
+                  {activeSection === 'creatives' && <CreativesSection />}
+                  {activeSection === 'summary' && <SummarySection />}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Initial setup steps (separate pages with Next/Previous)
+            <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center p-6">
+              <div className="w-full max-w-5xl animate-in fade-in slide-in-from-right-4 duration-200">
+                {renderSetupStep()}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer - Only show when in mode steps */}
-        {launchMode && currentStep >= STEP_FIRST_MODE && (
-          <div className="flex-shrink-0 border-t border-border bg-muted/30 px-6 py-4 flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Step {displayModeStep} of {modeSteps.length}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {currentStep > STEP_FIRST_MODE && (
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors"
+        {/* Footer */}
+        {isMainContentView ? (
+          // Navigation arrows and Launch button for main content
+          <div className="flex-shrink-0 border-t border-border bg-muted/30 px-6 py-4 flex items-center justify-end">
+            {/* Navigation Arrows */}
+            <div className="flex items-center gap-2">
+              {getPreviousSection(activeSection) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const prev = getPreviousSection(activeSection)
+                    if (prev) navigateToSection(prev)
+                  }}
                 >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </button>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
               )}
 
-              {!isLastStep ? (
-                <button
-                  onClick={handleNext}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Next
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
+              {/* Launch Button or Next Button */}
+              {activeSection === 'summary' ? (
+                <Button
                   onClick={handleLaunch}
                   disabled={!launchCallback || isLaunching}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={cn("bg-green-600 hover:bg-green-700")}
+                  size="lg"
                 >
                   {isLaunching ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Lancement en cours...
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Launching...
                     </>
                   ) : (
                     <>
-                      <Rocket className="h-4 w-4" />
+                      <Rocket className="h-5 w-5 mr-2" />
                       Launch to Facebook
                     </>
                   )}
-                </button>
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  disabled={!getNextSection(activeSection) || !isSectionComplete(activeSection)}
+                  onClick={() => {
+                    // Mark current section as visited and validated before moving
+                    if (isSectionComplete(activeSection)) {
+                      setVisitedSections(prev => new Set([...prev, activeSection]))
+                    }
+                    const next = getNextSection(activeSection)
+                    if (next) navigateToSection(next)
+                  }}
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
               )}
+            </div>
+          </div>
+        ) : (
+          // Next/Previous buttons for setup steps
+          <div className="flex-shrink-0 border-t border-border bg-muted/30 px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Step {currentStep + 1} of {STEP_MAIN_CONTENT + 1}
+            </div>
+            <div className="flex items-center gap-3">
+              {currentStep > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+              )}
+              <Button
+                onClick={handleNext}
+                disabled={
+                  (currentStep === STEP_CLIENT && !clientId) ||
+                  (currentStep === STEP_MODE && !launchMode) ||
+                  (currentStep === STEP_AD_ACCOUNT && !adAccountId)
+                }
+              >
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
           </div>
         )}
