@@ -6,9 +6,9 @@ import type { CreativeVersion } from '@launcher-ads/sdk'
 interface CreativeSlotProps {
   slot: 'feed' | 'story'
   version?: CreativeVersion
-  format: 'Image' | 'Video'
+  format: 'Image' | 'Video' | 'Carousel'
   creativeId: string
-  otherSlotFormat?: 'Image' | 'Video'
+  otherSlotFormat?: 'Image' | 'Video' | 'Carousel'
   onAssignFile: (file: File) => void
   onOpenLibrary: (type: 'image' | 'video') => void
   onRemove: () => void

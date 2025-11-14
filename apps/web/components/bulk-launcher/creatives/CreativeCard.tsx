@@ -39,7 +39,7 @@ export function CreativeCard({
 }: CreativeCardProps) {
   const labels: CreativeLabel[] = ['Static', 'Video', 'UGC', 'Other']
 
-  const labelColors: Record<CreativeLabel, string> = {
+  const labelColors: Record<CreativeLabel, 'blue' | 'green' | 'purple' | 'orange'> = {
     Static: 'blue',
     Video: 'green',
     UGC: 'purple',
