@@ -1,0 +1,7 @@
+export { api, APIError } from './client'
+export { clientsAPI } from './endpoints/clients'
+export { facebookAPI } from './endpoints/facebook'
+export { conventionsAPI } from './endpoints/conventions'
+export type { Client } from './endpoints/clients'
+export type { AdAccount, AvailableAccount } from './endpoints/facebook'
+export type { NamingConvention } from './endpoints/conventions'

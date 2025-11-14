@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { clientsAPI } from '@/lib/api'
 import type { Client } from '@/lib/types/client'
 
 interface ClientsState {
@@ -39,9 +40,8 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
   fetchClients: async () => {
     set({ isLoading: true })
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`)
-      const data = await response.json()
-      set({ clients: Array.isArray(data) ? data : [], isLoading: false })
+      const clients = await clientsAPI.list() as any
+      set({ clients, isLoading: false })
     } catch (error) {
       console.error('Error fetching clients:', error)
       set({ clients: [], isLoading: false })
