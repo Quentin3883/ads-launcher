@@ -54,8 +54,10 @@ export function UrlParamsModal({ open, onClose, urlParams, onSave }: UrlParamsMo
 
   const handleParamChange = (index: number, field: 'key' | 'value', value: string) => {
     const newParams = [...params]
-    newParams[index][field] = value
-    setParams(newParams)
+    if (newParams[index]) {
+      newParams[index][field] = value
+      setParams(newParams)
+    }
   }
 
   const handleAddParam = () => {

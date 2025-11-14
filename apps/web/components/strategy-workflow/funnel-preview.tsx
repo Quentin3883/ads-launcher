@@ -175,6 +175,7 @@ export function FunnelPreview({ nodes, budgetPercentages }: FunnelPreviewProps) 
               // Draw one path per group (merged lines)
               let groupIndex = 0
               connectionGroups.forEach((group, yKey) => {
+                if (!group[0]) return
                 // Use average positions for the merged path
                 const avgFromY = group.reduce((sum, conn) => sum + conn.fromY, 0) / group.length
                 const avgToY = group.reduce((sum, conn) => sum + conn.toY, 0) / group.length

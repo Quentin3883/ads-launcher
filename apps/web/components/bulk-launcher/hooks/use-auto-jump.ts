@@ -56,6 +56,7 @@ export function useAutoJump({
     }
 
     previousDeps.current = dependencies
+    return undefined
   }, [enabled, currentSubPage, totalSubPages, onJumpToNext, dependencies, isComplete])
 
   // Reset hasJumped when sub-page changes (manual navigation)

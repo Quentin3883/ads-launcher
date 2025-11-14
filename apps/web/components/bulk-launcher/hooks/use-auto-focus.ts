@@ -25,14 +25,16 @@ export function useAutoFocus(fields: FieldValidation[], enabled: boolean = true)
     const currentIndex = fields.findIndex((f) => f.name === firstInvalidField.name)
     if (currentIndex > 0) {
       const previousField = fields[currentIndex - 1]
-      const wasInvalid = previousValidity.current[previousField.name] === false
-      const isNowValid = previousField.isValid
+      if (previousField) {
+        const wasInvalid = previousValidity.current[previousField.name] === false
+        const isNowValid = previousField.isValid
 
-      if (wasInvalid && isNowValid && firstInvalidField.ref?.current) {
-        // Small delay to ensure the UI has updated
-        setTimeout(() => {
-          firstInvalidField.ref?.current?.focus()
-        }, 100)
+        if (wasInvalid && isNowValid && firstInvalidField.ref?.current) {
+          // Small delay to ensure the UI has updated
+          setTimeout(() => {
+            firstInvalidField.ref?.current?.focus()
+          }, 100)
+        }
       }
     }
 

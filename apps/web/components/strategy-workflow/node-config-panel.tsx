@@ -42,7 +42,7 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
     // Default to Meta objectives for other platforms
     return Object.entries(META_OBJECTIVES).map(([key, obj]) => ({
       value: key,
-      label: obj.label,
+      label: (obj as { label: string }).label,
       icon: <Target className="h-3.5 w-3.5 text-blue-600" />,
     }))
   }, [nodeData?.platform])
@@ -387,17 +387,20 @@ export function NodeConfigPanel({ node, onClose, onUpdate }: NodeConfigPanelProp
 
               {/* Add Audience Buttons */}
               <div className="mt-2 flex flex-col gap-1.5">
-                {Object.entries(AUDIENCE_TYPES).map(([key, config]) => (
-                  <button
-                    key={key}
-                    onClick={() => addAudience(key as AudienceType)}
-                    className="flex items-center gap-2 px-2 py-1.5 text-xs border border-[#d9d8ce] rounded hover:bg-gray-50 hover:border-[#151515] transition-all"
-                  >
-                    <span className="text-sm">{config.icon}</span>
-                    <span className="flex-1 text-left">{config.label}</span>
-                    <Plus className="h-3 w-3" />
-                  </button>
-                ))}
+                {Object.entries(AUDIENCE_TYPES).map(([key, config]) => {
+                  const audienceConfig = config as { icon: string; label: string }
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => addAudience(key as AudienceType)}
+                      className="flex items-center gap-2 px-2 py-1.5 text-xs border border-[#d9d8ce] rounded hover:bg-gray-50 hover:border-[#151515] transition-all"
+                    >
+                      <span className="text-sm">{audienceConfig.icon}</span>
+                      <span className="flex-1 text-left">{audienceConfig.label}</span>
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

@@ -320,8 +320,11 @@ export default function ClientsPage() {
     value: string,
   ) => {
     const newContacts = [...contacts]
-    newContacts[index] = { ...newContacts[index], [field]: value }
-    setContacts(newContacts)
+    const currentContact = newContacts[index]
+    if (currentContact) {
+      newContacts[index] = { ...currentContact, [field]: value }
+      setContacts(newContacts)
+    }
   }
 
   if (loading) {

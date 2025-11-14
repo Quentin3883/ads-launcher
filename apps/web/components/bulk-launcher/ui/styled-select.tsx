@@ -63,6 +63,7 @@ export function StyledSelect({
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
+    return undefined
   }, [isOpen])
 
   // Auto-focus if specified

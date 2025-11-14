@@ -283,7 +283,7 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
     'schedule': !!campaign.startDate,
     'audience-targeting': !!(bulkAudiences.audiences && bulkAudiences.audiences.length > 0),
     'placement': !!(bulkAudiences.placementPresets && bulkAudiences.placementPresets.length > 0),
-    'geolocation': !!(bulkAudiences.geoLocations && (bulkAudiences.geoLocations.countries?.length > 0 || bulkAudiences.geoLocations.regions?.length > 0 || bulkAudiences.geoLocations.cities?.length > 0)),
+    'geolocation': !!(bulkAudiences.geoLocations && ((bulkAudiences.geoLocations.countries?.length ?? 0) > 0 || (bulkAudiences.geoLocations.regions?.length ?? 0) > 0 || (bulkAudiences.geoLocations.cities?.length ?? 0) > 0)),
     'optimization': !!bulkAudiences.optimizationEvent,
     'creatives': !!(bulkCreatives.creatives && bulkCreatives.creatives.length > 0),
     'summary': false, // Not checked until everything is ready

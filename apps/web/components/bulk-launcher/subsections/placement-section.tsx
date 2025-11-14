@@ -123,8 +123,8 @@ export function PlacementSection() {
                     updateBulkAudiences({
                       demographics: {
                         ...bulkAudiences.demographics,
-                        ageMin: min,
-                        ageMax: max
+                        ageMin: min ?? 18,
+                        ageMax: max ?? 65
                       },
                     })
                   }
