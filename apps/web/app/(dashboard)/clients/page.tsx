@@ -12,6 +12,7 @@ import {
   Upload,
   Search,
 } from 'lucide-react'
+import { clientsAPI, facebookAPI } from '@/lib/api'
 
 interface Contact {
   id?: string
@@ -75,10 +76,7 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     try {
       setLoading(true)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clients`,
-      )
-      const data = await response.json()
+      const data = await clientsAPI.list() as any
       setClients(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching clients:', error)
@@ -93,13 +91,10 @@ export default function ClientsPage() {
       const userId = localStorage.getItem('facebook_user_id')
       if (!userId) return
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/accounts/${userId}`,
-      )
-      const data = await response.json()
+      const data = await facebookAPI.getAccounts(userId)
 
-      if (!data.error && Array.isArray(data)) {
-        setAllAdAccounts(data)
+      if (Array.isArray(data)) {
+        setAllAdAccounts(data as any)
       }
     } catch (error) {
       console.error('Error fetching ad accounts:', error)
@@ -111,16 +106,7 @@ export default function ClientsPage() {
     try {
       // Link selected ad accounts
       for (const adAccountId of adAccountIds) {
-        await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/ad-accounts/${adAccountId}/link-client`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ clientId }),
-          },
-        )
+        await facebookAPI.linkAdAccountToClient(adAccountId, clientId)
       }
 
       // Refresh clients and ad accounts
@@ -150,22 +136,12 @@ export default function ClientsPage() {
     formData.append('logo', logoFile)
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}/upload-logo`,
-        {
-          method: 'POST',
-          body: formData,
-        },
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        return data.logoUrl
-      }
+      const data = await clientsAPI.uploadLogo(clientId, formData)
+      return data.logoUrl
     } catch (error) {
       console.error('Error uploading logo:', error)
+      return null
     }
-    return null
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,40 +159,26 @@ export default function ClientsPage() {
       }))
 
     try {
-      const url = editingClient
-        ? `${process.env.NEXT_PUBLIC_API_URL}/clients/${editingClient.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/clients`
-
-      const method = editingClient ? 'PUT' : 'POST'
-
       const payload = editingClient
         ? formData
         : { ...formData, contacts: validContacts }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      const savedClient = editingClient
+        ? await clientsAPI.update(editingClient.id, payload as any)
+        : await clientsAPI.create(payload as any)
 
-      if (response.ok) {
-        const savedClient = await response.json()
-
-        // Upload logo if there's one
-        if (logoFile) {
-          await uploadLogo(savedClient.id)
-        }
-
-        // Link ad accounts if editing client
-        if (editingClient && selectedAdAccounts.length > 0) {
-          await linkAdAccountsToClient(savedClient.id, selectedAdAccounts)
-        }
-
-        await fetchClients()
-        handleCloseModal()
+      // Upload logo if there's one
+      if (logoFile) {
+        await uploadLogo(savedClient.id)
       }
+
+      // Link ad accounts if editing client
+      if (editingClient && selectedAdAccounts.length > 0) {
+        await linkAdAccountsToClient(savedClient.id, selectedAdAccounts)
+      }
+
+      await fetchClients()
+      handleCloseModal()
     } catch (error) {
       console.error('Error saving client:', error)
     }
@@ -226,16 +188,8 @@ export default function ClientsPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) return
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clients/${id}`,
-        {
-          method: 'DELETE',
-        },
-      )
-
-      if (response.ok) {
-        await fetchClients()
-      }
+      await clientsAPI.delete(id)
+      await fetchClients()
     } catch (error) {
       console.error('Error deleting client:', error)
     }
