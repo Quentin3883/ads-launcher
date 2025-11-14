@@ -59,7 +59,8 @@ export function ScheduleSelector({
               type="button"
               onClick={() => {
                 if (startDate === 'NOW') {
-                  onUpdateStartDate(new Date().toISOString().split('T')[0])
+                  const today = new Date().toISOString().split('T')[0] || ''
+                  onUpdateStartDate(today)
                   onUpdateStartTime('12:00')
                 }
               }}

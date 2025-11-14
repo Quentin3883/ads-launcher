@@ -1,5 +1,6 @@
 import { FormSection, FormRow, Select, Input, ds, Button } from '../ui/shadcn'
-import type { CampaignType, RedirectionType, SelectOption } from '@launcher-ads/sdk'
+import type { SelectOption } from '../ui/shadcn'
+import type { CampaignType, RedirectionType } from '@launcher-ads/sdk'
 
 interface StrategySelectorProps {
   campaignType: CampaignType
