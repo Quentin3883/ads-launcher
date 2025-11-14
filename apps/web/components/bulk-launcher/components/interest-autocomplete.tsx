@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, X, Target } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { facebookTargetingAPI } from '@/lib/api'
 
 interface Interest {
   id: string
@@ -47,15 +48,9 @@ export function InterestAutocomplete({
     const timer = setTimeout(async () => {
       setLoading(true)
       try {
-        const response = await fetch(
-          `http://localhost:4000/facebook/targeting/interests/search?userId=${userId}&q=${encodeURIComponent(query)}&limit=25`
-        )
-        const data = await response.json()
-
-        if (data.success) {
-          setResults(data.data || [])
-          setShowResults(true)
-        }
+        const data = await facebookTargetingAPI.searchInterests(userId, query, 25)
+        setResults(data)
+        setShowResults(true)
       } catch (error) {
         console.error('Error searching interests:', error)
         setResults([])
