@@ -5,12 +5,7 @@ import { Facebook, CheckCircle, AlertCircle, RefreshCw, X } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Select } from '@launcher-ads/ui'
-
-interface Client {
-  id: string
-  name: string
-  logoUrl?: string
-}
+import { clientsAPI, facebookAPI, type Client } from '@/lib/api'
 
 interface AdAccount {
   id: string
@@ -87,9 +82,8 @@ function IntegrationsContent() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`)
-      const data = await response.json()
-      setClients(Array.isArray(data) ? data : [])
+      const clients = await clientsAPI.list() as any
+      setClients(clients)
     } catch (error) {
       console.error('Error fetching clients:', error)
       setClients([])
@@ -105,24 +99,7 @@ function IntegrationsContent() {
           : acc
       ))
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/ad-accounts/${adAccountId}/link-client`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ clientId }),
-        },
-      )
-
-      if (!response.ok) {
-        // Revert on error
-        await checkFacebookConnection(userId!)
-        const error = await response.json()
-        console.error('Error linking ad account:', error)
-        setError(error.message || 'Failed to link ad account')
-      }
+      await facebookAPI.linkAdAccountToClient(adAccountId, clientId)
     } catch (error) {
       // Revert on error
       await checkFacebookConnection(userId!)
@@ -138,21 +115,14 @@ function IntegrationsContent() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/accounts/${targetUserId}`,
-      )
-      const data = await response.json()
-
-      if (data.error) {
-        setIsConnected(false)
-        setAdAccounts([])
-      } else {
-        setIsConnected(true)
-        setAdAccounts(data)
-      }
+      const accounts = await facebookAPI.getAccounts(targetUserId) as any
+      setIsConnected(true)
+      setAdAccounts(accounts)
     } catch (err) {
       console.error('Error checking Facebook connection:', err)
       setError('Failed to check Facebook connection')
+      setIsConnected(false)
+      setAdAccounts([])
     } finally {
       setLoading(false)
     }
@@ -162,18 +132,8 @@ function IntegrationsContent() {
     if (!confirm('Are you sure you want to remove this ad account?')) return
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/ad-accounts/${adAccountId}`,
-        {
-          method: 'DELETE',
-        }
-      )
-
-      if (response.ok) {
-        await checkFacebookConnection(userId!)
-      } else {
-        setError('Failed to delete ad account')
-      }
+      await facebookAPI.deleteAdAccount(adAccountId)
+      await checkFacebookConnection(userId!)
     } catch (err) {
       console.error('Error deleting ad account:', err)
       setError('Failed to delete ad account')
@@ -188,18 +148,10 @@ function IntegrationsContent() {
   const fetchAvailableAccounts = async (uid: string) => {
     try {
       setLoading(true)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/available-accounts/${uid}`
-      )
-      const data = await response.json()
-
-      if (data.error) {
-        setError(data.error)
-      } else {
-        setAvailableAccounts(data)
-        setSelectedAccountIds(data.filter((acc: AvailableAccount) => acc.isSelected).map((acc: AvailableAccount) => acc.id))
-        setShowAccountSelection(true)
-      }
+      const accounts = await facebookAPI.getAvailableAccounts(uid) as any
+      setAvailableAccounts(accounts)
+      setSelectedAccountIds(accounts.filter((acc: AvailableAccount) => acc.isSelected).map((acc: AvailableAccount) => acc.id))
+      setShowAccountSelection(true)
     } catch (err) {
       console.error('Error fetching available accounts:', err)
       setError('Failed to fetch available accounts')
@@ -214,27 +166,11 @@ function IntegrationsContent() {
     try {
       setSyncing(true)
       setError(null)
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/admin/save-accounts/${userId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ accountIds: selectedAccountIds }),
-        }
-      )
-      const data = await response.json()
-
-      if (data.error) {
-        setError(data.error)
-      } else {
-        setShowAccountSelection(false)
-        setSyncSuccess(true)
-        checkFacebookConnection(userId)
-        setTimeout(() => setSyncSuccess(false), 5000)
-      }
+      await facebookAPI.saveAccounts(userId, selectedAccountIds)
+      setShowAccountSelection(false)
+      setSyncSuccess(true)
+      checkFacebookConnection(userId)
+      setTimeout(() => setSyncSuccess(false), 5000)
     } catch (err) {
       console.error('Error saving accounts:', err)
       setError('Failed to save selected accounts')
@@ -274,26 +210,11 @@ function IntegrationsContent() {
 
     try {
       setCreatingClient(true)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/clients`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: newClientName }),
-        }
-      )
-
-      if (response.ok) {
-        const newClient = await response.json()
-        setClients(prev => [...prev, newClient])
-        setNewClientName('')
-        setShowCreateClientModal(false)
-        return newClient.id
-      } else {
-        setError('Failed to create client')
-      }
+      const newClient = await clientsAPI.create({ name: newClientName }) as any
+      setClients(prev => [...prev, newClient])
+      setNewClientName('')
+      setShowCreateClientModal(false)
+      return newClient.id
     } catch (err) {
       console.error('Error creating client:', err)
       setError('Failed to create client')
@@ -309,25 +230,9 @@ function IntegrationsContent() {
     try {
       setSyncing(true)
       setError(null)
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/facebook/campaigns-insights/${userId}/sync`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ datePreset: 'last_30d' }),
-        },
-      )
-      const data = await response.json()
-
-      if (data.error) {
-        setError(data.error)
-      } else {
-        setSyncSuccess(true)
-        setTimeout(() => setSyncSuccess(false), 5000)
-      }
+      await facebookAPI.syncCampaignsInsights(userId)
+      setSyncSuccess(true)
+      setTimeout(() => setSyncSuccess(false), 5000)
     } catch (err) {
       console.error('Error syncing data:', err)
       setError('Failed to sync data from Facebook')
