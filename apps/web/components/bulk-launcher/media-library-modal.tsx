@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Image as ImageIcon, Video, Loader2, Monitor, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { mediaAPI } from '@/lib/api'
 
 interface MediaLibraryModalProps {
   open: boolean
@@ -50,17 +51,8 @@ export function MediaLibraryModal({
     setError(null)
 
     try {
-      const endpoint = type === 'image' ? 'images' : 'videos'
-      const response = await fetch(
-        `http://localhost:4000/facebook/media/library/${endpoint}/${adAccountId}?limit=50`
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch media')
-      }
-
-      const data = await response.json()
-      const items = (type === 'image' ? data.images : data.videos).map((item: any) => ({
+      const data = await mediaAPI.fetchMediaLibrary(adAccountId, type, 50)
+      const items = data.map((item: any) => ({
         ...item,
         type,
       }))
