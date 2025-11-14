@@ -1,6 +1,6 @@
 // @ts-nocheck - Complex workflow types, will be refactored
 import { create } from 'zustand'
-// TODO: Create strategy-canvas types file
+// TODO [Refactoring]: Create dedicated strategy-canvas.types.ts file for proper type definitions
 type StrategyCanvas = any
 type FunnelStage = any
 type PlatformStageBlock = any
@@ -171,13 +171,6 @@ export const useStrategyCanvas = create<StrategyCanvasState>((set, get) => {
       const state = get()
       const validation = validateCanvas(state.canvas)
       const distribution = calculateBudgetDistribution(state.canvas)
-
-      console.log('Saving canvas:', {
-        canvas: state.canvas,
-        validation,
-        distribution,
-        totalPercentage: calculateTotalPercentage(state.canvas),
-      })
 
       if (!validation.valid) {
         alert(`Cannot save: ${validation.errors.join(', ')}`)

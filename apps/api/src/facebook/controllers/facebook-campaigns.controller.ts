@@ -70,7 +70,7 @@ export class FacebookCampaignsController {
     @Param('userId') _userId: string,
     @Param('adAccountId') _adAccountId: string,
   ) {
-    // TODO: Implement syncCampaigns method in FacebookService if needed
+    // TODO [API]: Implement bidirectional sync - update Supabase campaigns from Facebook API
     throw new BadRequestException('Sync not yet implemented - use GET to fetch campaigns')
   }
 

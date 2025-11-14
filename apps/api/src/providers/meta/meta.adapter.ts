@@ -81,7 +81,7 @@ export class MetaAdapter implements ProviderAdapter {
     // Stub: génère un ID mocké
     const mockId = `meta_campaign_${this.generateMockId()}`
 
-    // TODO v2: When implementing real Meta API integration, use:
+    // TODO [Meta API v2]: Replace mock with real Facebook Marketing API integration:
     // const objective = this.mapToMetaObjective(input.objective)
     // const response = await fetch(`https://graph.facebook.com/v24.0/act_${adAccountId}/campaigns`, {
     //   method: 'POST',
@@ -119,7 +119,7 @@ export class MetaAdapter implements ProviderAdapter {
 
     const mockId = `meta_adset_${this.generateMockId()}`
 
-    // TODO v2: When implementing real Meta API integration, use:
+    // TODO [Meta API v2]: Replace mock with real Facebook Marketing API integration:
     // const response = await fetch(`https://graph.facebook.com/v24.0/act_${adAccountId}/adsets`, {
     //   method: 'POST',
     //   body: JSON.stringify({

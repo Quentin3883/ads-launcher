@@ -90,7 +90,7 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
   useEffect(() => {
     if (open && editLaunchId) {
       setMode('edit')
-      // TODO: Fetch campaign data and pre-fill store
+      // TODO [Feature]: Implement edit mode - fetch campaign data from Supabase and pre-fill store
     } else if (open && !editLaunchId) {
       setMode('create')
     }

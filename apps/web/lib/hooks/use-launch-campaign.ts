@@ -74,7 +74,7 @@ export function useLaunchCampaign() {
       // Use a cache to avoid uploading the same file multiple times
       updateProgressStep('prepare', { status: 'completed' })
       updateProgressStep('upload', { status: 'in_progress' })
-      console.log('📤 Pre-uploading media assets...')
+      // console.log('📤 Pre-uploading media assets...')
 
     // Track unique videos/images and their metadata (don't upload yet)
     const uniqueVideos = new Map<string, { name: string; refs: { adSetIndex: number; adIndex: number; field: 'feed' | 'story' }[] }>()
@@ -219,7 +219,7 @@ export function useLaunchCampaign() {
     // Close all SSE connections
     eventSources.forEach(es => es.close())
 
-    console.log(`✅ Uploaded ${totalVideos} unique videos and ${totalImages} unique images`)
+    // console.log(`✅ Uploaded ${totalVideos} unique videos and ${totalImages} unique images`)
 
     // Update all uploads to "processing" status
     uploadProgressList.forEach(upload => {
@@ -236,7 +236,7 @@ export function useLaunchCampaign() {
     })
 
     // Now wait for all videos to be ready (check status)
-    console.log('⏳ Waiting for all videos to be processed by Facebook...')
+    // console.log('⏳ Waiting for all videos to be processed by Facebook...')
     const videoReadyPromises = Array.from(videoIdMap.entries()).map(async ([dataUrl, videoId], index) => {
       const uploadId = uploadIds[index]
       try {
@@ -263,7 +263,7 @@ export function useLaunchCampaign() {
     })
 
     await Promise.all(videoReadyPromises)
-    console.log('✅ All videos processed and ready')
+    // console.log('✅ All videos processed and ready')
 
     updateProgressStep('upload', {
       status: 'completed',
@@ -402,7 +402,7 @@ export function useLaunchCampaign() {
         })
 
         // Mark as launched
-        console.log('✅ Launch saved to database')
+        // console.log('✅ Launch saved to database')
       } catch (error) {
         console.error('Failed to save launch to database:', error)
         // Don't fail the entire launch if saving fails

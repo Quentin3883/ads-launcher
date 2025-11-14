@@ -98,20 +98,20 @@ export function MatrixGenerationStep() {
 
     // Get user ID from URL params (set during OAuth)
     const urlParams = new URLSearchParams(window.location.search)
-    const userId = urlParams.get('userId') || 'f6a2a722-7ca8-4130-a78a-4d50e2ff8256' // TODO: Get from auth
+    const userId = urlParams.get('userId') || 'f6a2a722-7ca8-4130-a78a-4d50e2ff8256' // TODO [Auth]: Replace with Supabase Auth session user ID
 
     setCreateSuccess(null)
 
     try {
-      console.log('🚀 Launching campaign to Facebook...', {
-        adSetsCount: result.adSets.length,
-        adsCount: result.adSets.reduce((sum, as) => sum + as.ads.length, 0),
-      })
+      // console.log('🚀 Launching campaign to Facebook...', {
+      //   adSetsCount: result.adSets.length,
+      //   adsCount: result.adSets.reduce((sum, as) => sum + as.ads.length, 0),
+      // })
 
       // Convert all blob URLs to base64 before sending to backend
-      console.log('Converting blob URLs to base64...')
+      // console.log('Converting blob URLs to base64...')
       const adSetsWithBase64 = await convertBlobUrlsToBase64(result.adSets)
-      console.log('✅ Conversion complete')
+      // console.log('✅ Conversion complete')
 
       const response = await launchCampaign({
         userId,
@@ -121,7 +121,7 @@ export function MatrixGenerationStep() {
         generatedAdSets: adSetsWithBase64,
       })
 
-      console.log('✅ Campaign launched successfully:', response)
+      // console.log('✅ Campaign launched successfully:', response)
       setCreateSuccess(`Campaign created on Facebook! ID: ${response.campaignId}`)
 
       alert(

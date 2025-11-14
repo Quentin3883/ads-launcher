@@ -51,15 +51,15 @@ export class ProviderFactory {
         return new MetaAdapter(config.credentials || {})
 
       case 'GOOGLE':
-        // TODO: Implémenter GoogleAdapter
+        // TODO [Platform]: Implement GoogleAdapter for Google Ads API integration
         throw new Error('GoogleAdapter not implemented yet')
 
       case 'LINKEDIN':
-        // TODO: Implémenter LinkedInAdapter
+        // TODO [Platform]: Implement LinkedInAdapter for LinkedIn Marketing API integration
         throw new Error('LinkedInAdapter not implemented yet')
 
       case 'SNAP':
-        // TODO: Implémenter SnapAdapter
+        // TODO [Platform]: Implement SnapAdapter for Snapchat Marketing API integration
         throw new Error('SnapAdapter not implemented yet')
 
       default:
