@@ -1,55 +1,35 @@
 // @ts-nocheck - tRPC type collision with reserved names, works correctly at runtime
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useBulkLauncher } from '@/lib/store/bulk-launcher'
-import {
-  LANGUAGES,
-  OPTIMIZATION_EVENTS,
-  PLACEMENT_PRESETS,
-  CAMPAIGN_TYPE_OPTIMIZATION_EVENTS,
-  generateId,
-  type AudiencePreset,
-  type AudiencePresetType,
-  type PlacementPreset,
-} from '@launcher-ads/sdk'
-import { Info, ChevronDown, X } from 'lucide-react'
-import { InterestAutocomplete } from '../components/interest-autocomplete'
+import { CAMPAIGN_TYPE_OPTIMIZATION_EVENTS, OPTIMIZATION_EVENTS } from '@launcher-ads/sdk'
+import { Info, X } from 'lucide-react'
 import { GeoLocationAutocomplete } from '../components/geo-location-autocomplete'
 import { trpc } from '@/lib/trpc'
 import { FormSection, FormRow, Select, Input, ds, Button } from '../ui/shadcn'
-
-const AUDIENCE_PRESET_TYPES: { value: AudiencePresetType; label: string; description: string }[] = [
-  { value: 'BROAD', label: 'Broad', description: 'Wide reach, no targeting' },
-  { value: 'INTEREST', label: 'Interests', description: 'Target by interests' },
-  { value: 'LOOKALIKE', label: 'Lookalike', description: 'Similar to your audience' },
-  { value: 'CUSTOM_AUDIENCE', label: 'Custom', description: 'Your own audience list' },
-]
-
-const PLACEMENT_PRESET_OPTIONS: { value: PlacementPreset; label: string; placements: string[]; category?: string }[] = [
-  { value: 'ALL_PLACEMENTS', label: 'All Placements', placements: PLACEMENT_PRESETS.ALL_PLACEMENTS },
-  { value: 'FEEDS_REELS', label: 'Feeds + Reels', placements: PLACEMENT_PRESETS.FEEDS_REELS },
-  { value: 'STORIES_ONLY', label: 'Stories Only', placements: PLACEMENT_PRESETS.STORIES_ONLY },
-  { value: 'FACEBOOK_ONLY', label: 'Facebook Only', placements: PLACEMENT_PRESETS.FACEBOOK_ONLY, category: 'Platform' },
-  { value: 'INSTAGRAM_ONLY', label: 'Instagram Only', placements: PLACEMENT_PRESETS.INSTAGRAM_ONLY, category: 'Platform' },
-  { value: 'FEED_ONLY', label: 'Feed Only', placements: PLACEMENT_PRESETS.FEED_ONLY, category: 'Placement' },
-  { value: 'REELS_ONLY', label: 'Reels Only', placements: PLACEMENT_PRESETS.REELS_ONLY, category: 'Placement' },
-]
-
-const LAL_PERCENTAGES = [1, 2, 3, 5, 10]
+import { useAudienceBuilder } from '../hooks/use-audience-builder'
+import { AudienceTypeSelector } from '../audiences/AudienceTypeSelector'
+import { AudienceForm } from '../audiences/AudienceForm'
+import { PlacementSelector } from '../audiences/PlacementSelector'
+import { DemographicsForm } from '../audiences/DemographicsForm'
 
 export function AudiencesBulkStep() {
-  const { campaign, bulkAudiences, updateBulkAudiences, addAudience, removeAudience, togglePlacementPreset, getMatrixStats, adAccountId, facebookPixelId } = useBulkLauncher()
-  const [showBulkPaste, setShowBulkPaste] = useState(false)
-  const [bulkPasteText, setBulkPasteText] = useState('')
-  const [newAudienceType, setNewAudienceType] = useState<AudiencePresetType>('BROAD')
-  const [selectedInterests, setSelectedInterests] = useState<Array<{ id: string; name: string }>>([])
+  const {
+    campaign,
+    bulkAudiences,
+    updateBulkAudiences,
+    removeAudience,
+    togglePlacementPreset,
+    getMatrixStats,
+    adAccountId,
+    facebookPixelId,
+  } = useBulkLauncher()
+
   const [selectedGeoLocations, setSelectedGeoLocations] = useState<Array<{ key: string; name: string; type: string }>>([])
-  const [lalSource, setLalSource] = useState('')
-  const [lalPercentages, setLalPercentages] = useState<number[]>([1])
-  const [customAudienceId, setCustomAudienceId] = useState('')
-  const [geoExpanded, setGeoExpanded] = useState(false)
-  const [placementsExpanded, setPlacementsExpanded] = useState(false)
+
+  // Use audience builder hook
+  const audienceBuilder = useAudienceBuilder()
 
   // Get userId from URL params (TODO: replace with proper auth)
   const userId = useMemo(() => {
@@ -90,117 +70,6 @@ export function AudiencesBulkStep() {
     { enabled: !!adAccountId && !!facebookPixelId }
   )
 
-  const handleAddAudience = useCallback(() => {
-    let audience: AudiencePreset | null = null
-
-    switch (newAudienceType) {
-      case 'BROAD':
-        audience = {
-          id: generateId(),
-          type: 'BROAD',
-          name: 'Broad',
-        }
-        break
-      case 'INTEREST':
-        if (selectedInterests.length === 0) {
-          alert('Please select at least one interest')
-          return
-        }
-        audience = {
-          id: generateId(),
-          type: 'INTEREST',
-          name: `Interests: ${selectedInterests.slice(0, 2).map(i => i.name).join(', ')}${selectedInterests.length > 2 ? '...' : ''}`,
-          interests: selectedInterests.map(i => i.id),
-        }
-        setSelectedInterests([])
-        break
-      case 'LOOKALIKE':
-        if (!lalSource) {
-          alert('Please enter LAL source')
-          return
-        }
-        audience = {
-          id: generateId(),
-          type: 'LOOKALIKE',
-          name: `LAL ${lalPercentages.join(', ')}% - ${lalSource}`,
-          lookalikeSource: lalSource,
-          lookalikePercentages: lalPercentages,
-        }
-        setLalSource('')
-        setLalPercentages([1])
-        break
-      case 'CUSTOM_AUDIENCE':
-        if (!customAudienceId) {
-          alert('Please enter custom audience ID')
-          return
-        }
-        audience = {
-          id: generateId(),
-          type: 'CUSTOM_AUDIENCE',
-          name: `Custom: ${customAudienceId}`,
-          customAudienceId,
-        }
-        setCustomAudienceId('')
-        break
-    }
-
-    if (audience) {
-      addAudience(audience)
-    }
-  }, [newAudienceType, selectedInterests, lalSource, lalPercentages, customAudienceId, addAudience])
-
-  const handleBulkPasteInterests = useCallback(() => {
-    const interests = bulkPasteText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-
-    if (interests.length === 0) {
-      alert('Please paste at least one interest (one per line)')
-      return
-    }
-
-    interests.forEach((interest) => {
-      addAudience({
-        id: generateId(),
-        type: 'INTEREST',
-        name: `Interest: ${interest}`,
-        interests: [interest],
-      })
-    })
-
-    setBulkPasteText('')
-    setShowBulkPaste(false)
-  }, [bulkPasteText, addAudience])
-
-  const handleGeoToggle = useCallback((type: 'countries' | 'regions' | 'cities', value: string) => {
-    const currentArray = bulkAudiences.geoLocations[type] || []
-    const newArray = currentArray.includes(value)
-      ? currentArray.filter((item) => item !== value)
-      : [...currentArray, value]
-
-    updateBulkAudiences({
-      geoLocations: {
-        ...bulkAudiences.geoLocations,
-        [type]: newArray,
-      },
-    })
-  }, [bulkAudiences.geoLocations, updateBulkAudiences])
-
-  const handleLanguageToggle = useCallback((language: string) => {
-    const current = bulkAudiences.demographics.languages || []
-    const newLanguages = current.includes(language)
-      ? current.filter((l) => l !== language)
-      : [...current, language]
-
-    updateBulkAudiences({
-      demographics: {
-        ...bulkAudiences.demographics,
-        languages: newLanguages,
-      },
-    })
-  }, [bulkAudiences.demographics, updateBulkAudiences])
-
   return (
     <div className={ds.spacing.vertical.lg}>
       {/* Header + Stats Preview */}
@@ -217,120 +86,28 @@ export function AudiencesBulkStep() {
 
       {/* Audience Builder */}
       <FormSection title={`Audiences (${bulkAudiences.audiences.length})`}>
-        {/* Quick Add Buttons */}
-        <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
-          {AUDIENCE_PRESET_TYPES.map((type) => (
-            <Button
-              key={type.value}
-              onClick={() => {
-                setNewAudienceType(type.value)
-                // Auto-add Broad immediately
-                if (type.value === 'BROAD') {
-                  addAudience({
-                    id: generateId(),
-                    type: 'BROAD',
-                    name: 'Broad',
-                  })
-                }
-              }}
-              variant={newAudienceType === type.value ? 'default' : 'secondary'}
-              className={ds.cn(
-                'px-3 py-1.5 rounded-full font-medium transition-all',
-                ds.typography.caption
-              )}
-            >
-              + {type.label}
-            </Button>
-          ))}
-        </div>
+        {/* Type Selector */}
+        <AudienceTypeSelector
+          selectedType={audienceBuilder.newAudienceType}
+          onSelectType={audienceBuilder.setNewAudienceType}
+          onQuickAddBroad={audienceBuilder.handleQuickAddBroad}
+        />
 
-        {/* Conditional inline forms */}
-        {newAudienceType === 'INTEREST' && (
-          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
-            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Interest Audience</div>
-            <InterestAutocomplete
-              userId={userId}
-              selectedInterests={selectedInterests}
-              onAdd={(interest) => setSelectedInterests(prev => [...prev, interest])}
-              onRemove={(id) => setSelectedInterests(prev => prev.filter(i => i.id !== id))}
-              placeholder="Search interests..."
-            />
-            {selectedInterests.length > 0 && (
-              <Button
-                onClick={handleAddAudience}
-                className={ds.cn(
-                  'w-full px-3 py-1.5 rounded-lg',
-                  ds.typography.caption
-                )}
-              >
-                Add ({selectedInterests.length} interests)
-              </Button>
-            )}
-          </div>
-        )}
-
-        {newAudienceType === 'LOOKALIKE' && (
-          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
-            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Lookalike Audience</div>
-            <div className={ds.cn('grid grid-cols-2', ds.spacing.gap.sm)}>
-              <Input
-                value={lalSource}
-                onChange={(value) => setLalSource(value)}
-                placeholder="LAL Source"
-                className={ds.typography.caption}
-              />
-              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.xs)}>
-                {LAL_PERCENTAGES.map((pct) => (
-                  <Button
-                    key={pct}
-                    onClick={() => {
-                      setLalPercentages((prev) =>
-                        prev.includes(pct) ? prev.filter((p) => p !== pct) : [...prev, pct]
-                      )
-                    }}
-                    variant={lalPercentages.includes(pct) ? 'default' : 'secondary'}
-                    className={ds.cn(
-                      'px-2 py-1 rounded',
-                      ds.typography.caption
-                    )}
-                  >
-                    {pct}%
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Button
-              onClick={handleAddAudience}
-              className={ds.cn(
-                'w-full px-3 py-1.5 rounded-lg',
-                ds.typography.caption
-              )}
-            >
-              Add Lookalike
-            </Button>
-          </div>
-        )}
-
-        {newAudienceType === 'CUSTOM_AUDIENCE' && (
-          <div className={ds.cn('mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5', ds.spacing.vertical.sm)}>
-            <div className={ds.cn(ds.typography.caption, 'font-medium text-foreground')}>Add Custom Audience</div>
-            <Input
-              value={customAudienceId}
-              onChange={(value) => setCustomAudienceId(value)}
-              placeholder="Custom Audience ID"
-              className={ds.cn('w-full', ds.typography.caption)}
-            />
-            <Button
-              onClick={handleAddAudience}
-              className={ds.cn(
-                'w-full px-3 py-1.5 rounded-lg',
-                ds.typography.caption
-              )}
-            >
-              Add Custom Audience
-            </Button>
-          </div>
-        )}
+        {/* Conditional Forms */}
+        <AudienceForm
+          type={audienceBuilder.newAudienceType}
+          userId={userId}
+          selectedInterests={audienceBuilder.selectedInterests}
+          onAddInterest={audienceBuilder.handleAddInterest}
+          onRemoveInterest={audienceBuilder.handleRemoveInterest}
+          lalSource={audienceBuilder.lalSource}
+          lalPercentages={audienceBuilder.lalPercentages}
+          onSetLalSource={audienceBuilder.setLalSource}
+          onToggleLalPercentage={audienceBuilder.handleToggleLalPercentage}
+          customAudienceId={audienceBuilder.customAudienceId}
+          onSetCustomAudienceId={audienceBuilder.setCustomAudienceId}
+          onAdd={audienceBuilder.handleAddAudience}
+        />
 
         {/* Added Audiences - Compact Pills */}
         {bulkAudiences.audiences.length > 0 && (
@@ -364,88 +141,14 @@ export function AudiencesBulkStep() {
 
       {/* Placement Presets */}
       <FormSection title="Placement Presets">
-        {/* Quick selection - Most used */}
-        <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
-          {PLACEMENT_PRESET_OPTIONS.filter(p => !p.category).map((preset) => (
-            <Button
-              key={preset.value}
-              onClick={() => togglePlacementPreset(preset.value)}
-              variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
-              className={ds.cn(
-                'px-3 py-1.5 rounded-full font-medium transition-all',
-                ds.typography.caption
-              )}
-            >
-              {preset.label}
-            </Button>
-          ))}
-        </div>
-
-        {/* Expandable advanced options */}
-        {bulkAudiences.placementPresets.length > 0 && (
-          <Button
-            onClick={() => setPlacementsExpanded(!placementsExpanded)}
-            variant="ghost"
-            className={ds.cn(
-              'mt-3 flex items-center',
-              ds.spacing.gap.sm,
-              ds.typography.caption,
-              'text-muted-foreground hover:text-foreground transition-colors h-auto p-0'
-            )}
-          >
-            <ChevronDown className={ds.cn('h-3.5 w-3.5 transition-transform', placementsExpanded && 'rotate-180')} />
-            {placementsExpanded ? 'Hide' : 'Show'} advanced options
-          </Button>
-        )}
-
-        {placementsExpanded && (
-          <div className={ds.cn('mt-3 pt-3 border-t border-border', ds.spacing.vertical.md)}>
-            {/* Platform Split */}
-            <div>
-              <div className={ds.cn('text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2')}>By Platform</div>
-              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
-                {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Platform').map((preset) => (
-                  <Button
-                    key={preset.value}
-                    onClick={() => togglePlacementPreset(preset.value)}
-                    variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
-                    className={ds.cn(
-                      'px-3 py-1.5 rounded-full font-medium transition-all',
-                      ds.typography.caption
-                    )}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Placement Type Split */}
-            <div>
-              <div className={ds.cn('text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2')}>By Placement Type</div>
-              <div className={ds.cn('flex flex-wrap', ds.spacing.gap.sm)}>
-                {PLACEMENT_PRESET_OPTIONS.filter(p => p.category === 'Placement').map((preset) => (
-                  <Button
-                    key={preset.value}
-                    onClick={() => togglePlacementPreset(preset.value)}
-                    variant={bulkAudiences.placementPresets.includes(preset.value) ? 'default' : 'secondary'}
-                    className={ds.cn(
-                      'px-3 py-1.5 rounded-full font-medium transition-all',
-                      ds.typography.caption
-                    )}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <PlacementSelector
+          selectedPresets={bulkAudiences.placementPresets}
+          onTogglePreset={togglePlacementPreset}
+        />
       </FormSection>
 
       {/* Geo Locations */}
       <FormSection title="Geo Locations *" icon={<Info className="h-4 w-4" />}>
-        {/* Main autocomplete - searches all types */}
         <div>
           <GeoLocationAutocomplete
             value={selectedGeoLocations}
@@ -454,10 +157,10 @@ export function AudiencesBulkStep() {
               // Update bulk audiences
               updateBulkAudiences({
                 geoLocations: {
-                  countries: locs.filter(l => l.type === 'country').map(l => l.key),
-                  regions: locs.filter(l => l.type === 'region').map(l => l.key),
-                  cities: locs.filter(l => l.type === 'city').map(l => l.key),
-                }
+                  countries: locs.filter((l) => l.type === 'country').map((l) => l.key),
+                  regions: locs.filter((l) => l.type === 'region').map((l) => l.key),
+                  cities: locs.filter((l) => l.type === 'city').map((l) => l.key),
+                },
               })
             }}
             userId={userId}
@@ -465,228 +168,31 @@ export function AudiencesBulkStep() {
             placeholder="Search countries, regions, or cities..."
           />
         </div>
-
-        {/* Advanced options (collapsible) */}
-        {selectedGeoLocations.length > 0 && (
-          <Button
-            onClick={() => setGeoExpanded(!geoExpanded)}
-            variant="ghost"
-            className={ds.cn(
-              'mt-3 flex items-center',
-              ds.spacing.gap.sm,
-              ds.typography.caption,
-              'text-muted-foreground hover:text-foreground transition-colors h-auto p-0'
-            )}
-          >
-            <ChevronDown className={ds.cn('h-3.5 w-3.5 transition-transform', geoExpanded && 'rotate-180')} />
-            {geoExpanded ? 'Hide' : 'Show'} by type ({selectedGeoLocations.filter(l => l.type === 'country').length} countries, {selectedGeoLocations.filter(l => l.type === 'region').length} regions, {selectedGeoLocations.filter(l => l.type === 'city').length} cities)
-          </Button>
-        )}
-
-        {geoExpanded && (
-          <div className={ds.cn('mt-3 pt-3 border-t border-border', ds.spacing.vertical.md)}>
-            {/* Countries */}
-            {selectedGeoLocations.filter(l => l.type === 'country').length > 0 && (
-              <div>
-                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Countries</label>
-                <GeoLocationAutocomplete
-                  value={selectedGeoLocations.filter(loc => loc.type === 'country')}
-                  onChange={(locs) => {
-                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'country')
-                    const newLocs = [...locs, ...otherLocs]
-                    setSelectedGeoLocations(newLocs)
-                    updateBulkAudiences({
-                      geoLocations: {
-                        ...bulkAudiences.geoLocations,
-                        countries: locs.map(l => l.key),
-                      }
-                    })
-                  }}
-                  userId={userId}
-                  locationTypes={['country']}
-                  placeholder="Search countries..."
-                />
-              </div>
-            )}
-
-            {/* Regions */}
-            {selectedGeoLocations.filter(l => l.type === 'region').length > 0 && (
-              <div>
-                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Regions</label>
-                <GeoLocationAutocomplete
-                  value={selectedGeoLocations.filter(loc => loc.type === 'region')}
-                  onChange={(locs) => {
-                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'region')
-                    const newLocs = [...locs, ...otherLocs]
-                    setSelectedGeoLocations(newLocs)
-                    updateBulkAudiences({
-                      geoLocations: {
-                        ...bulkAudiences.geoLocations,
-                        regions: locs.map(l => l.key),
-                      }
-                    })
-                  }}
-                  userId={userId}
-                  locationTypes={['region']}
-                  placeholder="Search regions..."
-                />
-              </div>
-            )}
-
-            {/* Cities */}
-            {selectedGeoLocations.filter(l => l.type === 'city').length > 0 && (
-              <div>
-                <label className={ds.cn(ds.componentPresets.label, 'mb-2')}>Cities</label>
-                <GeoLocationAutocomplete
-                  value={selectedGeoLocations.filter(loc => loc.type === 'city')}
-                  onChange={(locs) => {
-                    const otherLocs = selectedGeoLocations.filter(loc => loc.type !== 'city')
-                    const newLocs = [...locs, ...otherLocs]
-                    setSelectedGeoLocations(newLocs)
-                    updateBulkAudiences({
-                      geoLocations: {
-                        ...bulkAudiences.geoLocations,
-                        cities: locs.map(l => l.key),
-                      }
-                    })
-                  }}
-                  userId={userId}
-                  locationTypes={['city']}
-                  placeholder="Search cities..."
-                />
-              </div>
-            )}
-          </div>
-        )}
       </FormSection>
 
       {/* Demographics */}
       <FormSection title="Demographics">
-        {/* Age Range and Gender */}
-        <FormRow columns={2} gap="lg">
-          {/* Age Range Slider - Dual Handle */}
-          <div>
-            <label className={ds.componentPresets.label}>Age Range</label>
-            <div className="relative h-10 flex items-center mt-3">
-              {/* Age labels above handles */}
-              <div
-                className={ds.cn(
-                  'absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground rounded shadow-sm',
-                  ds.typography.caption,
-                  'font-medium'
-                )}
-                style={{
-                  left: `calc(${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}% - 12px)`,
-                  transition: 'left 0.05s ease-out'
-                }}
-              >
-                {bulkAudiences.demographics.ageMin}
-              </div>
-              <div
-                className={ds.cn(
-                  'absolute -top-3 px-2 py-0.5 bg-primary text-primary-foreground rounded shadow-sm',
-                  ds.typography.caption,
-                  'font-medium'
-                )}
-                style={{
-                  left: `calc(${((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}% - 12px)`,
-                  transition: 'left 0.05s ease-out'
-                }}
-              >
-                {bulkAudiences.demographics.ageMax === 65 ? '65+' : bulkAudiences.demographics.ageMax}
-              </div>
-
-              {/* Track */}
-              <div className="absolute w-full h-1.5 bg-muted rounded-full"></div>
-
-              {/* Active track between handles */}
-              <div
-                className="absolute h-1.5 bg-primary rounded-full"
-                style={{
-                  left: `${((bulkAudiences.demographics.ageMin - 13) / (65 - 13)) * 100}%`,
-                  right: `${100 - ((bulkAudiences.demographics.ageMax - 13) / (65 - 13)) * 100}%`,
-                  transition: 'left 0.05s ease-out, right 0.05s ease-out'
-                }}
-              ></div>
-
-              {/* Min handle */}
-              <input
-                type="range"
-                min={13}
-                max={65}
-                value={bulkAudiences.demographics.ageMin}
-                onChange={(e) =>
-                  updateBulkAudiences({
-                    demographics: {
-                      ...bulkAudiences.demographics,
-                      ageMin: Math.min(Number(e.target.value), bulkAudiences.demographics.ageMax - 1)
-                    },
-                  })
-                }
-                className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
-              />
-
-              {/* Max handle */}
-              <input
-                type="range"
-                min={13}
-                max={65}
-                value={bulkAudiences.demographics.ageMax}
-                onChange={(e) =>
-                  updateBulkAudiences({
-                    demographics: {
-                      ...bulkAudiences.demographics,
-                      ageMax: Math.max(Number(e.target.value), bulkAudiences.demographics.ageMin + 1)
-                    },
-                  })
-                }
-                className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-0"
-              />
-            </div>
-          </div>
-
-          {/* Gender Selection (Pills) */}
-          <div>
-            <label className={ds.componentPresets.label}>Gender</label>
-            <div className={ds.cn('flex flex-wrap mt-2', ds.spacing.gap.sm)}>
-              {['All', 'Male', 'Female'].map((gender) => (
-                <Button
-                  key={gender}
-                  onClick={() =>
-                    updateBulkAudiences({
-                      demographics: { ...bulkAudiences.demographics, gender: gender as any },
-                    })
-                  }
-                  variant={bulkAudiences.demographics.gender === gender ? 'default' : 'secondary'}
-                  className={ds.cn(
-                    'px-4 py-2 rounded-full font-medium transition-all',
-                    ds.typography.body
-                  )}
-                >
-                  {gender}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </FormRow>
-
-        {/* Languages Dropdown */}
-        <div>
-          <Select
-            label="Languages (optional)"
-            value={(bulkAudiences.demographics.languages || [])[0] || ''}
-            onChange={(val) =>
-              updateBulkAudiences({
-                demographics: { ...bulkAudiences.demographics, languages: val ? [val] : [] },
-              })
-            }
-            options={[
-              { value: '', label: 'No language targeting' },
-              ...LANGUAGES.map(lang => ({ value: lang, label: lang }))
-            ]}
-            hint="Target specific languages (optional)"
-          />
-        </div>
+        <DemographicsForm
+          ageMin={bulkAudiences.demographics.ageMin}
+          ageMax={bulkAudiences.demographics.ageMax}
+          gender={bulkAudiences.demographics.gender}
+          languages={bulkAudiences.demographics.languages || []}
+          onUpdateAge={(min, max) =>
+            updateBulkAudiences({
+              demographics: { ...bulkAudiences.demographics, ageMin: min, ageMax: max },
+            })
+          }
+          onUpdateGender={(gender) =>
+            updateBulkAudiences({
+              demographics: { ...bulkAudiences.demographics, gender },
+            })
+          }
+          onUpdateLanguages={(languages) =>
+            updateBulkAudiences({
+              demographics: { ...bulkAudiences.demographics, languages },
+            })
+          }
+        />
       </FormSection>
 
       {/* Optimization & Budget */}
@@ -706,9 +212,7 @@ export function AudiencesBulkStep() {
 
           {isABO && (
             <div>
-              <label className={ds.componentPresets.label}>
-                Budget per Ad Set (USD) *
-              </label>
+              <label className={ds.componentPresets.label}>Budget per Ad Set (USD) *</label>
               <div className={ds.cn('flex', ds.spacing.gap.sm)}>
                 <Select
                   value={bulkAudiences.budgetType || 'daily'}
@@ -732,11 +236,15 @@ export function AudiencesBulkStep() {
           )}
 
           {!isABO && (
-            <div className={ds.cn('flex items-center rounded-lg border border-border bg-muted/30', ds.spacing.padding.sm, ds.spacing.gap.sm)}>
+            <div
+              className={ds.cn(
+                'flex items-center rounded-lg border border-border bg-muted/30',
+                ds.spacing.padding.sm,
+                ds.spacing.gap.sm
+              )}
+            >
               <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <p className={ds.componentPresets.hint}>
-                Budget managed at campaign level (CBO)
-              </p>
+              <p className={ds.componentPresets.hint}>Budget managed at campaign level (CBO)</p>
             </div>
           )}
         </FormRow>
@@ -745,9 +253,7 @@ export function AudiencesBulkStep() {
         {facebookPixelId && (pixelEvents || customConversions) && (
           <div className={ds.cn('pt-2 border-t border-border', ds.spacing.vertical.md)}>
             <div>
-              <label className={ds.componentPresets.label}>
-                Événement de Conversion (optionnel)
-              </label>
+              <label className={ds.componentPresets.label}>Événement de Conversion (optionnel)</label>
               <p className={ds.cn(ds.componentPresets.hint, 'mb-3')}>
                 Sélectionner un événement pixel ou une conversion personnalisée
               </p>
@@ -769,7 +275,7 @@ export function AudiencesBulkStep() {
                     updateBulkAudiences({
                       customEventType: undefined,
                       customEventStr: undefined,
-                      customConversionId: undefined
+                      customConversionId: undefined,
                     })
                   } else if (value.startsWith('pe_')) {
                     // Pixel Event selected
@@ -777,7 +283,7 @@ export function AudiencesBulkStep() {
                     updateBulkAudiences({
                       customEventType: 'OTHER',
                       customEventStr: eventName,
-                      customConversionId: undefined
+                      customConversionId: undefined,
                     })
                   } else if (value.startsWith('cc_')) {
                     // Custom Conversion selected
@@ -786,7 +292,7 @@ export function AudiencesBulkStep() {
                     updateBulkAudiences({
                       customConversionId: conversionId,
                       customEventStr: conversion?.name,
-                      customEventType: conversion?.custom_event_type || 'LEAD'
+                      customEventType: conversion?.custom_event_type || 'LEAD',
                     })
                   }
                 }}
@@ -820,10 +326,12 @@ export function AudiencesBulkStep() {
               {/* Badge label when an option is selected */}
               {(bulkAudiences.customConversionId || bulkAudiences.customEventStr) && (
                 <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <span className={ds.cn(
-                    ds.componentPresets.badge,
-                    ds.getBadgeColor(bulkAudiences.customConversionId ? 'purple' : 'blue')
-                  )}>
+                  <span
+                    className={ds.cn(
+                      ds.componentPresets.badge,
+                      ds.getBadgeColor(bulkAudiences.customConversionId ? 'purple' : 'blue')
+                    )}
+                  >
                     {bulkAudiences.customConversionId ? 'Custom Conversion' : 'Pixel Event'}
                   </span>
                 </div>
