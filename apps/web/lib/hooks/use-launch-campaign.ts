@@ -4,6 +4,7 @@ import type { ProgressStep } from '../store/bulk-launcher'
 import { trpc } from '../trpc'
 import { CAMPAIGN_TYPE_TO_OBJECTIVE } from '@launcher-ads/sdk'
 import type { GeneratedAdSet } from '@launcher-ads/sdk'
+import { mediaAPI, bulkLaunchesAPI } from '../api'
 
 interface LaunchCampaignParams {
   userId: string
@@ -20,30 +21,11 @@ export function useLaunchCampaign() {
   const mutation = trpc.facebookCampaigns.launchBulkCampaign.useMutation()
 
   const uploadVideo = async (adAccountId: string, videoData: string, uploadId?: string, fileName?: string): Promise<string> => {
-    const response = await fetch(`http://localhost:4000/facebook/media/upload-video/${adAccountId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoData, uploadId, fileName }),
-    })
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
-      throw new Error(`Failed to upload video: ${errorData.message || response.statusText}`)
-    }
-    const data = await response.json()
-    return data.videoId
+    return mediaAPI.uploadVideo(adAccountId, videoData, uploadId, fileName)
   }
 
   const uploadImage = async (adAccountId: string, imageData: string, fileName?: string): Promise<string> => {
-    const response = await fetch(`http://localhost:4000/facebook/media/upload-image/${adAccountId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData, fileName }),
-    })
-    if (!response.ok) {
-      throw new Error('Failed to upload image')
-    }
-    const data = await response.json()
-    return data.imageHash
+    return mediaAPI.uploadImage(adAccountId, imageData, fileName)
   }
 
   const launchCampaign = async (params: LaunchCampaignParams) => {
@@ -241,11 +223,7 @@ export function useLaunchCampaign() {
       const uploadId = uploadIds[index]
       try {
         // Poll video status until ready
-        const response = await fetch(`http://localhost:4000/facebook/media/video-status/${adAccountId}/${videoId}`)
-        if (!response.ok) {
-          throw new Error('Failed to check video status')
-        }
-        const data = await response.json()
+        const data = await mediaAPI.checkVideoStatus(adAccountId, videoId)
 
         updateUploadProgress(uploadId, {
           status: 'completed',
@@ -382,23 +360,19 @@ export function useLaunchCampaign() {
         const { bulkAudiences, bulkCreatives, matrixConfig, clientId } = store
 
         // Save bulk launch to database
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bulk-launches`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: params.userId,
-            clientId: clientId,
-            adAccountId: adAccountId,
-            name: campaign.name || 'Untitled Campaign',
-            mode: 'create',
-            launchMode: store.launchMode,
-            campaign: campaign,
-            bulkAudiences: bulkAudiences,
-            bulkCreatives: bulkCreatives,
-            matrixConfig: matrixConfig,
-            totalAdSets: params.generatedAdSets.length,
-            totalAds: params.generatedAdSets.reduce((sum, adSet) => sum + adSet.ads.length, 0),
-          }),
+        await bulkLaunchesAPI.create({
+          userId: params.userId,
+          clientId: clientId,
+          adAccountId: adAccountId,
+          name: campaign.name || 'Untitled Campaign',
+          mode: 'create',
+          launchMode: store.launchMode,
+          campaign: campaign,
+          bulkAudiences: bulkAudiences,
+          bulkCreatives: bulkCreatives,
+          matrixConfig: matrixConfig,
+          totalAdSets: params.generatedAdSets.length,
+          totalAds: params.generatedAdSets.reduce((sum, adSet) => sum + adSet.ads.length, 0),
         })
 
         // Mark as launched

@@ -19,4 +19,7 @@ export type BulkLaunch = z.infer<typeof BulkLaunchSchema>
 export const bulkLaunchesAPI = {
   list: (userId: string) =>
     api.get(`/bulk-launches?userId=${userId}`, z.array(BulkLaunchSchema)),
+
+  create: (data: any) =>
+    api.post('/bulk-launches', data, BulkLaunchSchema),
 }
