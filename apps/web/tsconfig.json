@@ -11,12 +11,10 @@
       ],
       "@launcher-ads/ui": [
         "../../packages/ui/src"
-      ],
-      "@launcher-ads/api": [
-        "../api/src"
       ]
     },
-    "allowJs": true
+    "allowJs": true,
+    "skipLibCheck": true
   },
   "include": [
     "next-env.d.ts",
@@ -25,6 +23,7 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "../api"
   ]
 }
