@@ -5,6 +5,7 @@ import { Play, Pause, Trash2, Eye, Edit2 } from 'lucide-react'
 import { useLaunchesStore, type Launch, type LaunchStatus } from '@/lib/store/launches'
 import { cn } from '@launcher-ads/ui'
 import { getUserId } from '@/lib/utils/get-user-id'
+import { bulkLaunchesAPI } from '@/lib/api'
 
 const statusConfig: Record<LaunchStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700' },
@@ -138,15 +139,7 @@ export function LaunchList({ searchQuery, onEdit }: { searchQuery: string; onEdi
         setIsLoading(true)
         const userId = getUserId()
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/bulk-launches?userId=${userId}`
-        )
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch launches')
-        }
-
-        const bulkLaunches = await response.json()
+        const bulkLaunches = await bulkLaunchesAPI.list(userId)
 
         // Transform to Launch interface format
         const transformedLaunches: Launch[] = bulkLaunches.map((bl: any) => ({
