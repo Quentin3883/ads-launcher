@@ -9,6 +9,7 @@ import {
   validateTemplate,
   type NamingConventionTemplate,
 } from '@launcher-ads/sdk'
+import { conventionsAPI } from '@/lib/api'
 
 interface NamingConvention {
   id: string
@@ -92,8 +93,7 @@ export function NamingSettings() {
 
   async function fetchConventions() {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/naming-conventions`)
-      const data = await response.json()
+      const data = await conventionsAPI.list() as any
       setConventions(data)
     } catch (error) {
       console.error('Failed to fetch naming conventions:', error)
@@ -110,20 +110,16 @@ export function NamingSettings() {
     }
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/naming-conventions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          template: formData.template,
-          variables: {
-            date: { format: formData.dateFormat },
-            location: { strategy: formData.locationStrategy },
-          },
-          isDefault: formData.isDefault,
-        }),
-      })
+      await conventionsAPI.create({
+        name: formData.name,
+        description: formData.description,
+        template: formData.template,
+        variables: {
+          date: { format: formData.dateFormat },
+          location: { strategy: formData.locationStrategy },
+        },
+        isDefault: formData.isDefault,
+      } as any)
 
       await fetchConventions()
       setIsCreating(false)
@@ -142,20 +138,16 @@ export function NamingSettings() {
     }
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/naming-conventions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          template: formData.template,
-          variables: {
-            date: { format: formData.dateFormat },
-            location: { strategy: formData.locationStrategy },
-          },
-          isDefault: formData.isDefault,
-        }),
-      })
+      await conventionsAPI.update(id, {
+        name: formData.name,
+        description: formData.description,
+        template: formData.template,
+        variables: {
+          date: { format: formData.dateFormat },
+          location: { strategy: formData.locationStrategy },
+        },
+        isDefault: formData.isDefault,
+      } as any)
 
       await fetchConventions()
       setEditingId(null)
@@ -170,9 +162,7 @@ export function NamingSettings() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette convention ?')) return
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/naming-conventions/${id}`, {
-        method: 'DELETE',
-      })
+      await conventionsAPI.delete(id)
       await fetchConventions()
     } catch (error) {
       console.error('Failed to delete convention:', error)
@@ -182,11 +172,7 @@ export function NamingSettings() {
 
   async function toggleDefault(id: string) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/naming-conventions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isDefault: true }),
-      })
+      await conventionsAPI.update(id, { isDefault: true })
       await fetchConventions()
     } catch (error) {
       console.error('Failed to set default:', error)
