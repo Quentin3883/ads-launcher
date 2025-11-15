@@ -35,8 +35,8 @@ export function ScheduleSelector({
     <FormSection title="Schedule">
       <div className={ds.spacing.vertical.md}>
         <div className={ds.spacing.vertical.sm}>
-          <label className={ds.componentPresets.label}>Start Date *</label>
-          <div className={ds.cn('flex items-center', ds.spacing.gap.xs)}>
+          <label className={ds.componentPresets.label}>Do you want to schedule your campaign?</label>
+          <div className={ds.cn('grid grid-cols-2', ds.spacing.gap.sm)}>
             <Button
               type="button"
               onClick={() => {
@@ -53,7 +53,7 @@ export function ScheduleSelector({
                 ds.transitions.default
               )}
             >
-              No - Start now
+              No - Start Now
             </Button>
             <Button
               type="button"
@@ -74,7 +74,7 @@ export function ScheduleSelector({
                 ds.transitions.default
               )}
             >
-              Yes - Set dates
+              Yes - Schedule
             </Button>
           </div>
           {startDate !== 'NOW' && (

@@ -303,11 +303,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
         ]
       : []),
     {
-      id: 'mode',
-      title: 'Launch Mode',
-      isComplete: visitedSections.has('mode') && !!launchMode,
-    },
-    {
       id: 'ad-account',
       title: 'Facebook Ad Account',
       isComplete: visitedSections.has('ad-account') && !!adAccountId,
