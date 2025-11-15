@@ -33,7 +33,7 @@ export function SidebarNavigation({
 }: SidebarNavigationProps) {
   return (
     <div className="h-full flex flex-col py-6 px-4">
-      <div className="flex-1 space-y-1">
+      <div className="flex-1 space-y-0">
         {sections.map((section, index) => {
           const isActive = section.id === activeSection
           const isLocked = unlockedSections.length > 0 && !unlockedSections.includes(section.id)
@@ -41,11 +41,11 @@ export function SidebarNavigation({
 
           return (
             <div key={section.id} className="relative">
-              {/* Vertical connecting line */}
+              {/* Vertical connecting line - centered on circle */}
               {!isLastSection && (
                 <div
                   className={ds.cn(
-                    "absolute left-[19px] top-10 bottom-0 w-[2px]",
+                    "absolute left-[13px] top-6 h-8 w-[2px]",
                     section.isComplete ? "bg-primary" : "bg-gray-200"
                   )}
                 />
@@ -56,30 +56,30 @@ export function SidebarNavigation({
                 onClick={() => !isLocked && onSectionClick(section.id)}
                 disabled={isLocked}
                 className={ds.cn(
-                  "w-full flex items-start gap-3 py-2 px-2 rounded-lg transition-all relative z-10",
+                  "w-full flex items-center gap-3 py-1.5 px-2 rounded-lg transition-all relative z-10",
                   isActive && "bg-primary/5",
                   isLocked && "opacity-40 cursor-not-allowed",
                   !isLocked && !isActive && "hover:bg-gray-50"
                 )}
               >
-                {/* Circle with number or checkmark */}
+                {/* Circle with number or checkmark - smaller */}
                 <div className={ds.cn(
-                  "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all",
+                  "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs transition-all",
                   section.isComplete
                     ? "bg-primary text-white"
                     : isActive
-                    ? "bg-primary/10 text-primary border-2 border-primary"
+                    ? "bg-white text-primary border-2 border-primary"
                     : "bg-white border-2 border-gray-200 text-gray-400"
                 )}>
                   {section.isComplete ? (
-                    <Check className="w-5 h-5" />
+                    <Check className="w-3.5 h-3.5" />
                   ) : (
                     <span>{index + 1}</span>
                   )}
                 </div>
 
                 {/* Title only (no subtitle) */}
-                <div className="flex-1 text-left pt-2">
+                <div className="flex-1 text-left">
                   <div className={ds.cn(
                     "font-medium text-sm transition-colors",
                     isActive ? "text-primary" : section.isComplete ? "text-foreground" : "text-muted-foreground"

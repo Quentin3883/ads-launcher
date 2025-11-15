@@ -115,6 +115,21 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
         setClientId(selectedClientId)
       }
       setCurrentStep(0) // Start at step 0
+
+      // Mark previous sections as visited based on current state
+      const visited = new Set<string>()
+
+      // If we have a client (either preselected or already set), mark client as visited
+      if (hasPreselectedClient || clientId) {
+        visited.add('client')
+      }
+
+      // If we have an ad account, mark ad-account as visited
+      if (adAccountId) {
+        visited.add('ad-account')
+      }
+
+      setVisitedSections(visited)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
