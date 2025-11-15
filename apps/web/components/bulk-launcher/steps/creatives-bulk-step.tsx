@@ -55,23 +55,7 @@ export function CreativesBulkStep() {
         </div>
       </div>
 
-      {/* Actions Row */}
-      <CreativeUploadArea
-        dragOver={fileUpload.dragOver}
-        onDragOver={(e) => {
-          e.preventDefault()
-          fileUpload.setDragOver(true)
-        }}
-        onDragLeave={() => fileUpload.setDragOver(false)}
-        onDrop={fileUpload.handleDrop}
-        onFileSelect={fileUpload.handleFileSelect}
-        onOpenVideoLibrary={() => mediaLibrary.openMediaLibrary('video')}
-        onOpenImageLibrary={() => mediaLibrary.openMediaLibrary('image')}
-        onAddEmpty={handleAddEmptyCreative}
-        fileInputRef={fileUpload.fileInputRef}
-      />
-
-      {/* Ad Copy Section - MOVED ABOVE CREATIVES */}
+      {/* Ad Copy Section - NOW AT THE TOP */}
       <FormSection title="Ad Copy">
         <div className={ds.spacing.vertical.md}>
           <div className={ds.cn('flex items-center gap-2 mb-2', ds.typography.caption, 'font-medium text-muted-foreground')}>
@@ -183,6 +167,22 @@ export function CreativesBulkStep() {
           </div>
         </div>
       </FormSection>
+
+      {/* Upload Area - After Ad Copy */}
+      <CreativeUploadArea
+        dragOver={fileUpload.dragOver}
+        onDragOver={(e) => {
+          e.preventDefault()
+          fileUpload.setDragOver(true)
+        }}
+        onDragLeave={() => fileUpload.setDragOver(false)}
+        onDrop={fileUpload.handleDrop}
+        onFileSelect={fileUpload.handleFileSelect}
+        onOpenVideoLibrary={() => mediaLibrary.openMediaLibrary('video')}
+        onOpenImageLibrary={() => mediaLibrary.openMediaLibrary('image')}
+        onAddEmpty={handleAddEmptyCreative}
+        fileInputRef={fileUpload.fileInputRef}
+      />
 
       {/* Creatives Grid */}
       {bulkCreatives.creatives.length > 0 && (
