@@ -131,24 +131,24 @@ export function OptimizationSection() {
             value={bulkAudiences.optimizationEvent}
             onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
             options={availableOptimizationGoals.map((goal) => {
-              // Friendly labels in French
+              // Friendly labels in English
               const labels: Record<string, string> = {
-                'LINK_CLICKS': 'Clics sur le lien',
-                'LANDING_PAGE_VIEWS': 'Vues de la page de destination',
+                'LINK_CLICKS': 'Link Clicks',
+                'LANDING_PAGE_VIEWS': 'Landing Page Views',
                 'IMPRESSIONS': 'Impressions',
-                'REACH': 'Portée',
+                'REACH': 'Reach',
                 'OFFSITE_CONVERSIONS': 'Conversions',
-                'LEAD_GENERATION': 'Génération de prospects',
-                'QUALITY_LEAD': 'Prospects de qualité',
-                'QUALITY_CALL': 'Appels de qualité',
+                'LEAD_GENERATION': 'Lead Generation',
+                'QUALITY_LEAD': 'Quality Leads',
+                'QUALITY_CALL': 'Quality Calls',
                 'CONVERSATIONS': 'Conversations',
-                'POST_ENGAGEMENT': 'Engagement sur la publication',
-                'PAGE_LIKES': 'J\'aime de la page',
-                'EVENT_RESPONSES': 'Réponses à l\'événement',
-                'THRUPLAY': 'Lectures vidéo complètes',
-                'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS': 'Vues vidéo (2 secondes)',
-                'APP_INSTALLS': 'Installations d\'application',
-                'AD_RECALL_LIFT': 'Mémorisation publicitaire',
+                'POST_ENGAGEMENT': 'Post Engagement',
+                'PAGE_LIKES': 'Page Likes',
+                'EVENT_RESPONSES': 'Event Responses',
+                'THRUPLAY': 'ThruPlay',
+                'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS': '2-Second Video Views',
+                'APP_INSTALLS': 'App Installs',
+                'AD_RECALL_LIFT': 'Ad Recall Lift',
               }
               return {
                 value: goal,
