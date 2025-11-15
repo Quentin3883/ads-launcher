@@ -1,9 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
-
-import { Check, ChevronRight } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { ds } from './design-system'
 
 export interface SidebarSection {
@@ -33,59 +30,65 @@ export function SidebarNavigation({
 }: SidebarNavigationProps) {
   return (
     <div className="h-full flex flex-col py-6 px-4">
-      <div className="flex-1 space-y-0">
+      <div className="flex-1 flex flex-col">
         {sections.map((section, index) => {
           const isActive = section.id === activeSection
           const isLocked = unlockedSections.length > 0 && !unlockedSections.includes(section.id)
+          const isCompleted = section.isComplete
           const isLastSection = index === sections.length - 1
 
+          // Determine state
+          const state = isCompleted ? 'completed' : isActive ? 'active' : 'inactive'
+
           return (
-            <div key={section.id} className="relative">
-              {/* Vertical connecting line - centered on circle */}
-              {!isLastSection && (
+            <div key={section.id} className="group/step flex items-start" data-state={state}>
+              {/* Indicator + Separator column */}
+              <div className="flex flex-col items-center mr-3">
+                {/* Circle Indicator */}
                 <div
                   className={ds.cn(
-                    "absolute left-[13px] top-6 h-8 w-[2px]",
-                    section.isComplete ? "bg-primary" : "bg-gray-200"
+                    "relative flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all",
+                    state === 'completed' && "bg-primary text-white",
+                    state === 'active' && "bg-white text-primary ring-2 ring-primary ring-offset-2",
+                    state === 'inactive' && "bg-muted text-muted-foreground"
                   )}
-                />
-              )}
-
-              {/* Step item */}
-              <button
-                onClick={() => !isLocked && onSectionClick(section.id)}
-                disabled={isLocked}
-                className={ds.cn(
-                  "w-full flex items-center gap-3 py-1.5 px-2 rounded-lg transition-all relative z-10",
-                  isActive && "bg-primary/5",
-                  isLocked && "opacity-40 cursor-not-allowed",
-                  !isLocked && !isActive && "hover:bg-gray-50"
-                )}
-              >
-                {/* Circle with number or checkmark - smaller */}
-                <div className={ds.cn(
-                  "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-semibold text-xs transition-all",
-                  section.isComplete
-                    ? "bg-primary text-white"
-                    : isActive
-                    ? "bg-white text-primary border-2 border-primary"
-                    : "bg-white border-2 border-gray-200 text-gray-400"
-                )}>
-                  {section.isComplete ? (
-                    <Check className="w-3.5 h-3.5" />
+                >
+                  {isCompleted ? (
+                    <Check className="size-3.5" />
                   ) : (
                     <span>{index + 1}</span>
                   )}
                 </div>
 
-                {/* Title only (no subtitle) */}
-                <div className="flex-1 text-left">
-                  <div className={ds.cn(
+                {/* Vertical Separator Line */}
+                {!isLastSection && (
+                  <div
+                    className={ds.cn(
+                      "w-0.5 h-8 my-1 transition-colors",
+                      isCompleted ? "bg-primary" : "bg-muted"
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Content */}
+              <button
+                onClick={() => !isLocked && onSectionClick(section.id)}
+                disabled={isLocked}
+                className={ds.cn(
+                  "flex-1 text-left py-1.5 px-2 -ml-2 rounded-lg transition-all",
+                  isActive && "bg-primary/5",
+                  isLocked && "opacity-40 cursor-not-allowed",
+                  !isLocked && !isActive && "hover:bg-gray-50"
+                )}
+              >
+                <div
+                  className={ds.cn(
                     "font-medium text-sm transition-colors",
-                    isActive ? "text-primary" : section.isComplete ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {section.title}
-                  </div>
+                    isActive ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {section.title}
                 </div>
               </button>
             </div>
