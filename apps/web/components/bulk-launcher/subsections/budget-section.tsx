@@ -75,12 +75,48 @@ export function BudgetSection() {
                 Lifetime
               </Button>
             </div>
+
+            {/* Exponential Slider */}
+            <div className="space-y-2">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={(() => {
+                  if (!campaign.budget) return campaign.budgetType === 'daily' ? 50 : 30
+                  const min = campaign.budgetType === 'daily' ? 1 : 100
+                  const max = campaign.budgetType === 'daily' ? 1000 : 10000
+                  // Reverse formula: sliderPos = 100 * log(value/min) / log(max/min)
+                  return Math.round((100 * Math.log(campaign.budget / min)) / Math.log(max / min))
+                })()}
+                onChange={(e) => {
+                  const sliderPos = parseFloat(e.target.value)
+                  const min = campaign.budgetType === 'daily' ? 1 : 100
+                  const max = campaign.budgetType === 'daily' ? 1000 : 10000
+                  // Exponential formula: value = min * (max/min)^(sliderPos/100)
+                  const value = Math.round(min * Math.pow(max / min, sliderPos / 100))
+                  updateCampaign({ budget: value })
+                }}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{campaign.budgetType === 'daily' ? '€1' : '€100'}</span>
+                <span className="font-medium text-foreground">
+                  €{campaign.budget || (campaign.budgetType === 'daily' ? 50 : 1500)}
+                </span>
+                <span>{campaign.budgetType === 'daily' ? '€1000' : '€10000'}</span>
+              </div>
+            </div>
+
+            {/* Manual Input */}
             <Input
               value={campaign.budget || ''}
               onChange={(value) => updateCampaign({ budget: parseFloat(value) || undefined })}
               type="number"
               prefix="€"
               placeholder={campaign.budgetType === 'daily' ? '50' : '1500'}
+              hint="Or enter manually"
             />
           </div>
         )}
