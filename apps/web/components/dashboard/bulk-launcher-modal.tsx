@@ -517,37 +517,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
           </div>
         </div>
 
-        {/* Naming Convention (only show in main content view) */}
-        {isMainContentView && (
-          <div className="border-b border-border bg-background px-6 py-4 flex-shrink-0">
-            <div className="flex items-center gap-4 max-w-6xl mx-auto">
-              <div className="flex items-center gap-3 flex-1">
-                <label className="text-sm font-medium text-foreground whitespace-nowrap">Campaign Name:</label>
-                <input
-                  type="text"
-                  value={campaign.name || ''}
-                  onChange={(e) => {
-                    const { updateCampaign } = useBulkLauncher.getState()
-                    updateCampaign({ name: e.target.value })
-                  }}
-                  placeholder={campaignNamePreview}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-sm italic font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                />
-              </div>
-              <a
-                href="/settings?tab=naming"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-                title="Manage naming conventions"
-              >
-                <Settings className="h-4 w-4" />
-                {selectedConvention?.name || 'Configure'}
-              </a>
-            </div>
-          </div>
-        )}
-
         {/* Main Content Area with Sidebar */}
         <div className="flex h-full min-h-0 flex-1 relative overflow-hidden">
           {/* Sidebar - Scrollable within modal */}
@@ -567,7 +536,38 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
           {/* Main Content */}
           {isMainContentView ? (
             // Show only active section (scrollable if content is long)
-            <div className="flex-1 min-h-0 overflow-y-auto flex justify-center relative">
+            <div className="flex-1 min-h-0 flex flex-col relative">
+              {/* Naming Convention (only show in main content view) */}
+              <div className="border-b border-border bg-background px-6 py-4 flex-shrink-0">
+                <div className="flex items-center gap-4 max-w-5xl mx-auto">
+                  <div className="flex items-center gap-3 flex-1">
+                    <label className="text-sm font-medium text-foreground whitespace-nowrap">Campaign Name:</label>
+                    <input
+                      type="text"
+                      value={campaign.name || ''}
+                      onChange={(e) => {
+                        const { updateCampaign } = useBulkLauncher.getState()
+                        updateCampaign({ name: e.target.value })
+                      }}
+                      placeholder={campaignNamePreview}
+                      className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-sm italic font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    />
+                  </div>
+                  <a
+                    href="/settings?tab=naming"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                    title="Manage naming conventions"
+                  >
+                    <Settings className="h-4 w-4" />
+                    {selectedConvention?.name || 'Configure'}
+                  </a>
+                </div>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="flex-1 min-h-0 overflow-y-auto flex justify-center">
               <div className="w-full max-w-5xl py-6 px-6 flex items-center justify-center">
                 <div className="w-full animate-in fade-in slide-in-from-right-4 duration-200">
                   {activeSection === 'accounts-pixel' && <AccountsPixelSection />}
@@ -591,6 +591,7 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
                   {activeSection === 'creatives' && <CreativesSection />}
                   {activeSection === 'summary' && <SummarySection />}
                 </div>
+              </div>
               </div>
             </div>
           ) : (
