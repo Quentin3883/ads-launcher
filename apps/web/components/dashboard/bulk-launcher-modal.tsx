@@ -152,8 +152,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
     // Mark current setup step as visited when moving to next
     if (currentStep === STEP_CLIENT) {
       setVisitedSections(prev => new Set([...prev, 'client']))
-    } else if (currentStep === STEP_MODE) {
-      setVisitedSections(prev => new Set([...prev, 'mode']))
     } else if (currentStep === STEP_AD_ACCOUNT) {
       setVisitedSections(prev => new Set([...prev, 'ad-account']))
     }
@@ -215,10 +213,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
     // Handle navigation to initial setup steps
     if (sectionId === 'client' && !hasPreselectedClient) {
       setCurrentStep(STEP_CLIENT)
-      return
-    }
-    if (sectionId === 'mode') {
-      setCurrentStep(STEP_MODE)
       return
     }
     if (sectionId === 'ad-account') {
@@ -552,7 +546,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
               sections={sidebarSections}
               activeSection={
                 currentStep === STEP_CLIENT ? 'client' :
-                currentStep === STEP_MODE ? 'mode' :
                 currentStep === STEP_AD_ACCOUNT ? 'ad-account' :
                 activeSection
               }
@@ -678,7 +671,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
                 onClick={handleNext}
                 disabled={
                   (currentStep === STEP_CLIENT && !clientId) ||
-                  (currentStep === STEP_MODE && !launchMode) ||
                   (currentStep === STEP_AD_ACCOUNT && !adAccountId)
                 }
               >
