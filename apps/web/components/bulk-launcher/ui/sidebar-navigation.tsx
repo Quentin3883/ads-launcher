@@ -43,7 +43,6 @@ export function SidebarNavigation({
       <Stepper
         value={activeStepIndex}
         orientation="vertical"
-        className="flex-1"
       >
         {sections.map((section, index) => {
           const isLocked = unlockedSections.length > 0 && !unlockedSections.includes(section.id)
@@ -57,15 +56,11 @@ export function SidebarNavigation({
               className="relative items-start [&:not(:last-child)]:flex-1"
             >
               <StepperTrigger
-                className={ds.cn(
-                  "items-start pb-6 last:pb-0",
-                  activeStepIndex === index && "bg-primary/5 rounded-lg px-2 -ml-2",
-                  !isLocked && activeStepIndex !== index && "hover:bg-gray-50 rounded-lg px-2 -ml-2"
-                )}
+                className="items-start pb-12 last:pb-0"
                 onClick={() => !isLocked && onSectionClick(section.id)}
               >
                 <StepperIndicator className="data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:bg-white data-[state=active]:text-primary" />
-                <div className="mt-0 space-y-0 px-2 text-left">
+                <div className="mt-0.5 px-2 text-left">
                   <StepperTitle
                     className={ds.cn(
                       activeStepIndex === index && "text-primary",
