@@ -119,12 +119,48 @@ export function BudgetSelector({
                 Lifetime
               </Button>
             </div>
+
+            {/* Exponential Slider */}
+            <div className={ds.spacing.vertical.xs}>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={(() => {
+                  if (!budget) return budgetType === 'daily' ? 50 : 30
+                  const min = budgetType === 'daily' ? 1 : 100
+                  const max = budgetType === 'daily' ? 1000 : 10000
+                  // Reverse formula: sliderPos = 100 * log(value/min) / log(max/min)
+                  return Math.round((100 * Math.log(budget / min)) / Math.log(max / min))
+                })()}
+                onChange={(e) => {
+                  const sliderPos = parseFloat(e.target.value)
+                  const min = budgetType === 'daily' ? 1 : 100
+                  const max = budgetType === 'daily' ? 1000 : 10000
+                  // Exponential formula: value = min * (max/min)^(sliderPos/100)
+                  const value = Math.round(min * Math.pow(max / min, sliderPos / 100))
+                  onUpdateBudget(value)
+                }}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{budgetType === 'daily' ? '€1' : '€100'}</span>
+                <span className="font-medium text-foreground">
+                  €{budget || (budgetType === 'daily' ? 50 : 1500)}
+                </span>
+                <span>{budgetType === 'daily' ? '€1000' : '€10000'}</span>
+              </div>
+            </div>
+
+            {/* Manual Input */}
             <Input
               value={budget || ''}
               onChange={(value) => onUpdateBudget(parseFloat(value) || undefined)}
               type="number"
               prefix="€"
               placeholder={budgetType === 'daily' ? '50' : '1500'}
+              hint="Or enter manually"
             />
           </div>
         </>

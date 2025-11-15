@@ -85,29 +85,68 @@ export function AudiencesBulkStep() {
       </div>
 
       {/* Audience Builder */}
-      <FormSection title={`Audiences (${bulkAudiences.audiences.length})`}>
-        {/* Type Selector */}
-        <AudienceTypeSelector
-          selectedType={audienceBuilder.newAudienceType}
-          onSelectType={audienceBuilder.setNewAudienceType}
-          onQuickAddBroad={audienceBuilder.handleQuickAddBroad}
-        />
+      <FormSection title="Audiences">
+        {/* Help Text */}
+        {bulkAudiences.audiences.length === 0 && (
+          <div className={ds.cn(
+            'mb-4 p-3 rounded-lg',
+            'bg-blue-50 border border-blue-200',
+            'flex items-start gap-2'
+          )}>
+            <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className={ds.cn(ds.typography.body, 'text-blue-900 font-medium')}>
+                Add at least one audience
+              </p>
+              <p className={ds.cn(ds.typography.caption, 'text-blue-700 mt-0.5')}>
+                Select an audience type below, configure it, then click "Add Audience" to include it in your campaign.
+              </p>
+            </div>
+          </div>
+        )}
 
-        {/* Conditional Forms */}
-        <AudienceForm
-          type={audienceBuilder.newAudienceType}
-          userId={userId}
-          selectedInterests={audienceBuilder.selectedInterests}
-          onAddInterest={audienceBuilder.handleAddInterest}
-          onRemoveInterest={audienceBuilder.handleRemoveInterest}
-          lalSource={audienceBuilder.lalSource}
-          lalPercentages={audienceBuilder.lalPercentages}
-          onSetLalSource={audienceBuilder.setLalSource}
-          onToggleLalPercentage={audienceBuilder.handleToggleLalPercentage}
-          customAudienceId={audienceBuilder.customAudienceId}
-          onSetCustomAudienceId={audienceBuilder.setCustomAudienceId}
-          onAdd={audienceBuilder.handleAddAudience}
-        />
+        {/* Step 1: Select Type */}
+        <div className={ds.spacing.vertical.sm}>
+          <label className={ds.cn(ds.componentPresets.label, 'flex items-center gap-2')}>
+            <span className={ds.cn(
+              'inline-flex items-center justify-center w-5 h-5 rounded-full',
+              'bg-primary text-primary-foreground text-xs font-bold'
+            )}>1</span>
+            Select Audience Type
+          </label>
+          <AudienceTypeSelector
+            selectedType={audienceBuilder.newAudienceType}
+            onSelectType={audienceBuilder.setNewAudienceType}
+            onQuickAddBroad={audienceBuilder.handleQuickAddBroad}
+          />
+        </div>
+
+        {/* Step 2: Configure (if not Broad) */}
+        {audienceBuilder.newAudienceType !== 'BROAD' && (
+          <div className={ds.spacing.vertical.sm}>
+            <label className={ds.cn(ds.componentPresets.label, 'flex items-center gap-2')}>
+              <span className={ds.cn(
+                'inline-flex items-center justify-center w-5 h-5 rounded-full',
+                'bg-primary text-primary-foreground text-xs font-bold'
+              )}>2</span>
+              Configure {audienceBuilder.newAudienceType === 'INTEREST' ? 'Interests' : audienceBuilder.newAudienceType === 'LOOKALIKE' ? 'Lookalike' : 'Custom Audience'}
+            </label>
+            <AudienceForm
+              type={audienceBuilder.newAudienceType}
+              userId={userId}
+              selectedInterests={audienceBuilder.selectedInterests}
+              onAddInterest={audienceBuilder.handleAddInterest}
+              onRemoveInterest={audienceBuilder.handleRemoveInterest}
+              lalSource={audienceBuilder.lalSource}
+              lalPercentages={audienceBuilder.lalPercentages}
+              onSetLalSource={audienceBuilder.setLalSource}
+              onToggleLalPercentage={audienceBuilder.handleToggleLalPercentage}
+              customAudienceId={audienceBuilder.customAudienceId}
+              onSetCustomAudienceId={audienceBuilder.setCustomAudienceId}
+              onAdd={audienceBuilder.handleAddAudience}
+            />
+          </div>
+        )}
 
         {/* Added Audiences - Compact Pills */}
         {bulkAudiences.audiences.length > 0 && (
