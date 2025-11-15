@@ -41,7 +41,7 @@ export function SidebarNavigation({
           const state = isCompleted ? 'completed' : isActive ? 'active' : 'inactive'
 
           return (
-            <div key={section.id} className="group/step flex items-start" data-state={state}>
+            <div key={section.id} className="group/step flex items-center" data-state={state}>
               {/* Indicator + Separator column */}
               <div className="flex flex-col items-center mr-3">
                 {/* Circle Indicator */}
@@ -64,7 +64,7 @@ export function SidebarNavigation({
                 {!isLastSection && (
                   <div
                     className={ds.cn(
-                      "w-0.5 h-8 my-1 transition-colors",
+                      "w-0.5 h-4 transition-colors",
                       isCompleted ? "bg-primary" : "bg-muted"
                     )}
                   />
@@ -76,7 +76,7 @@ export function SidebarNavigation({
                 onClick={() => !isLocked && onSectionClick(section.id)}
                 disabled={isLocked}
                 className={ds.cn(
-                  "flex-1 text-left py-1.5 px-2 -ml-2 rounded-lg transition-all",
+                  "flex-1 text-left py-1 px-2 -ml-2 rounded-lg transition-all",
                   isActive && "bg-primary/5",
                   isLocked && "opacity-40 cursor-not-allowed",
                   !isLocked && !isActive && "hover:bg-gray-50"
