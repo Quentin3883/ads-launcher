@@ -71,6 +71,119 @@ export function CreativesBulkStep() {
         fileInputRef={fileUpload.fileInputRef}
       />
 
+      {/* Ad Copy Section - MOVED ABOVE CREATIVES */}
+      <FormSection title="Ad Copy">
+        <div className={ds.spacing.vertical.md}>
+          <div className={ds.cn('flex items-center gap-2 mb-2', ds.typography.caption, 'font-medium text-muted-foreground')}>
+            <Sparkles className="h-3 w-3" />
+            <span>Supports dynamic parameters: {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
+          </div>
+
+          {/* Primary Text (Textarea) */}
+          <div>
+            <label className={ds.componentPresets.label}>Primary Text *</label>
+            <Textarea
+              maxLength={2000}
+              value={bulkCreatives.globalPrimaryText || ''}
+              onChange={(e) => {
+                const val = e.target.value
+                const previousValue = bulkCreatives.globalPrimaryText
+                updateBulkCreatives({ globalPrimaryText: val })
+
+                // Auto-apply to creatives that either:
+                // 1. Have no primaryText (empty)
+                // 2. Have the previous global primaryText (were synced before)
+                bulkCreatives.creatives.forEach((creative) => {
+                  if (!creative.primaryText || creative.primaryText === previousValue) {
+                    updateCreative(creative.id, { primaryText: val })
+                  }
+                })
+              }}
+              placeholder="Your message"
+              rows={3}
+              className={ds.cn(ds.typography.body, 'resize-y')}
+            />
+            {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
+              <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Headline */}
+          <div>
+            <Input
+              label="Headline *"
+              maxLength={40}
+              value={bulkCreatives.globalHeadline || ''}
+              onChange={(val) => {
+                const previousValue = bulkCreatives.globalHeadline
+                updateBulkCreatives({ globalHeadline: val })
+
+                // Auto-apply to creatives that either:
+                // 1. Have no headline (empty)
+                // 2. Have the previous global headline (were synced before)
+                bulkCreatives.creatives.forEach((creative) => {
+                  if (!creative.headline || creative.headline === previousValue) {
+                    updateCreative(creative.id, { headline: val })
+                  }
+                })
+              }}
+              placeholder="Your headline"
+            />
+            {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
+              <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalHeadline)}</p>
+              </div>
+            )}
+          </div>
+
+          {/* CTA */}
+          <Select
+            label="CTA *"
+            value={bulkCreatives.globalCTA || 'Learn More'}
+            onChange={(val) => {
+              const previousValue = bulkCreatives.globalCTA
+              updateBulkCreatives({ globalCTA: val })
+
+              // Auto-apply to creatives that either:
+              // 1. Have no CTA (empty)
+              // 2. Have the previous global CTA (were synced before)
+              bulkCreatives.creatives.forEach((creative) => {
+                if (!creative.cta || creative.cta === previousValue) {
+                  updateCreative(creative.id, { cta: val })
+                }
+              })
+            }}
+            options={CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))}
+          />
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                // Apply global copy to all creatives (override any existing specific wording)
+                bulkCreatives.creatives.forEach((creative) => {
+                  updateCreative(creative.id, {
+                    headline: bulkCreatives.globalHeadline,
+                    primaryText: bulkCreatives.globalPrimaryText,
+                    cta: bulkCreatives.globalCTA,
+                  })
+                })
+              }}
+              className={ds.cn(
+                'px-3 py-1.5 rounded-md',
+                ds.typography.caption
+              )}
+            >
+              Apply to All
+            </Button>
+          </div>
+        </div>
+      </FormSection>
+
       {/* Creatives Grid */}
       {bulkCreatives.creatives.length > 0 && (
         <div className={ds.spacing.vertical.sm}>
@@ -96,38 +209,14 @@ export function CreativesBulkStep() {
                 {/* Expandable Copy Fields */}
                 <div className={ds.cn('mt-2 pt-2 border-t border-border', ds.spacing.vertical.sm)}>
                   <div className={ds.cn('flex items-center gap-2 mb-1.5', ds.typography.caption, 'font-medium text-muted-foreground')}>
-                    <span>Optional Copy (overrides copy variants)</span>
+                    <span>Optional Copy (overrides global)</span>
                     <div className={ds.cn('flex items-center', ds.spacing.gap.xs, 'text-blue-600')}>
                       <Sparkles className="h-3 w-3" />
                       <span>Supports {'{{city}}'}, {'{{label}}'}, {'{{country}}'}</span>
                     </div>
                   </div>
-                  <div className={ds.cn('grid grid-cols-2', ds.spacing.gap.sm)}>
-                    <div>
-                      <Input
-                        label="Headline"
-                        maxLength={255}
-                        value={creative.headline || ''}
-                        onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
-                        placeholder="Override headline for this creative..."
-                      />
-                      {creative.headline && hasDynamicParams(creative.headline) && (
-                        <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                          <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
-                          <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(creative.headline)}</p>
-                        </div>
-                      )}
-                    </div>
-                    <Select
-                      label="CTA"
-                      value={creative.cta || ''}
-                      onChange={(val) => updateCreative(creative.id, { cta: val || undefined })}
-                      options={[
-                        { value: '', label: '(Clear - use global)' },
-                        ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
-                      ]}
-                    />
-                  </div>
+
+                  {/* Primary Text */}
                   <div>
                     <label className={ds.componentPresets.label}>Primary Text</label>
                     <Textarea
@@ -136,7 +225,7 @@ export function CreativesBulkStep() {
                       onChange={(e) => updateCreative(creative.id, { primaryText: e.target.value || undefined })}
                       placeholder="Override primary text for this creative..."
                       rows={2}
-                      className={ds.cn(ds.typography.body)}
+                      className={ds.cn(ds.typography.body, 'resize-y')}
                     />
                     {creative.primaryText && hasDynamicParams(creative.primaryText) && (
                       <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
@@ -145,6 +234,34 @@ export function CreativesBulkStep() {
                       </div>
                     )}
                   </div>
+
+                  {/* Headline */}
+                  <div>
+                    <Input
+                      label="Headline"
+                      maxLength={255}
+                      value={creative.headline || ''}
+                      onChange={(val) => updateCreative(creative.id, { headline: val || undefined })}
+                      placeholder="Override headline for this creative..."
+                    />
+                    {creative.headline && hasDynamicParams(creative.headline) && (
+                      <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
+                        <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
+                        <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(creative.headline)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CTA */}
+                  <Select
+                    label="CTA"
+                    value={creative.cta || '__NONE__'}
+                    onChange={(val) => updateCreative(creative.id, { cta: val === '__NONE__' ? undefined : val })}
+                    options={[
+                      { value: '__NONE__', label: '(Clear - use global)' },
+                      ...CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))
+                    ]}
+                  />
                   <Input
                     label="Description"
                     maxLength={255}
@@ -158,107 +275,6 @@ export function CreativesBulkStep() {
           </div>
         </div>
       )}
-
-      {/* Copy Section */}
-      <FormSection title="Ad Copy">
-        <div className={ds.spacing.vertical.md}>
-          <div className={ds.cn('grid grid-cols-3', ds.spacing.gap.md)}>
-            <div>
-              <Input
-                label="Headline"
-                maxLength={40}
-                value={bulkCreatives.globalHeadline || ''}
-                onChange={(val) => {
-                  const previousValue = bulkCreatives.globalHeadline
-                  updateBulkCreatives({ globalHeadline: val })
-
-                  // Auto-apply to creatives that either:
-                  // 1. Have no headline (empty)
-                  // 2. Have the previous global headline (were synced before)
-                  bulkCreatives.creatives.forEach((creative) => {
-                    if (!creative.headline || creative.headline === previousValue) {
-                      updateCreative(creative.id, { headline: val })
-                    }
-                  })
-                }}
-                placeholder="Your headline"
-              />
-              {bulkCreatives.globalHeadline && hasDynamicParams(bulkCreatives.globalHeadline) && (
-                <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                  <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
-                  <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalHeadline)}</p>
-                </div>
-              )}
-            </div>
-            <div>
-              <Input
-                label="Primary Text"
-                maxLength={125}
-                value={bulkCreatives.globalPrimaryText || ''}
-                onChange={(val) => {
-                  const previousValue = bulkCreatives.globalPrimaryText
-                  updateBulkCreatives({ globalPrimaryText: val })
-
-                  // Auto-apply to creatives that either:
-                  // 1. Have no primaryText (empty)
-                  // 2. Have the previous global primaryText (were synced before)
-                  bulkCreatives.creatives.forEach((creative) => {
-                    if (!creative.primaryText || creative.primaryText === previousValue) {
-                      updateCreative(creative.id, { primaryText: val })
-                    }
-                  })
-                }}
-                placeholder="Your message"
-              />
-              {bulkCreatives.globalPrimaryText && hasDynamicParams(bulkCreatives.globalPrimaryText) && (
-                <div className="mt-1 px-2 py-1 rounded bg-blue-50 border border-blue-200">
-                  <p className={ds.cn(ds.typography.caption, 'text-blue-600 font-medium')}>Preview:</p>
-                  <p className={ds.cn(ds.typography.caption, 'text-blue-700')}>{getPreviewText(bulkCreatives.globalPrimaryText)}</p>
-                </div>
-              )}
-            </div>
-            <Select
-              label="CTA"
-              value={bulkCreatives.globalCTA || 'Learn More'}
-              onChange={(val) => {
-                const previousValue = bulkCreatives.globalCTA
-                updateBulkCreatives({ globalCTA: val })
-
-                // Auto-apply to creatives that either:
-                // 1. Have no CTA (empty)
-                // 2. Have the previous global CTA (were synced before)
-                bulkCreatives.creatives.forEach((creative) => {
-                  if (!creative.cta || creative.cta === previousValue) {
-                    updateCreative(creative.id, { cta: val })
-                  }
-                })
-              }}
-              options={CTA_OPTIONS.map((cta) => ({ value: cta, label: cta }))}
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={() => {
-                // Apply global copy to all creatives (override any existing specific wording)
-                bulkCreatives.creatives.forEach((creative) => {
-                  updateCreative(creative.id, {
-                    headline: bulkCreatives.globalHeadline,
-                    primaryText: bulkCreatives.globalPrimaryText,
-                    cta: bulkCreatives.globalCTA,
-                  })
-                })
-              }}
-              className={ds.cn(
-                'px-3 py-1.5 rounded-md',
-                ds.typography.caption
-              )}
-            >
-              Apply to All
-            </Button>
-          </div>
-        </div>
-      </FormSection>
 
       {/* Copy Variants */}
       <FormSection

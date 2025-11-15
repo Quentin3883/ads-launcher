@@ -53,7 +53,7 @@ export function ScheduleSelector({
                 ds.transitions.default
               )}
             >
-              Now
+              No - Start now
             </Button>
             <Button
               type="button"
@@ -74,7 +74,7 @@ export function ScheduleSelector({
                 ds.transitions.default
               )}
             >
-              Schedule
+              Yes - Set dates
             </Button>
           </div>
           {startDate !== 'NOW' && (
