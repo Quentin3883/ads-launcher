@@ -7,7 +7,6 @@ import { useBulkLauncher } from '@/lib/store/bulk-launcher'
 import { useClientsStore } from '@/lib/store/clients'
 import { ClientSelectionStep } from '../bulk-launcher/steps/client-selection-step'
 import { AdAccountSelectionStep } from '../bulk-launcher/steps/ad-account-selection-step'
-import { ModeSelectionStep } from '../bulk-launcher/steps/mode-selection-step'
 import { UndoRedoControls } from '../bulk-launcher/controls/undo-redo-controls'
 import { SidebarNavigation } from '../bulk-launcher/ui'
 import type { SidebarSection } from '../bulk-launcher/ui'
@@ -99,15 +98,18 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
   // Check if client is already selected
   const hasPreselectedClient = !!selectedClientId
 
-  // Calculate step indices for the initial 3 steps
-  const STEP_MODE = hasPreselectedClient ? 0 : 1
+  // Calculate step indices (Express mode removed, skip mode selection)
   const STEP_CLIENT = hasPreselectedClient ? -1 : 0 // Skip if preselected
-  const STEP_AD_ACCOUNT = hasPreselectedClient ? 1 : 2
-  const STEP_MAIN_CONTENT = hasPreselectedClient ? 2 : 3 // When to show single-page view
+  const STEP_AD_ACCOUNT = hasPreselectedClient ? 0 : 1
+  const STEP_MAIN_CONTENT = hasPreselectedClient ? 1 : 2 // When to show single-page view
 
   // Initialize when modal opens
   useEffect(() => {
     if (open) {
+      // Force Pro mode (Express mode removed)
+      const { setLaunchMode } = useBulkLauncher.getState()
+      setLaunchMode('pro')
+
       // Set client from global selection when modal opens
       if (selectedClientId && !clientId) {
         setClientId(selectedClientId)
@@ -443,9 +445,8 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
   //   }
   // }, [...])
 
-  // Render initial setup steps (before main content)
+  // Render initial setup steps (Express mode removed)
   const renderSetupStep = () => {
-    if (currentStep === STEP_MODE) return <ModeSelectionStep />
     if (currentStep === STEP_CLIENT && !hasPreselectedClient) return <ClientSelectionStep />
     if (currentStep === STEP_AD_ACCOUNT) return <AdAccountSelectionStep />
     return null
@@ -453,7 +454,6 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
 
   // Get step description
   const getStepDescription = () => {
-    if (currentStep === STEP_MODE) return 'Choose your launch mode'
     if (currentStep === STEP_CLIENT) return 'Select your client'
     if (currentStep === STEP_AD_ACCOUNT) return 'Select Facebook Ad Account'
     return ''
@@ -480,7 +480,7 @@ export function BulkLauncherModal({ open, onOpenChange, editLaunchId }: BulkLaun
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-foreground">
-                  {launchMode === 'express' ? 'Mode Express' : launchMode === 'pro' ? 'Mode Pro' : 'Bulk Campaign Launcher'}
+                  Bulk Campaign Launcher
                 </h2>
                 {mode === 'edit' && (
                   <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
