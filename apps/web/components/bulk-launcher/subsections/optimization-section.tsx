@@ -130,12 +130,32 @@ export function OptimizationSection() {
             label="Optimization Goal"
             value={bulkAudiences.optimizationEvent}
             onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
-            options={availableOptimizationGoals.map((goal) => ({
-              value: goal,
-              label: goal.replace(/_/g, ' '),
-            }))}
+            options={availableOptimizationGoals.map((goal) => {
+              // Friendly labels in French
+              const labels: Record<string, string> = {
+                'LINK_CLICKS': 'Clics sur le lien',
+                'LANDING_PAGE_VIEWS': 'Vues de la page de destination',
+                'IMPRESSIONS': 'Impressions',
+                'REACH': 'Portée',
+                'OFFSITE_CONVERSIONS': 'Conversions',
+                'LEAD_GENERATION': 'Génération de prospects',
+                'QUALITY_LEAD': 'Prospects de qualité',
+                'QUALITY_CALL': 'Appels de qualité',
+                'CONVERSATIONS': 'Conversations',
+                'POST_ENGAGEMENT': 'Engagement sur la publication',
+                'PAGE_LIKES': 'J\'aime de la page',
+                'EVENT_RESPONSES': 'Réponses à l\'événement',
+                'THRUPLAY': 'Lectures vidéo complètes',
+                'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS': 'Vues vidéo (2 secondes)',
+                'APP_INSTALLS': 'Installations d\'application',
+                'AD_RECALL_LIFT': 'Mémorisation publicitaire',
+              }
+              return {
+                value: goal,
+                label: labels[goal] || goal.replace(/_/g, ' '),
+              }
+            })}
             required
-            hint={`Available goals for ${campaign.type} → ${currentDestination || 'WEBSITE'}`}
           />
         </div>
 

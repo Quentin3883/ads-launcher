@@ -105,6 +105,17 @@ export function AudienceTargetingSection() {
         <CardTitle>Audiences ({bulkAudiences.audiences.length})</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Help Text when no audiences */}
+        {bulkAudiences.audiences.length === 0 && (
+          <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-2">
+            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+            <div>
+              <p className="text-sm font-medium text-blue-900">Select an audience type below</p>
+              <p className="text-xs text-blue-700 mt-1">Click on Broad for quick wide reach, or choose Interests/Lookalike/Custom to configure targeting.</p>
+            </div>
+          </div>
+        )}
+
         {/* Quick Add Buttons */}
         <div className="flex flex-wrap gap-2">
           {AUDIENCE_PRESET_TYPES.map((type) => (
@@ -133,7 +144,10 @@ export function AudienceTargetingSection() {
         {/* Conditional inline forms */}
         {newAudienceType === 'INTEREST' && (
           <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Interest Audience</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">2</div>
+              Add Interest Audience
+            </div>
             <InterestAutocomplete
               userId={userId}
               selectedInterests={selectedInterests}
@@ -154,7 +168,10 @@ export function AudienceTargetingSection() {
 
         {newAudienceType === 'LOOKALIKE' && (
           <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Lookalike Audience</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">2</div>
+              Add Lookalike Audience
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <Input
                 type="text"
@@ -192,7 +209,10 @@ export function AudienceTargetingSection() {
 
         {newAudienceType === 'CUSTOM_AUDIENCE' && (
           <div className="mt-3 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-            <div className="text-xs font-medium text-foreground">Add Custom Audience</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">2</div>
+              Add Custom Audience
+            </div>
             <Input
               type="text"
               value={customAudienceId}
