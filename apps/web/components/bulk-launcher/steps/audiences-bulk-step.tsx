@@ -43,6 +43,19 @@ export function AudiencesBulkStep() {
   const isABO = campaign.budgetMode === 'ABO'
   const stats = getMatrixStats()
 
+  // Friendly labels for optimization events (user-friendly names instead of technical Meta names)
+  const OPTIMIZATION_EVENT_LABELS: Record<string, string> = {
+    'Link Clicks': 'Clics sur le lien',
+    'Landing Page Views': 'Vues de la page de destination',
+    'Impressions': 'Impressions',
+    'Reach': 'Portée',
+    'Conversions': 'Conversions',
+    'Leads': 'Prospects',
+    'Post Engagement': 'Engagement sur la publication',
+    'Video Views': 'Vues de vidéo',
+    'ThruPlay': 'Lectures vidéo complètes',
+  }
+
   // Filter optimization events based on campaign type
   const availableOptimizationEvents = useMemo(() => {
     const campaignType = campaign.type || 'Traffic'
@@ -243,10 +256,9 @@ export function AudiencesBulkStep() {
             onChange={(val) => updateBulkAudiences({ optimizationEvent: val })}
             options={availableOptimizationEvents.map((event) => ({
               value: event,
-              label: event.replace(/_/g, ' '),
+              label: OPTIMIZATION_EVENT_LABELS[event] || event,
             }))}
             required
-            hint="How Facebook will optimize delivery"
           />
 
           {isABO && (

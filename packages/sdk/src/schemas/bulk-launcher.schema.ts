@@ -32,6 +32,7 @@ export const budgetModeSchema = z.enum(['CBO', 'ABO'])
 export const budgetTypeSchema = z.enum(['daily', 'lifetime'])
 export const audiencePresetTypeSchema = z.enum(['BROAD', 'INTEREST', 'LOOKALIKE', 'CUSTOM_AUDIENCE'])
 export const placementPresetSchema = z.enum([
+  'ADVANTAGE_PLUS',
   'FEEDS_REELS',
   'STORIES_ONLY',
   'ALL_PLACEMENTS',
@@ -307,6 +308,7 @@ export type BulkCampaignOutput = z.infer<typeof bulkCampaignOutputSchema>
 // ============================================
 
 export const PLACEMENT_PRESETS: Record<PlacementPreset, string[]> = {
+  ADVANTAGE_PLUS: [], // Meta's automatic placement optimization (no manual placements)
   FEEDS_REELS: ['Feed', 'Reels'],
   STORIES_ONLY: ['Stories'],
   ALL_PLACEMENTS: ['Feed', 'Stories', 'Reels', 'Explore', 'Messenger', 'Search', 'In-stream'],

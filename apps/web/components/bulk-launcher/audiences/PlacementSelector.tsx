@@ -9,6 +9,7 @@ interface PlacementSelectorProps {
 }
 
 const PLACEMENT_PRESET_OPTIONS: { value: PlacementPreset; label: string; placements: string[]; category?: string }[] = [
+  { value: 'ADVANTAGE_PLUS', label: 'Advantage+ (Auto)', placements: PLACEMENT_PRESETS.ADVANTAGE_PLUS },
   { value: 'ALL_PLACEMENTS', label: 'All Placements', placements: PLACEMENT_PRESETS.ALL_PLACEMENTS },
   { value: 'FEEDS_REELS', label: 'Feeds + Reels', placements: PLACEMENT_PRESETS.FEEDS_REELS },
   { value: 'STORIES_ONLY', label: 'Stories Only', placements: PLACEMENT_PRESETS.STORIES_ONLY },
