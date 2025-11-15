@@ -1,7 +1,14 @@
 'use client'
 
-import { Check } from 'lucide-react'
 import { ds } from './design-system'
+import {
+  Stepper,
+  StepperIndicator,
+  StepperItem,
+  StepperSeparator,
+  StepperTitle,
+  StepperTrigger,
+} from '@/components/ui/stepper'
 
 export interface SidebarSection {
   id: string
@@ -28,72 +35,60 @@ export function SidebarNavigation({
   onSectionClick,
   unlockedSections = [],
 }: SidebarNavigationProps) {
+  // Find active step index (0-based for internal logic, but we'll use 1-based for display)
+  const activeStepIndex = sections.findIndex((s) => s.id === activeSection)
+
   return (
     <div className="h-full flex flex-col py-6 px-4">
-      <div className="flex-1 flex flex-col gap-0">
+      <Stepper
+        value={activeStepIndex}
+        orientation="vertical"
+        className="flex-1 w-full"
+      >
         {sections.map((section, index) => {
-          const isActive = section.id === activeSection
           const isLocked = unlockedSections.length > 0 && !unlockedSections.includes(section.id)
-          const isCompleted = section.isComplete
           const isLastSection = index === sections.length - 1
 
           return (
-            <div key={section.id} className="flex items-start">
-              {/* Left column: circle + line */}
-              <div className="flex flex-col items-center mr-3">
-                {/* Circle */}
-                <div
-                  className={ds.cn(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                    isCompleted && "bg-primary text-primary-foreground",
-                    isActive && !isCompleted && "bg-white text-primary ring-2 ring-primary ring-offset-2",
-                    !isActive && !isCompleted && "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check className="size-3.5" strokeWidth={2.5} />
-                  ) : (
-                    <span>{index + 1}</span>
-                  )}
-                </div>
-
-                {/* Vertical line */}
-                {!isLastSection && (
-                  <div
-                    className={ds.cn(
-                      "w-0.5 h-6",
-                      isCompleted ? "bg-primary" : "bg-muted"
-                    )}
-                  />
-                )}
-              </div>
-
-              {/* Right column: title button */}
-              <button
-                onClick={() => !isLocked && onSectionClick(section.id)}
-                disabled={isLocked}
+            <StepperItem
+              key={section.id}
+              step={index + 1}
+              completed={section.isComplete}
+              disabled={isLocked}
+              className="relative items-start [&:not(:last-child)]:pb-2"
+            >
+              <StepperTrigger
+                asChild
                 className={ds.cn(
-                  "flex-1 text-left py-1 px-2 -ml-2 rounded-lg transition-all",
-                  isActive && "bg-primary/5",
-                  isLocked && "opacity-40 cursor-not-allowed",
-                  !isLocked && !isActive && "hover:bg-gray-50"
+                  "w-full cursor-pointer",
+                  !isLocked && "hover:bg-gray-50",
+                  activeStepIndex === index && "bg-primary/5"
                 )}
               >
-                <span
-                  className={ds.cn(
-                    "text-sm font-medium",
-                    isActive && "text-primary",
-                    !isActive && isCompleted && "text-foreground",
-                    !isActive && !isCompleted && "text-muted-foreground"
-                  )}
+                <div
+                  onClick={() => !isLocked && onSectionClick(section.id)}
+                  className="flex items-center gap-3 py-1 px-2 rounded-lg transition-all"
                 >
-                  {section.title}
-                </span>
-              </button>
-            </div>
+                  <StepperIndicator className="data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:bg-white data-[state=active]:text-primary" />
+                  <StepperTitle
+                    className={ds.cn(
+                      "mt-0 text-sm font-medium",
+                      activeStepIndex === index && "text-primary",
+                      section.isComplete && activeStepIndex !== index && "text-foreground",
+                      !section.isComplete && activeStepIndex !== index && "text-muted-foreground"
+                    )}
+                  >
+                    {section.title}
+                  </StepperTitle>
+                </div>
+              </StepperTrigger>
+              {!isLastSection && (
+                <StepperSeparator className="absolute inset-y-0 left-[11px] top-[calc(1.5rem+0.5rem)] -order-1 m-0 -translate-x-1/2 h-[calc(100%-2rem)] w-0.5 flex-none" />
+              )}
+            </StepperItem>
           )
         })}
-      </div>
+      </Stepper>
     </div>
   )
 }
