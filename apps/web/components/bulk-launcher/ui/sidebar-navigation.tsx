@@ -31,141 +31,63 @@ export function SidebarNavigation({
   onSectionClick,
   unlockedSections = [],
 }: SidebarNavigationProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
-
-  // Auto-expand active section
-  useEffect(() => {
-    const activeMainSection = sections.find(
-      (s) => s.id === activeSection || s.subsections?.some((sub) => sub.id === activeSection)
-    )
-    if (activeMainSection) {
-      setExpandedSections((prev) => new Set([...prev, activeMainSection.id]))
-    }
-  }, [activeSection, sections])
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(sectionId)) {
-        next.delete(sectionId)
-      } else {
-        next.add(sectionId)
-      }
-      return next
-    })
-  }
-
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-3 py-2 flex-1">
-        {sections.map((section) => {
-          const isExpanded = expandedSections.has(section.id)
-          const isActiveMain = section.id === activeSection
-          const hasActiveSubsection = section.subsections?.some((sub) => sub.id === activeSection)
+    <div className="h-full flex flex-col py-6 px-4">
+      <div className="flex-1 space-y-1">
+        {sections.map((section, index) => {
+          const isActive = section.id === activeSection
           const isLocked = unlockedSections.length > 0 && !unlockedSections.includes(section.id)
-
-          const sectionIndex = sections.indexOf(section)
-          const previousSection = sectionIndex > 0 ? sections[sectionIndex - 1] : null
-          const showConnectingLine = previousSection?.isComplete && section.isComplete
+          const isLastSection = index === sections.length - 1
 
           return (
-            <div key={section.id} className="mb-0.5 relative">
-              {/* Connecting line from previous completed section */}
-              {showConnectingLine && (
-                <div className="absolute left-[14px] -top-1 w-0.5 h-2 bg-primary z-0" />
+            <div key={section.id} className="relative">
+              {/* Vertical connecting line */}
+              {!isLastSection && (
+                <div
+                  className={ds.cn(
+                    "absolute left-[19px] top-10 bottom-0 w-[2px]",
+                    section.isComplete ? "bg-primary" : "bg-gray-200"
+                  )}
+                />
               )}
 
-              {/* Main Section */}
-              <Button variant="ghost"
-                onClick={() => {
-                  if (isLocked) return
-                  if (section.subsections && section.subsections.length > 0) {
-                    toggleSection(section.id)
-                  } else {
-                    onSectionClick(section.id)
-                  }
-                }}
+              {/* Step item */}
+              <button
+                onClick={() => !isLocked && onSectionClick(section.id)}
                 disabled={isLocked}
                 className={ds.cn(
-                  'w-full flex items-center gap-2 h-8 relative',
-                  'px-2.5',
-                  'py-1',
-                  ds.borders.radius.md,
-                  ds.transitions.default,
-                  'group',
-                  isLocked
-                    ? 'text-muted-foreground/40 cursor-not-allowed opacity-50'
-                    : isActiveMain || hasActiveSubsection
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-foreground hover:bg-muted'
+                  "w-full flex items-start gap-3 py-2 px-2 rounded-lg transition-all relative z-10",
+                  isActive && "bg-primary/5",
+                  isLocked && "opacity-40 cursor-not-allowed",
+                  !isLocked && !isActive && "hover:bg-gray-50"
                 )}
               >
-                {/* Icon or Completion indicator */}
-                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center relative z-10">
+                {/* Circle with number or checkmark */}
+                <div className={ds.cn(
+                  "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all",
+                  section.isComplete
+                    ? "bg-primary text-white"
+                    : isActive
+                    ? "bg-primary/10 text-primary border-2 border-primary"
+                    : "bg-white border-2 border-gray-200 text-gray-400"
+                )}>
                   {section.isComplete ? (
-                    <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
-                    </div>
-                  ) : section.icon ? (
-                    section.icon
+                    <Check className="w-5 h-5" />
                   ) : (
-                    <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                    <span>{index + 1}</span>
                   )}
                 </div>
 
-                {/* Title */}
-                <span className="text-sm flex-1 text-left truncate">
-                  {section.title}
-                </span>
-
-                {/* Expand indicator */}
-                {section.subsections && section.subsections.length > 0 && (
-                  <ChevronRight
-                    className={ds.cn(
-                      'w-4 h-4 flex-shrink-0 transition-transform',
-                      isExpanded && 'rotate-90'
-                    )}
-                  />
-                )}
-              </Button>
-
-              {/* Subsections */}
-              {section.subsections && section.subsections.length > 0 && isExpanded && (
-                <div className="ml-6 mt-0.5 space-y-0">
-                  {section.subsections.map((subsection) => {
-                    const isActiveSubsection = subsection.id === activeSection
-
-                    return (
-                      <Button variant="ghost"
-                        key={subsection.id}
-                        onClick={() => onSectionClick(subsection.id)}
-                        className={ds.cn(
-                          'w-full flex items-center gap-1.5',
-                          'px-2 py-1.5',
-                          ds.borders.radius.sm,
-                          ds.transitions.default,
-                          'text-xs',
-                          isActiveSubsection
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                        )}
-                      >
-                        {/* Completion indicator */}
-                        <div className="flex-shrink-0 w-3 h-3 flex items-center justify-center">
-                          {subsection.isComplete ? (
-                            <div className="w-1 h-1 rounded-full bg-primary" />
-                          ) : (
-                            <div className="w-1 h-1 rounded-full border border-muted-foreground/30" />
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <span className="flex-1 text-left truncate">{subsection.title}</span>
-                      </Button>
-                    )
-                  })}
+                {/* Title only (no subtitle) */}
+                <div className="flex-1 text-left pt-2">
+                  <div className={ds.cn(
+                    "font-medium text-sm transition-colors",
+                    isActive ? "text-primary" : section.isComplete ? "text-foreground" : "text-muted-foreground"
+                  )}>
+                    {section.title}
+                  </div>
                 </div>
-              )}
+              </button>
             </div>
           )
         })}
